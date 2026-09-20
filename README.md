@@ -120,15 +120,30 @@ Two notes on the toolchain:
   the memory map is edited through the `OCR_RVCT` entries in the project rather
   than in `arm/OBJ/Tstat10_arm_revxx.sct`. The `<ScatterFile>` entry naming
   `..\OBJ\test.sct` is a stale leftover; no such file exists and nothing reads it.
-  `RW_IRAM1` was declared as `0x80000` against the device's actual `0x10000` of
-  internal SRAM — harmless, because `RW_RAM1` at `0x60000000` is matched first
-  and internal RAM links empty, but wrong for anyone reading the map. Corrected.
+  Both RAM regions were declared larger than the silicon and have been
+  corrected: `RW_IRAM1` to `0x10000`, the STM32F103ZE's internal SRAM, and
+  `RW_RAM1` to `0x80000`, the IS61L5128L on the board. `RW_RAM1` had been
+  declared as `0x800000` — sixteen times the real part — on a region that runs
+  about 92% full, so an overflow would have linked cleanly and corrupted at run
+  time. It now fails the link instead.
 - Building dirties the checked-in artifacts under `arm/OBJ/`. Those are not part
   of any commit on this branch.
 
 Current state of the `Tstat10_wifi` target: **0 errors, 492 warnings** (down from
 510 — the 18 that went were `char*` / `unsigned char*` mismatches removed by
-explicit casts). `ER_IROM1` is `0x47b98` of `0x60000`, leaving about 97 KB free.
+explicit casts).
+
+| Region | Used | Of | Free |
+| --- | --- | --- | --- |
+| `ER_IROM1` flash | `0x47bb8` | `0x60000` | ~97 KB |
+| `RW_RAM1` external SRAM | `0x75368` | `0x80000` | ~43 KB |
+| `RW_IRAM1` internal SRAM | `0x5360` | `0x10000` | ~43 KB |
+
+Capping `RW_RAM1` at the real 512 KB had a side effect worth knowing: the linker
+now spills about 21 KB into internal SRAM, which had been sitting entirely unused
+because `.ANY` swept everything into the oversized external region. Internal SRAM
+is single cycle where the FSMC part is not, so that is free speed rather than a
+regression.
 
 ## Not done yet
 
@@ -150,13 +165,18 @@ explicit casts). `ER_IROM1` is `0x47b98` of `0x60000`, leaving about 97 KB free.
   do much for the screen, though: the drawing loops are bound by `Write_Data()`
   and the SPI clock rather than by the core.
 
-  Memory is not the binding constraint today. The scatter file claims `0x60000`
-  at `0x08008000`, while the device holds `0x80000` from `0x08000000` — so on
-  top of the ~97 KB free inside the region there is another 96 KB of flash that
-  is not allocated at all, out of the 480 KB the bootloader leaves. RW and ZI
-  land in the 8 MB external SRAM at `0x60000000` (`RW_RAM1`, which precedes
-  `RW_IRAM1` in the scatter), and that is where the ~488 KB of ZI data sits; the
-  internal 64 KB is barely touched.
+  Flash is not the binding constraint. The scatter file claims `0x60000` at
+  `0x08008000`, while the device holds `0x80000` from `0x08000000` — so on top
+  of the ~97 KB free inside the region there is another 96 KB that is not
+  allocated at all, out of the 480 KB the bootloader leaves.
+
+  RAM is a different story, and it is the real argument for a bigger part. The
+  board carries one IS61L5128L, which is 512K x 8 — 512 KB, byte wide. RW and ZI
+  come to about 501 KB, so the external SRAM runs at roughly 92% full with
+  around 44 KB spare. The largest consumers are `tsm.o` (~169 KB, the BACnet
+  transaction state machine at `MAX_TSM_TRANSACTIONS 20`), `user_data.o`
+  (~71 KB, the point database) and the 60 KB FreeRTOS heap. Internal SRAM cannot
+  substitute: the heap alone would take 94% of the 64 KB on chip.
 
   The real obstacle is the bootloader. It is not in this repository, it is
   flashed below `0x08008000`, and changing silicon needs one that runs on the
