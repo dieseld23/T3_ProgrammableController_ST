@@ -5,12 +5,12 @@
 
 
 //V1.1 20120904
-//1,增加TIM3_PWM_Init函数。
-//2,增加LED0_PWM_VAL宏定义，控制TIM3_CH2脉宽									  
+//1, Added the TIM3_PWM_Init function.
+//2, Added the LED0_PWM_VAL macro, which controls the TIM3_CH2 pulse width									  
 //////////////////////////////////////////////////////////////////////////////////  
 
 
-//通过改变TIM3->CCR2的值来改变占空比，从而控制LED0的亮度
+//Changing TIM3->CCR2 changes the duty cycle and so the brightness of LED0
 #define LED0_PWM_VAL	TIM3->CCR2    
 #define SWTIMER_INTERVAL	1
 void TIM3_Int_Init(u16 arr, u16 psc);
