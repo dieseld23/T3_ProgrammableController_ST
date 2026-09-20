@@ -68,6 +68,30 @@
 #define BUTTON_DARK_COLOR   							0X0BA7
 #define BTN_OFFSET												CH_HEIGHT+7
 
+/* Page indicator. The three value rows run to x=222 and the frame drawn round
+ * them by draw_tangle() ends at x=224, which leaves the strip from x=227 to the
+ * right edge free the whole height of the rows. One mark per page goes there. */
+#define PAGE_MARK_MAX					8
+#define PAGE_MARK_XPOS					227
+#define PAGE_MARK_YPOS					110
+#define PAGE_MARK_XDOTS					9
+#define PAGE_MARK_YDOTS					9
+#define PAGE_MARK_PITCH					15
+#define PAGE_MARK_STRIP_YDOTS			(PAGE_MARK_MAX * PAGE_MARK_PITCH)
+/* Row labels. Str_variable_point.label is nine bytes, so eight characters is
+ * the whole of it. draw_tangle() puts the value box at x=102, which leaves
+ * x=0..101 for the label: eight 12 dot cells from x=2 end at x=97, clear of it.
+ * The glyphs are 24 tall against a 36 tall row, so they drop by 6 to sit level
+ * with the value beside them. */
+#define LABEL_CHARS			8
+#define LABEL_XPOS				2
+#define LABEL_CH_XDOTS			12
+#define LABEL_CH_YDOTS			24
+#define LABEL_CH_BYTES			(LABEL_CH_XDOTS * LABEL_CH_YDOTS / 8)
+#define LABEL_YOFF				6
+
+#define PAGE_MARK_DIM_COLOR			0x29c9	/* #2E3A48 a page you are not on */
+
 
 #define TOP_AREA_DISP_ITEM_TEMPERATURE   	0
 #define TOP_AREA_DISP_ITEM_HUM					 	1
@@ -86,17 +110,28 @@
 #define TOP_AREA_DISP_UNIT_NONE			 			100
 
 
-#define TSTAT8_CH_COLOR   	0xffff //0xd6e0
-#define TSTAT8_MENU_COLOR   0x7e17//0x3bef//0x43f2//0x14a9
+/* Screen palette, RGB565.
 
+   The screen used to be white on a light teal (0x7E19).  It is now white on a
+   near black blue, which reads better in a plant room and stops the backlight
+   lighting up a dark space.
 
-#define SCH_COLOR  0xffff//0XB73F
-#define SCH_BACK_COLOR  0x3bef//0x43f2//0x14E9
-
-#define TSTAT8_BACK_COLOR1  0x3cef//0x7E19
-#define TSTAT8_BACK_COLOR   0x7E19//
-#define TSTAT8_MENU_COLOR2  0x7e17
-#define TANGLE_COLOR        0xbe9c
+   The icons cannot follow a constant: disp_icon() blits their pixels literally,
+   so each one carries the background it was drawn against.  They were
+   recomposited onto this background by tools/recolour_icons.py -- change the
+   background here and that has to be run again, from a checkout whose icons
+   still hold the old one. */
+#define TSTAT8_CH_COLOR   	0xffff	/* white, the only ink colour */
+#define TSTAT8_MENU_COLOR   0x1106	/* #172230 panel behind a value */
+#define SCH_COLOR  			0xffff
+#define SCH_BACK_COLOR  	0x3bef	/* unused */
+#define TSTAT8_BACK_COLOR1  0x220b	/* #22435E row picked with the LEFT key;
+									   has to sit lighter than the background */
+#define TSTAT8_BACK_COLOR   0x08a4	/* #0D1520 the screen itself */
+#define TSTAT8_MENU_COLOR2  0x1106
+#define TANGLE_COLOR        0xbe9c	/* frame round each value; left light on
+									   purpose, and draw_tangle()'s corner
+									   bitmaps carry this same colour */
 
 #define FAN_OFF 	0
 #define FAN_AUTO 	4
@@ -207,6 +242,7 @@ void LCD_Intial(void);
 extern uint8 const chlib[];
 extern uint8 const chlibsmall[];
 extern uint8 const char_16_24[];
+extern uint8 const char_12_24[];
 extern uint16 const athome[];
 extern uint16 const offhome[];
 extern uint16 const sunicon[];
@@ -256,8 +292,12 @@ void disp_icon(uint16 cp, uint16 pp, uint16 const *icon_name, uint16 x,uint16 y,
 void disp_null_icon(uint16 cp, uint16 pp, uint16 const *icon_name, uint16 x,uint16 y,uint16 dcolor, uint16 bgcolor);
 void disp_str(uint8 form, uint16 x,uint16 y,uint8 *str,uint16 dcolor,uint16 bgcolor);	
 void disp_str_16_24(uint8 form, uint16 x, uint16 y, uint8 *str, uint16 dcolor, uint16 bgcolor);
+void disp_ch_12_24(uint16 x, uint16 y, uint8 value, uint16 dcolor, uint16 bgcolor);
+void disp_str_12_24(uint16 x, uint16 y, uint8 *str, uint16 dcolor, uint16 bgcolor);
 void display_SP(int16 setpoint);
 void display_screen_value(uint8 type);
+void display_screen_value_var(uint8 type, uint8 var_index);
+void display_page_marks(uint8 current, uint8 count);
 void display_fanspeed(int16 speed);
 void display_mode(uint8 heat_cool_user);
 void display_fan(void);

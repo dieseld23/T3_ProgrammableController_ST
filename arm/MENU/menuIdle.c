@@ -5,9 +5,9 @@
 #include "wifi.h"
 #define	NODES_POLL_PERIOD	30
 
-char UI_DIS_LINE1[4]; //Corresponds to the old setpoint, fan and sys
-char UI_DIS_LINE2[4];
-char UI_DIS_LINE3[4];
+char UI_DIS_LINE1[LABEL_CHARS + 1]; //Corresponds to the old setpoint, fan and sys
+char UI_DIS_LINE2[LABEL_CHARS + 1];
+char UI_DIS_LINE3[LABEL_CHARS + 1];
 char UI_DIS_TOP[9];
 
 static uint8 display_around_time_ctr = NODES_POLL_PERIOD;
@@ -23,12 +23,110 @@ uint8 digital_top_area_num = 0;
 uint8 digital_top_area_changed = 0;
 void set_output_raw(uint8_t point,uint16_t value);
 extern uint16_t count_suspend_mstp;
+/* ---- idle-screen pages ---------------------------------------------------
+ * Page 0 is the screen as it always was: VAR1-VAR3 on the three rows. Each
+ * further page shows the next three VARs, so a program can drive
+ * PAGE_MARK_MAX * 3 values instead of three. The RIGHT key steps through the
+ * pages -- it did nothing on this screen before -- while LEFT still picks a
+ * row within the page and LEFT+RIGHT together still opens the menu.
+ *
+ * Pages past the last VAR that carries a label are left out, so a panel that
+ * labels VAR1-VAR6 gets two pages rather than eight.
+ */
+#define IDLE_PAGE_ROWS		3
+static uint8 page_index = 0;
+
+/* First VAR on the page showing: page 0 -> vars[0], page 1 -> vars[3]. */
+static uint8 page_var_base(void)
+{
+	return page_index * IDLE_PAGE_ROWS;
+}
+
+/* A VAR earns a row once somebody has given it a label in T3000. 0xff is what
+ * erased flash reads back as, so it counts as no label rather than as one. */
+static uint8 var_is_labelled(uint8 num)
+{
+	uint8 first = (uint8)vars[num].label[0];
+
+	return (first != 0) && (first != ' ') && (first != 0xff);
+}
+
+/* Copy a VAR label into a row buffer. At most LABEL_CHARS characters; anything
+ * outside printable ASCII ends the string, which covers both the NUL that
+ * T3000 writes and the 0xff of erased flash. The rest is padded with spaces so
+ * that drawing the buffer repaints every cell -- a shorter label can then not
+ * leave the tail of a longer one behind it. */
+static void load_label(char *dst, uint8 num)
+{
+	uint8 i, c, ended = 0;
+
+	for(i = 0;i < LABEL_CHARS;i++)
+	{
+		c = (uint8)vars[num].label[i];
+		if(c < ' ' || c > '~')
+			ended = 1;
+		dst[i] = ended ? ' ' : (char)c;
+	}
+	dst[LABEL_CHARS] = 0;
+}
+
+/* Pages to offer: page 0 always, then every page up to the last labelled VAR. */
+static uint8 idle_page_count(void)
+{
+	uint8 page, row, count;
+
+	count = 1;
+	for(page = 1;page < PAGE_MARK_MAX;page++)
+	{
+		for(row = 0;row < IDLE_PAGE_ROWS;row++)
+		{
+			if(var_is_labelled(page * IDLE_PAGE_ROWS + row))
+			{
+				count = page + 1;
+				break;
+			}
+		}
+	}
+	return count;
+}
+
+/* Draw the three rows for the page showing, and the marks beside them. The row
+ * labels are cached in UI_DIS_LINE1..3, so a page change has to reload them or
+ * the rows keep the previous page's words. The values are cleared too: a five
+ * character value followed by a shorter one would otherwise leave the tail of
+ * the first one on screen. */
+static void show_page_rows(void)
+{
+	uint8 pages = idle_page_count();
+	uint8 base;
+
+	// labelling a VAR from T3000 can shrink the page count under our feet
+	if(page_index >= pages)
+		page_index = 0;
+	base = page_var_base();
+
+	disp_str(FORM15X30, SCH_XPOS + 96,  SETPOINT_POS, "     ",SCH_COLOR,TSTAT8_MENU_COLOR2);
+	disp_str(FORM15X30, SCH_XPOS + 96,  FAN_MODE_POS, "     ",SCH_COLOR,TSTAT8_MENU_COLOR2);
+	disp_str(FORM15X30, SCH_XPOS + 96,  SYS_MODE_POS, "     ",SCH_COLOR,TSTAT8_MENU_COLOR2);
+
+	load_label(UI_DIS_LINE1, base);
+	load_label(UI_DIS_LINE2, base + 1);
+	load_label(UI_DIS_LINE3, base + 2);
+
+	disp_str_12_24(LABEL_XPOS, SETPOINT_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE1, SCH_COLOR, TSTAT8_BACK_COLOR);
+	disp_str_12_24(LABEL_XPOS, FAN_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE2, SCH_COLOR, TSTAT8_BACK_COLOR);
+	disp_str_12_24(LABEL_XPOS, SYS_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE3, SCH_COLOR, TSTAT8_BACK_COLOR);
+
+	display_page_marks(page_index, pages);
+}
+
 void MenuIdle_init(void)
 {
 	uint8 i,j;
 	
 	//LCDtest();
 	ClearScreen(TSTAT8_BACK_COLOR);
+	page_index = 0;
 	flag_digital_top_area = 0;
 	digital_top_area_type = 0;
   digital_top_area_num = 0;
@@ -64,14 +162,7 @@ void MenuIdle_init(void)
 	draw_tangle(102,148);
 	draw_tangle(102,191);
 
-	memcpy(UI_DIS_LINE1, vars[0].label, 3);UI_DIS_LINE1[3] = 0;
-	memcpy(UI_DIS_LINE2, vars[1].label, 3);UI_DIS_LINE2[3] = 0;
-	memcpy(UI_DIS_LINE3, vars[2].label, 3);UI_DIS_LINE3[3] = 0;
-	
-//	disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, str,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-	disp_str(FORM15X30, SCH_XPOS,  SETPOINT_POS, UI_DIS_LINE1,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-	disp_str(FORM15X30, SCH_XPOS,  FAN_MODE_POS, UI_DIS_LINE2,SCH_COLOR,TSTAT8_BACK_COLOR);
-	disp_str(FORM15X30, SCH_XPOS,  SYS_MODE_POS, UI_DIS_LINE3,SCH_COLOR,TSTAT8_BACK_COLOR);
+	show_page_rows();
 
 	//msv_data[MAX_MSV][STR_MSV_MULTIPLE_COUNT]
 	for (i = 0;i < MAX_MSV;i++)
@@ -133,31 +224,36 @@ void MenuIdle_display(void)
 {
    	static u8 count_tx = 0;
 		static u8 count_rx = 0;
+		uint8 base = page_var_base();
+		char label[LABEL_CHARS + 1];
 		
-		if(memcmp(UI_DIS_LINE1,vars[0].label,3))
+		/* A label edited in T3000 arrives without a page change, so each row is
+		 * reloaded and repainted where it stands. Comparing the normalised copy
+		 * rather than the raw label keeps the padding from counting as a change. */
+		load_label(label, base);
+		if(memcmp(UI_DIS_LINE1, label, LABEL_CHARS))
 		{
-			disp_str(FORM15X30, SCH_XPOS,  SETPOINT_POS, "   ",SCH_COLOR,TSTAT8_BACK_COLOR);
-			memset(UI_DIS_LINE1,'\0',4);
-			memcpy(UI_DIS_LINE1, vars[0].label, 3);
+			memcpy(UI_DIS_LINE1, label, LABEL_CHARS + 1);
+			disp_str_12_24(LABEL_XPOS, SETPOINT_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE1, SCH_COLOR, TSTAT8_BACK_COLOR);
 		}
-		if(memcmp(UI_DIS_LINE2,vars[1].label,3))
-		{		
-			disp_str(FORM15X30, SCH_XPOS,  FAN_MODE_POS, "   ",SCH_COLOR,TSTAT8_BACK_COLOR);
-			memset(UI_DIS_LINE2,'\0',4);
-			memcpy(UI_DIS_LINE2, vars[1].label, 3);
-		}
-		if(memcmp(UI_DIS_LINE3,vars[2].label,3))
+		load_label(label, base + 1);
+		if(memcmp(UI_DIS_LINE2, label, LABEL_CHARS))
 		{
-			disp_str(FORM15X30, SCH_XPOS,  SYS_MODE_POS, "   ",SCH_COLOR,TSTAT8_BACK_COLOR);
-			memset(UI_DIS_LINE3,'\0',4);
-			memcpy(UI_DIS_LINE3, vars[2].label, 3);
+			memcpy(UI_DIS_LINE2, label, LABEL_CHARS + 1);
+			disp_str_12_24(LABEL_XPOS, FAN_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE2, SCH_COLOR, TSTAT8_BACK_COLOR);
+		}
+		load_label(label, base + 2);
+		if(memcmp(UI_DIS_LINE3, label, LABEL_CHARS))
+		{
+			memcpy(UI_DIS_LINE3, label, LABEL_CHARS + 1);
+			disp_str_12_24(LABEL_XPOS, SYS_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE3, SCH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		
     //display_input_value(inputs[0].value);
 		//display_value(inputs[0].value);
-		display_screen_value( 1); // show the var values where set, fan and sys used to be
-		display_screen_value( 2);
-		display_screen_value( 3);
+		display_screen_value_var(1, base); // show the var values where set, fan and sys used to be
+		display_screen_value_var(2, base + 1);
+		display_screen_value_var(3, base + 2);
 
 		//display_SP(inputs[0].value / 1000);
 		//display_fanspeed(outputs[0].value / 1000);
@@ -479,41 +575,41 @@ void MenuIdle_display(void)
 		{
 			if(flag_digital_top_area == 1)
 				disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  SETPOINT_POS, UI_DIS_LINE1,SCH_COLOR,TSTAT8_BACK_COLOR1);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  FAN_MODE_POS, UI_DIS_LINE2,SCH_COLOR,TSTAT8_BACK_COLOR);
-			disp_str(FORM15X30, SCH_XPOS,  SYS_MODE_POS, UI_DIS_LINE3,SCH_COLOR,TSTAT8_BACK_COLOR);
+			disp_str_12_24(LABEL_XPOS, SETPOINT_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE1, SCH_COLOR, TSTAT8_BACK_COLOR1);//TSTAT8_BACK_COLOR
+			disp_str_12_24(LABEL_XPOS, FAN_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE2, SCH_COLOR, TSTAT8_BACK_COLOR);
+			disp_str_12_24(LABEL_XPOS, SYS_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE3, SCH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		else if(disp_index == 2)
 		{
 			if(flag_digital_top_area == 1)
 				disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  SETPOINT_POS, UI_DIS_LINE1,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  FAN_MODE_POS, UI_DIS_LINE2,SCH_COLOR,TSTAT8_BACK_COLOR1);
-			disp_str(FORM15X30, SCH_XPOS,  SYS_MODE_POS, UI_DIS_LINE3,SCH_COLOR,TSTAT8_BACK_COLOR);
+			disp_str_12_24(LABEL_XPOS, SETPOINT_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE1, SCH_COLOR, TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
+			disp_str_12_24(LABEL_XPOS, FAN_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE2, SCH_COLOR, TSTAT8_BACK_COLOR1);
+			disp_str_12_24(LABEL_XPOS, SYS_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE3, SCH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		else if(disp_index == 3)
 		{
 			if(flag_digital_top_area == 1)
 				disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  SETPOINT_POS, UI_DIS_LINE1,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  FAN_MODE_POS, UI_DIS_LINE2,SCH_COLOR,TSTAT8_BACK_COLOR);
-			disp_str(FORM15X30, SCH_XPOS,  SYS_MODE_POS, UI_DIS_LINE3,SCH_COLOR,TSTAT8_BACK_COLOR1);
+			disp_str_12_24(LABEL_XPOS, SETPOINT_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE1, SCH_COLOR, TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
+			disp_str_12_24(LABEL_XPOS, FAN_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE2, SCH_COLOR, TSTAT8_BACK_COLOR);
+			disp_str_12_24(LABEL_XPOS, SYS_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE3, SCH_COLOR, TSTAT8_BACK_COLOR1);
 		}
 		else if(disp_index == 4) // top area
 		{
 			if(flag_digital_top_area == 1)
 				disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR1);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  SETPOINT_POS, UI_DIS_LINE1,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  FAN_MODE_POS, UI_DIS_LINE2,SCH_COLOR,TSTAT8_BACK_COLOR);
-			disp_str(FORM15X30, SCH_XPOS,  SYS_MODE_POS, UI_DIS_LINE3,SCH_COLOR,TSTAT8_BACK_COLOR);
+			disp_str_12_24(LABEL_XPOS, SETPOINT_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE1, SCH_COLOR, TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
+			disp_str_12_24(LABEL_XPOS, FAN_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE2, SCH_COLOR, TSTAT8_BACK_COLOR);
+			disp_str_12_24(LABEL_XPOS, SYS_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE3, SCH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		else
 		{
 			if(flag_digital_top_area == 1)
 				disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  SETPOINT_POS, UI_DIS_LINE1,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  FAN_MODE_POS, UI_DIS_LINE2,SCH_COLOR,TSTAT8_BACK_COLOR);
-			disp_str(FORM15X30, SCH_XPOS,  SYS_MODE_POS, UI_DIS_LINE3,SCH_COLOR,TSTAT8_BACK_COLOR);
+			disp_str_12_24(LABEL_XPOS, SETPOINT_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE1, SCH_COLOR, TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
+			disp_str_12_24(LABEL_XPOS, FAN_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE2, SCH_COLOR, TSTAT8_BACK_COLOR);
+			disp_str_12_24(LABEL_XPOS, SYS_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE3, SCH_COLOR, TSTAT8_BACK_COLOR);
 		}
 
         //sprintf(test_char, "%d", SSID_Info.IP_Wifi_Status); //for testing: show the wifi status value in the top left of the screen;
@@ -615,6 +711,7 @@ void MenuIdle_keycope(uint16 key_value)
 {
     uint8 i;
     uint8 temp_value = 0;
+    uint8 base = page_var_base();
 	switch(key_value /*& KEY_SPEED_MASK*/)
 	{
 		case 0:
@@ -623,13 +720,13 @@ void MenuIdle_keycope(uint16 key_value)
 			count_left_key = 0;
 			if((disp_index >= 1) && (disp_index <= 3))
 			{
-				if ((vars[disp_index - 1].range >= 101) && (vars[disp_index - 1].range <= 103))  // 101 102 103 	MSV range
+				if ((vars[base + disp_index - 1].range >= 101) && (vars[base + disp_index - 1].range <= 103))  // 101 102 103 	MSV range
 				{
 					char len;
-					len = check_msv_data_len(vars[disp_index - 1].range - 101);
+					len = check_msv_data_len(vars[base + disp_index - 1].range - 101);
 					for (i = 0; i < len; i++)
 					{
-						if (vars[disp_index - 1].value / 1000 == msv_data[vars[disp_index - 1].range - 101][i].msv_value)
+						if (vars[base + disp_index - 1].value / 1000 == msv_data[vars[base + disp_index - 1].range - 101][i].msv_value)
 						{
 							temp_value = i;
 							break;
@@ -638,29 +735,29 @@ void MenuIdle_keycope(uint16 key_value)
 
 					for (i = temp_value; i < 7; i++)
 					{
-						if(strlen(msv_data[vars[disp_index - 1].range - 101][i + 1].msv_name) != 0
-							&& msv_data[vars[disp_index - 1].range - 101][i + 1].msv_name[0] != 0xff)
+						if(strlen(msv_data[vars[base + disp_index - 1].range - 101][i + 1].msv_name) != 0
+							&& msv_data[vars[base + disp_index - 1].range - 101][i + 1].msv_name[0] != 0xff)
 						{
-							vars[disp_index - 1].value = msv_data[vars[disp_index - 1].range - 101][i + 1].msv_value * 1000;
+							vars[base + disp_index - 1].value = msv_data[vars[base + disp_index - 1].range - 101][i + 1].msv_value * 1000;
 							break;
 						}
 					}
 				}
 				else
 				{
-					if(vars[disp_index - 1].digital_analog == 0)
+					if(vars[base + disp_index - 1].digital_analog == 0)
 					{
-						if(vars[disp_index - 1].control == 0)
-							vars[disp_index - 1].control = 1;
+						if(vars[base + disp_index - 1].control == 0)
+							vars[base + disp_index - 1].control = 1;
 						else
-							vars[disp_index - 1].control = 0;
+							vars[base + disp_index - 1].control = 0;
 					}
 					else
 					{
-						if(vars[disp_index - 1].value < 999 * 1000)
-								vars[disp_index - 1].value = vars[disp_index - 1].value + 1000;
+						if(vars[base + disp_index - 1].value < 999 * 1000)
+								vars[base + disp_index - 1].value = vars[base + disp_index - 1].value + 1000;
 							else
-								vars[disp_index - 1].value = 0;
+								vars[base + disp_index - 1].value = 0;
 					}
 				}
 			}
@@ -692,13 +789,13 @@ void MenuIdle_keycope(uint16 key_value)
 			count_left_key = 0;
 			if((disp_index >= 1) && (disp_index <= 3))
 			{
-				if ((vars[disp_index - 1].range >= 101) && (vars[disp_index - 1].range <= 103))  // 101 102 103 	MSV range
+				if ((vars[base + disp_index - 1].range >= 101) && (vars[base + disp_index - 1].range <= 103))  // 101 102 103 	MSV range
 				{					
 					char len;
-					len = check_msv_data_len(vars[disp_index - 1].range - 101);
+					len = check_msv_data_len(vars[base + disp_index - 1].range - 101);
 					for (i = 0; i < len; i++)
 					{
-						if (vars[disp_index - 1].value / 1000 == msv_data[vars[disp_index - 1].range - 101][i].msv_value)
+						if (vars[base + disp_index - 1].value / 1000 == msv_data[vars[base + disp_index - 1].range - 101][i].msv_value)
 						{
 							temp_value = i;
 							break;
@@ -707,29 +804,29 @@ void MenuIdle_keycope(uint16 key_value)
 
 					for (i = temp_value; i < 7; i++)
 					{
-						if(strlen(msv_data[vars[disp_index - 1].range - 101][i + 1].msv_name) != 0
-							&& msv_data[vars[disp_index - 1].range - 101][i + 1].msv_name[0] != 0xff)
+						if(strlen(msv_data[vars[base + disp_index - 1].range - 101][i + 1].msv_name) != 0
+							&& msv_data[vars[base + disp_index - 1].range - 101][i + 1].msv_name[0] != 0xff)
 						{
-							vars[disp_index - 1].value = msv_data[vars[disp_index - 1].range - 101][i + 1].msv_value * 1000;
+							vars[base + disp_index - 1].value = msv_data[vars[base + disp_index - 1].range - 101][i + 1].msv_value * 1000;
 							break;
 						}
 					}
 				}
 				else
 				{
-					if(vars[disp_index - 1].digital_analog == 0)
+					if(vars[base + disp_index - 1].digital_analog == 0)
 					{
-						if(vars[disp_index - 1].control == 0)
-							vars[disp_index - 1].control = 1;
+						if(vars[base + disp_index - 1].control == 0)
+							vars[base + disp_index - 1].control = 1;
 						else
-							vars[disp_index - 1].control = 0;
+							vars[base + disp_index - 1].control = 0;
 					}
 					else
 					{
-					if(vars[disp_index - 1].value < 999 * 1000)
-							vars[disp_index - 1].value = vars[disp_index - 1].value + 10000;
+					if(vars[base + disp_index - 1].value < 999 * 1000)
+							vars[base + disp_index - 1].value = vars[base + disp_index - 1].value + 10000;
 						else
-							vars[disp_index - 1].value = 0;
+							vars[base + disp_index - 1].value = 0;
 					}
 				}
 			}
@@ -762,16 +859,16 @@ void MenuIdle_keycope(uint16 key_value)
 			count_left_key = 0;			
 			if((disp_index >= 1) && (disp_index <= 3))
 			{
-				if ((vars[disp_index - 1].range >= 101) && (vars[disp_index - 1].range <= 103))  // 101 102 103 	MSV range
+				if ((vars[base + disp_index - 1].range >= 101) && (vars[base + disp_index - 1].range <= 103))  // 101 102 103 	MSV range
 				{
-					//if(vars[disp_index - 1].range == 101)  //if the range is multi-state, adjust the multi-state value;
+					//if(vars[base + disp_index - 1].range == 101)  //if the range is multi-state, adjust the multi-state value;
 					{
 						// check the lenght of msv_data
 						char len;
-						len = check_msv_data_len(vars[disp_index - 1].range - 101);
+						len = check_msv_data_len(vars[base + disp_index - 1].range - 101);
 							for (i = 0; i < len; i++)
 							{
-									if (vars[disp_index - 1].value / 1000 == msv_data[vars[disp_index - 1].range - 101][i].msv_value)
+									if (vars[base + disp_index - 1].value / 1000 == msv_data[vars[base + disp_index - 1].range - 101][i].msv_value)
 									{
 											temp_value = i;
 											break;
@@ -780,36 +877,36 @@ void MenuIdle_keycope(uint16 key_value)
 
 							for (i = temp_value; i > 0; i--)
 							{
-									if (strlen(msv_data[vars[disp_index - 1].range - 101][i - 1].msv_name) != 0)
+									if (strlen(msv_data[vars[base + disp_index - 1].range - 101][i - 1].msv_name) != 0)
 									{
-											vars[disp_index - 1].value = msv_data[vars[disp_index - 1].range - 101][i - 1].msv_value * 1000;
+											vars[base + disp_index - 1].value = msv_data[vars[base + disp_index - 1].range - 101][i - 1].msv_value * 1000;
 											break;
 									}
 							}
 					}
 //					else
 //					{
-//						if(vars[disp_index - 1].value > 1000)
-//							vars[disp_index - 1].value = vars[disp_index - 1].value - 1000;
+//						if(vars[base + disp_index - 1].value > 1000)
+//							vars[base + disp_index - 1].value = vars[base + disp_index - 1].value - 1000;
 //						else
-//							vars[disp_index - 1].value = STR_MSV_MULTIPLE_COUNT * 1000;
+//							vars[base + disp_index - 1].value = STR_MSV_MULTIPLE_COUNT * 1000;
 //					}
 				}
 				else
 				{
-					if(vars[disp_index - 1].digital_analog == 0)
+					if(vars[base + disp_index - 1].digital_analog == 0)
 					{
-						if(vars[disp_index - 1].control == 0)
-							vars[disp_index - 1].control = 1;
+						if(vars[base + disp_index - 1].control == 0)
+							vars[base + disp_index - 1].control = 1;
 						else
-							vars[disp_index - 1].control = 0;
+							vars[base + disp_index - 1].control = 0;
 					}
 					else
 					{
-//					if(vars[disp_index - 1].value > 1000)
-							vars[disp_index - 1].value = vars[disp_index - 1].value - 1000;
+//					if(vars[base + disp_index - 1].value > 1000)
+							vars[base + disp_index - 1].value = vars[base + disp_index - 1].value - 1000;
 //						else
-//							vars[disp_index - 1].value = 99 * 1000;
+//							vars[base + disp_index - 1].value = 99 * 1000;
 					}
 				}
 			}
@@ -841,13 +938,13 @@ void MenuIdle_keycope(uint16 key_value)
 			count_left_key = 0;			
 			if((disp_index >= 1) && (disp_index <= 3))
 			{
-				if ((vars[disp_index - 1].range >= 101) && (vars[disp_index - 1].range <= 103))  // 101 102 103 	MSV range
+				if ((vars[base + disp_index - 1].range >= 101) && (vars[base + disp_index - 1].range <= 103))  // 101 102 103 	MSV range
 				{
 					char len;
-					len = check_msv_data_len(vars[disp_index - 1].range - 101);
+					len = check_msv_data_len(vars[base + disp_index - 1].range - 101);
 					for (i = 0; i < len; i++)
 					{
-							if (vars[disp_index - 1].value / 1000 == msv_data[vars[disp_index - 1].range - 101][i].msv_value)
+							if (vars[base + disp_index - 1].value / 1000 == msv_data[vars[base + disp_index - 1].range - 101][i].msv_value)
 							{
 									temp_value = i;
 									break;
@@ -856,25 +953,25 @@ void MenuIdle_keycope(uint16 key_value)
 
 					for (i = temp_value; i > 0; i--)
 					{
-							if (strlen(msv_data[vars[disp_index - 1].range - 101][i - 1].msv_name) != 0)
+							if (strlen(msv_data[vars[base + disp_index - 1].range - 101][i - 1].msv_name) != 0)
 							{
-									vars[disp_index - 1].value = msv_data[vars[disp_index - 1].range - 101][i - 1].msv_value * 1000;
+									vars[base + disp_index - 1].value = msv_data[vars[base + disp_index - 1].range - 101][i - 1].msv_value * 1000;
 									break;
 							}
 					}
 				}
 				else
 				{
-					if(vars[disp_index - 1].digital_analog == 0)
+					if(vars[base + disp_index - 1].digital_analog == 0)
 					{
-						if(vars[disp_index - 1].control == 0)
-							vars[disp_index - 1].control = 1;
+						if(vars[base + disp_index - 1].control == 0)
+							vars[base + disp_index - 1].control = 1;
 						else
-							vars[disp_index - 1].control = 0;
+							vars[base + disp_index - 1].control = 0;
 					}
 					else
 					{
-						vars[disp_index - 1].value = vars[disp_index - 1].value - 10000;
+						vars[base + disp_index - 1].value = vars[base + disp_index - 1].value - 10000;
 					}
 				}
 			}
@@ -921,8 +1018,10 @@ void MenuIdle_keycope(uint16 key_value)
 			count_left_key = 0;
 			break;
 		case KEY_RIGHT_MASK:
-			// go into main menu
-			//vars[19].value += 1000;
+			// next page of VARs. This key did nothing on the idle screen before.
+			// Holding it repeats, the same way holding LEFT already walks the rows.
+			page_index++;
+			show_page_rows();	// wraps back to page 0 past the last one
 			break;
 		case KEY_LEFT_RIGHT_MASK:
 			update_menu_state(MenuMain);
