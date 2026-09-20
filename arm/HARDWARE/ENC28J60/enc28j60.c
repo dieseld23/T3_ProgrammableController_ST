@@ -213,7 +213,7 @@ void ENC28J60_PHY_Write(u8 addr, u32 _data)
 		retry++;						//等待写入PHY结束		  
 }
 
-//初始化ENC28J60
+//Initialise the ENC28J60
 //macaddr:MAC地址
 //返回值:0,初始化成功;
 //       1,初始化失败;
@@ -273,9 +273,9 @@ u8 ENC28J60_Init(u8* macaddr)
 	//设置接收起始字节
 	ENC28J60_Write(ERXSTL, RXSTART_INIT & 0xFF);	
 	ENC28J60_Write(ERXSTH, RXSTART_INIT >> 8);	  
-	//ERXWRPTH:ERXWRPTL 寄存器定义硬件向FIFO 中
-	//的哪个位置写入其接收到的字节。 指针是只读的，在成
-	//功接收到一个数据包后，硬件会自动更新指针。 指针可
+	//The ERXWRPTH:ERXWRPTL registers define where in the FIFO the hardware
+	//writes the bytes it receives. The pointer is read-only and is updated
+	//automatically by the hardware once a packet has been received. The pointer can
 	//用于判断FIFO 内剩余空间的大小  8K-1500。 
 	//设置接收读指针字节
 	ENC28J60_Write(ERXRDPTL, RXSTART_INIT & 0xFF);

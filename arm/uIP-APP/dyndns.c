@@ -501,7 +501,7 @@ U8_T DynDNS_GetState(void)
 	return dyndns_State;
 }
 
-u8 tcp_client_databuf[500];   	//发送数据缓存	  
+u8 tcp_client_databuf[500];   	//Transmit buffer	  
 //u8 tcp_client_sta;				//客户端状态
 // tcp client
 
@@ -524,7 +524,7 @@ void DynDNS_appcall(void)
 //	if(uip_aborted()) 	tcp_client_aborted();		//连接终止	   
 //	if(uip_timedout())  tcp_client_timedout();	//连接超时   
 //	if(uip_closed())  	tcp_client_closed();		//连接关闭	
- 	if(uip_connected()) //连接成功	
+ 	if(uip_connected()) //Connected	
 	{
 		dyndns_State = DYNDNS_STATE_SEND_COMMAND;
 //#if ARM_UART_DEBUG
@@ -536,7 +536,7 @@ void DynDNS_appcall(void)
 	}   
 
 		
- 	//接收到一个新的TCP数据包 
+ 	//A new TCP packet has arrived 
 	if(uip_newdata())
 	{
 		if(dyndns_State == DYNDNS_STATE_WAIT_RESPONSE)
@@ -578,10 +578,10 @@ void tcp_client_reconnect(void)
 
 }
 
-//终止连接				    
+//Abort the connection				    
 //void tcp_client_aborted(void)
 //{
-//	tcp_client_sta &= ~(1 << 7);				//标志没有连接
+//	tcp_client_sta &= ~(1 << 7);				//flag: not connected
 ////	tcp_client_reconnect();						//尝试重新连接
 ////	uip_log("tcp_client aborted!\r\n");			//打印log
 //}
@@ -589,14 +589,14 @@ void tcp_client_reconnect(void)
 //////连接超时
 //void tcp_client_timedout(void)
 //{
-//	tcp_client_sta &= ~(1 << 7);				//标志没有连接	   
+//	tcp_client_sta &= ~(1 << 7);				//flag: not connected	   
 ////	uip_log("tcp_client timeout!\r\n");			//打印log
 //}
 
 //////连接关闭
 //void tcp_client_closed(void)
 //{
-//	tcp_client_sta &= ~(1 << 7);				//标志没有连接
+//	tcp_client_sta &= ~(1 << 7);				//flag: not connected
 //}
 
 ////连接建立

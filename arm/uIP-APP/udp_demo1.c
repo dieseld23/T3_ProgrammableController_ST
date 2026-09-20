@@ -99,7 +99,7 @@ void UDP_CLIENT_APP(void)
 
 void dhcpc_configured(const struct dhcpc_state *s)
 {
-	uip_init();							//uIP³õÊ¼»¯
+	uip_init();							//uIP initialisation
 	
 	uip_sethostaddr(s->ipaddr);
 	uip_setnetmask(s->netmask);

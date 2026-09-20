@@ -734,7 +734,7 @@ void SMTPC_appcall(void)
 			SMTPC_SendMessage(send_message,sizeof(send_message));
 		}
 	}
-	 	//接收到一个新的TCP数据包 
+	 	//A new TCP packet has arrived 
 	if(uip_newdata())
 	{	
 		memset(&smtpc_rcv_Buf[0], 0,200);
@@ -755,7 +755,7 @@ void SMTPC_appcall(void)
 			smtpc_Conns.State = SMTP_STATE_MESSAGE_SENT;
 		}
 	}
- 	if(uip_connected()) //连接成功	
+ 	if(uip_connected()) //Connected	
 	{
 		smtpc_Conns.State = SMTP_STATE_CONNECTED;
 	}   

@@ -3,14 +3,14 @@
 #include "fontupd.h"
 //#include "flash.h"   
 //////////////////////////////////////////////////////////////////////////////////	 
-//本程序只供学习使用，未经作者许可，不得用于其它任何用途
+//This code is for study use only and may not be used for any other purpose without the author's permission
 //ALIENTEK战舰STM32开发板
 //cc936.c修改后 代码	   
-//正点原子@ALIENTEK
-//技术论坛:www.openedv.com
+//ALIENTEK
+//Support forum: www.openedv.com
 //修改日期:2012/9/18
 //版本：V1.0
-//版权所有，盗版必究。
+//All rights reserved.
 //Copyright(C) 广州市星翼电子科技有限公司 2009-2019
 //All rights reserved									  
 //////////////////////////////////////////////////////////////////////////////////

@@ -179,7 +179,7 @@ etError SHT3X_ClearAllAlertFlags(void);
 
 
 //==============================================================================
-// Gets the temperature [°C] and the relative humidity [%RH] from the sensor.
+// Gets the temperature [degC] and the relative humidity [%RH] from the sensor.
 //------------------------------------------------------------------------------
 // input:  *temp        pointer to a variable to store the temperature
 //         *humi        pointer to a variable to store the humidity
@@ -201,7 +201,7 @@ etError SHT3X_GetTempAndHumi(float         *temp,
 
 
 //==============================================================================
-// Gets the temperature [°C] and the relative humidity [%RH] from the sensor.
+// Gets the temperature [degC] and the relative humidity [%RH] from the sensor.
 // This function uses the i2c clock stretching for waiting until measurement is
 // ready.
 //------------------------------------------------------------------------------
@@ -223,7 +223,7 @@ etError SHT3X_GetTempAndHumiClkStretch(float         *temp,
 
 
 //==============================================================================
-// Gets the temperature [°C] and the relative humidity [%RH] from the sensor.
+// Gets the temperature [degC] and the relative humidity [%RH] from the sensor.
 // This function polls every 1ms until measurement is ready.
 //------------------------------------------------------------------------------
 // input:  *temp        pointer to a variable to store the temperature

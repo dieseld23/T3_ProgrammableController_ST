@@ -11,17 +11,17 @@
 #define SD_CS_TSTAT10   PGout(12)
 
 
-void SPI1_Init(u8 type);							//初始化SPI1口
-void SPI1_SetSpeed(u8 SPI_BaudRatePrescaler);	//设置SPI1速度   
-u8 SPI1_ReadWriteByte(u8 TxData);				//SPI1总线读写一个字节
+void SPI1_Init(u8 type);							//Initialise the SPI1 port
+void SPI1_SetSpeed(u8 SPI_BaudRatePrescaler);	//Set the SPI1 speed   
+u8 SPI1_ReadWriteByte(u8 TxData);				//Read and write one byte on the SPI1 bus
 
-void SPI2_Init(void);							//初始化SPI1口
-void SPI2_SetSpeed(u8 SPI_BaudRatePrescaler);	//设置SPI1速度   
-u8 SPI2_ReadWriteByte(u8 TxData);				//SPI1总线读写一个字节
+void SPI2_Init(void);							//Initialise the SPI1 port
+void SPI2_SetSpeed(u8 SPI_BaudRatePrescaler);	//Set the SPI1 speed   
+u8 SPI2_ReadWriteByte(u8 TxData);				//Read and write one byte on the SPI1 bus
 void SPI_Select_SD(void);
 void SPI_Select_TOP(void);
 
-void SPI3_Init(void);							//初始化SPI1口
+void SPI3_Init(void);							//Initialise the SPI1 port
 u8 SPI3_ReadWriteByte(u8 TxData);
 void SPI3_SetSpeed(u8 SPI_BaudRatePrescaler);
 

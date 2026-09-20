@@ -8,7 +8,7 @@ __align(4) u8 mem2base[MEM2_MAX_SIZE] __attribute__((at(0X68000000)));					//Íâ²
 u16 mem1mapbase[MEM1_ALLOC_TABLE_SIZE];													//ÄÚ²¿SRAMÄÚ´æ³ØMAP
 u16 mem2mapbase[MEM2_ALLOC_TABLE_SIZE] __attribute__((at(0X68000000 + MEM2_MAX_SIZE)));	//Íâ²¿SRAMÄÚ´æ³ØMAP
 //ÄÚ´æ¹ÜÀí²ÎÊý	   
-const u32 memtblsize[2] = {MEM1_ALLOC_TABLE_SIZE,MEM2_ALLOC_TABLE_SIZE};				//ÄÚ´æ±í´óÐ¡
+const u32 memtblsize[2] = {MEM1_ALLOC_TABLE_SIZE,MEM2_ALLOC_TABLE_SIZE};				//Memory table size
 const u32 memblksize[2] = {MEM1_BLOCK_SIZE,MEM2_BLOCK_SIZE};							//ÄÚ´æ·Ö¿é´óÐ¡
 const u32 memsize[2] = {MEM1_MAX_SIZE,MEM2_MAX_SIZE};									//ÄÚ´æ×Ü´óÐ¡
 
@@ -47,7 +47,7 @@ void mymemset(void *s, u8 c, u32 count)
 }
 
 //ÄÚ´æ¹ÜÀí³õÊ¼»¯  
-//memx:ËùÊôÄÚ´æ¿é
+//memx: which memory block
 void mem_init(u8 memx)  
 {  
     mymemset(mallco_dev.memmap[memx], 0, memtblsize[memx] * 2);	//ÄÚ´æ×´Ì¬±íÊý¾ÝÇåÁã  
@@ -56,7 +56,7 @@ void mem_init(u8 memx)
 }
 
 //»ñÈ¡ÄÚ´æÊ¹ÓÃÂÊ
-//memx:ËùÊôÄÚ´æ¿é
+//memx: which memory block
 //·µ»ØÖµ:Ê¹ÓÃÂÊ(0~100)
 u8 mem_perused(u8 memx)  
 {  
@@ -72,7 +72,7 @@ u8 mem_perused(u8 memx)
 }
 
 //ÄÚ´æ·ÖÅä(ÄÚ²¿µ÷ÓÃ)
-//memx:ËùÊôÄÚ´æ¿é
+//memx: which memory block
 //size:Òª·ÖÅäµÄÄÚ´æ´óÐ¡(×Ö½Ú)
 //·µ»ØÖµ:0XFFFFFFFF,´ú±í´íÎó;ÆäËû,ÄÚ´æÆ«ÒÆµØÖ· 
 u32 mem_malloc(u8 memx, u32 size)  
@@ -113,7 +113,7 @@ u32 mem_malloc(u8 memx, u32 size)
 }
 
 //ÊÍ·ÅÄÚ´æ(ÄÚ²¿µ÷ÓÃ) 
-//memx:ËùÊôÄÚ´æ¿é
+//memx: which memory block
 //offset:ÄÚ´æµØÖ·Æ«ÒÆ
 //·µ»ØÖµ:0,ÊÍ·Å³É¹¦;1,ÊÍ·ÅÊ§°Ü;  
 u8 mem_free(u8 memx, u32 offset)  
@@ -141,7 +141,7 @@ u8 mem_free(u8 memx, u32 offset)
 }
 
 //ÊÍ·ÅÄÚ´æ(Íâ²¿µ÷ÓÃ) 
-//memx:ËùÊôÄÚ´æ¿é
+//memx: which memory block
 //ptr:ÄÚ´æÊ×µØÖ· 
 void myfree(u8 memx, void *ptr)  
 {  
@@ -154,7 +154,7 @@ void myfree(u8 memx, void *ptr)
 }
 
 //·ÖÅäÄÚ´æ(Íâ²¿µ÷ÓÃ)
-//memx:ËùÊôÄÚ´æ¿é
+//memx: which memory block
 //size:ÄÚ´æ´óÐ¡(×Ö½Ú)
 //·µ»ØÖµ:·ÖÅäµ½µÄÄÚ´æÊ×µØÖ·.
 void *mymalloc(u8 memx, u32 size)  
@@ -168,7 +168,7 @@ void *mymalloc(u8 memx, u32 size)
 }
 
 //ÖØÐÂ·ÖÅäÄÚ´æ(Íâ²¿µ÷ÓÃ)
-//memx:ËùÊôÄÚ´æ¿é
+//memx: which memory block
 //*ptr:¾ÉÄÚ´æÊ×µØÖ·
 //size:Òª·ÖÅäµÄÄÚ´æ´óÐ¡(×Ö½Ú)
 //·µ»ØÖµ:ÐÂ·ÖÅäµ½µÄÄÚ´æÊ×µØÖ·.

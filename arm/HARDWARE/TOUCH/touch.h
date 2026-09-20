@@ -12,7 +12,7 @@ typedef struct
 {
 	u8 (*init)(void);			//初始化触摸屏控制器
 	u8 (*scan)(u8);				//扫描触摸屏.0,屏幕扫描;1,物理坐标;	 
-	void (*adjust)(void);		//触摸屏校准
+	void (*adjust)(void);		//Touch screen calibration
 	u16 x0;						//原始坐标(第一次按下时的坐标)
 	u16 y0;
 	u16 x; 						//当前坐标(此次扫描时,触屏的坐标)
@@ -48,11 +48,11 @@ u8 TP_Read_XY(u16 *x, u16 *y);						//双方向读取(X+Y)
 u8 TP_Read_XY2(u16 *x, u16 *y);						//带加强滤波的双方向坐标读取
 void TP_Drow_Touch_Point(u16 x, u16 y, u16 color);	//画一个坐标校准点
 void TP_Draw_Big_Point(u16 x, u16 y, u16 color);	//画一个大点
-u8 TP_Scan(u8 tp);									//扫描
-void TP_Save_Adjdata(void);							//保存校准参数
+u8 TP_Scan(u8 tp);									//Scan
+void TP_Save_Adjdata(void);							//Save the calibration parameters
 u8 TP_Get_Adjdata(void);							//读取校准参数
-void TP_Adjust(void);								//触摸屏校准
-u8 TP_Init(void);									//初始化
+void TP_Adjust(void);								//Touch screen calibration
+u8 TP_Init(void);									//Initialise
 																 
 void TP_Adj_Info_Show(u16 x0, u16 y0, u16 x1, u16 y1, u16 x2, u16 y2, u16 x3, u16 y3, u16 fac);//显示校准信息
  		  

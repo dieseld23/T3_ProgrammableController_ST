@@ -4,7 +4,7 @@
 #include "usart.h"
 #include <stdio.h>
 
-u8 SD_Type = 0;	//SD卡的类型 
+u8 SD_Type = 0;	//SD card type 
 
 #if (SD_BUS == SPI_BUS_TYPE)
 					   					   
@@ -169,7 +169,7 @@ u8 SD_SendBlock(u8*buf, u8 cmd)
 	    SD_SPI_ReadWriteByte(0xFF);//忽略crc
 	    SD_SPI_ReadWriteByte(0xFF);
 		t=SD_SPI_ReadWriteByte(0xFF);//接收响应
-		if((t & 0x1F) != 0x05)return 2;//响应错误									  					    
+		if((t & 0x1F) != 0x05)return 2;//Response error									  					    
 	}						 									  					    
     return 0;//写入成功
 }
@@ -277,7 +277,7 @@ u32 SD_GetSectorCount(void)
     return Capacity;
 }
 
-//初始化SD卡
+//Initialise the SD card
 extern u16 Test[50];
 u8 SD_Initialize(void)
 {
@@ -382,7 +382,7 @@ u8 SD_Initialize(void)
 	return 0xaa;//其他错误
 }
 
-//读SD卡
+//Read the SD card
 //buf: data buffer
 //sector:扇区
 //cnt: sector count
@@ -414,7 +414,7 @@ u8 SD_ReadDisk(u8*buf, u32 sector, u8 cnt)
 	return r1;//
 }
 
-//写SD卡
+//Write the SD card
 //buf: data buffer
 //sector:起始扇区
 //cnt: sector count

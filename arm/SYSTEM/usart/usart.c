@@ -4,16 +4,16 @@
 #include "main.h"
 
 //////////////////////////////////////////////////////////////////////////////////
-//V1.3修改说明 
-//支持适应不同频率下的串口波特率设置.
-//加入了对printf的支持
-//增加了串口接收命令功能.
-//修正了printf第一个字符丢失的bug
-//V1.4修改说明
-//1,修改串口初始化IO的bug
-//2,修改了USART_RX_STA,使得串口最大接收字节数为2的14次方
-//3,增加了USART_REC_LEN,用于定义串口最大允许接收的字节数(不大于2的14次方)
-//4,修改了EN_USART1_RX的使能方式
+//V1.3 change log 
+//Baud rate setting now adapts to different clock frequencies.
+//Added printf support
+//Added serial command reception.
+//Fixed the bug where printf lost its first character
+//V1.4 change log
+//1, Fixed a bug in the serial port IO initialisation
+//2, Changed USART_RX_STA so the maximum receive length is 2^14 bytes
+//3, Added USART_REC_LEN, which sets the maximum number of bytes the serial port will accept (no more than 2^14)
+//4, Changed how EN_USART1_RX is enabled
 //V1.5修改说明
 ////////////////////////////////////////////////////////////////////////////////// 	  
  
@@ -89,7 +89,7 @@ void uart1_init(u32 bound)
 	USART_InitTypeDef USART_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 	 
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1 | RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOC | RCC_APB2Periph_GPIOD, ENABLE);	//使能USART1，GPIOA时钟
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1 | RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOC | RCC_APB2Periph_GPIOD, ENABLE);	//Enable the USART1 and GPIOA clocks
  	USART_DeInit(USART1);  //Reset USART1
 	//USART1_TX   PA.9
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;				//PA.9

@@ -14,18 +14,18 @@
 //mem1内存参数设定.mem1完全处于内部SRAM里面
 #define MEM1_BLOCK_SIZE			32  	  						//内存块大小为32字节
 #define MEM1_MAX_SIZE			1*1024  						//最大管理内存20K
-#define MEM1_ALLOC_TABLE_SIZE	MEM1_MAX_SIZE/MEM1_BLOCK_SIZE 	//内存表大小
+#define MEM1_ALLOC_TABLE_SIZE	MEM1_MAX_SIZE/MEM1_BLOCK_SIZE 	//Memory table size
 
 //mem2内存参数设定.mem2的内存池处于外部SRAM里面,其他的处于内部SRAM里面
 #define MEM2_BLOCK_SIZE			32  	  						//内存块大小为32字节
 #define MEM2_MAX_SIZE			1*1024  						//最大管理内存200K
-#define MEM2_ALLOC_TABLE_SIZE	MEM2_MAX_SIZE/MEM2_BLOCK_SIZE 	//内存表大小
+#define MEM2_ALLOC_TABLE_SIZE	MEM2_MAX_SIZE/MEM2_BLOCK_SIZE 	//Memory table size
 		 
 		 
 //内存管理控制器
 struct _m_mallco_dev
 {
-	void (*init)(u8);						//初始化
+	void (*init)(u8);						//Initialise
 	u8 (*perused)(u8);		  	    		//内存使用率
 	u8 *membase[2];							//内存池 管理2个区域的内存
 	u16 *memmap[2]; 						//内存管理状态表

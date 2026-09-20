@@ -35,9 +35,9 @@
 #define ERXSTH           (0x09|0x00)
 #define ERXNDL           (0x0A|0x00)
 #define ERXNDH           (0x0B|0x00)
-//ERXWRPTH:ERXWRPTL 寄存器定义硬件向FIFO 中
-//的哪个位置写入其接收到的字节。 指针是只读的，在成
-//功接收到一个数据包后，硬件会自动更新指针。 指针可
+//The ERXWRPTH:ERXWRPTL registers define where in the FIFO the hardware
+//writes the bytes it receives. The pointer is read-only and is updated
+//automatically by the hardware once a packet has been received. The pointer can
 //用于判断FIFO 内剩余空间的大小。
 #define ERXRDPTL         (0x0C|0x00)
 #define ERXRDPTH         (0x0D|0x00)

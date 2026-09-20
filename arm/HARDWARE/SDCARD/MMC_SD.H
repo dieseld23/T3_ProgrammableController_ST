@@ -45,15 +45,15 @@
 
 
 
-extern u8 SD_Type;//SD卡的类型
+extern u8 SD_Type;//SD card type
 //函数申明区 
 u8 SD_SPI_ReadWriteByte(u8 data);
 void SD_SPI_SpeedLow(void);
 void SD_SPI_SpeedHigh(void);
 u8 SD_WaitReady(void);							//等待SD卡准备
 u8 SD_GetResponse(u8 Response);					//获得相应
-u8 SD_Initialize(void);							//初始化
-u8 SD_ReadDisk(u8*buf, u32 sector, u8 cnt);		//读块
+u8 SD_Initialize(void);							//Initialise
+u8 SD_ReadDisk(u8*buf, u32 sector, u8 cnt);		//Read a block
 u8 SD_WriteDisk(u8*buf, u32 sector, u8 cnt);	//写块
 u32 SD_GetSectorCount(void);   					//读扇区数
 u8 SD_GetCID(u8 *cid_data);                     //读SD卡CID

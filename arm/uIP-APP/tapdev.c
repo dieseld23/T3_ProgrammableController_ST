@@ -62,7 +62,7 @@ u8 tapdev_init(void)
 	uip_ipaddr_t ipaddr;
 #endif
 		
-	res = ENC28J60_Init((u8*)Modbus.mac_addr);	//初始化ENC28J60					  
+	res = ENC28J60_Init((u8*)Modbus.mac_addr);	//Initialise the ENC28J60					  
 	//把IP地址和MAC地址写入缓存区
 	for(i = 0; i < 6; i++)
 	{
@@ -71,7 +71,7 @@ u8 tapdev_init(void)
     //指示灯状态:0x476 is PHLCON LEDA(绿)=links status, LEDB(红)=receive/transmit
  	//PHLCON：PHY 模块LED 控制寄存器	    
 	ENC28J60_PHY_Write(PHLCON, 0x0476);
-	uip_init();							//uIP初始化	
+	uip_init();							//uIP initialisation	
 	if(Modbus.tcp_type == 0)	
 	{
 		U8_T temp[4];

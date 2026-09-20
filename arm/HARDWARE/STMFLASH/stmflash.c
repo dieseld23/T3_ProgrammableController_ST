@@ -128,7 +128,7 @@ void STMFLASH_Write_NoCheck(u32 WriteAddr, u16 *pBuffer, u16 NumToWrite)
 	}  
 }
  
-//从指定地址开始写入指定长度的数据
+//Write a given number of bytes starting at a given address
 //WriteAddr:起始地址(此地址必须为2的倍数!!)
 //pBuffer: data pointer
 //NumToWrite:半字(16位)数(就是要写入的16位数据的个数.)
@@ -203,7 +203,7 @@ void STMFLASH_Write(u32 WriteAddr, u16 *pBuffer, u16 NumToWrite)
 }
 #endif
 
-//从指定地址开始读出指定长度的数据
+//Read a given number of bytes starting at a given address
 //ReadAddr:起始地址
 //pBuffer: data pointer
 //NumToWrite: number of half-words (16-bit)

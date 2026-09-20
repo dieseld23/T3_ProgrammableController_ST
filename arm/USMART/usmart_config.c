@@ -16,7 +16,7 @@ extern void test_fun(void(*ledset)(u8),u8 sta);
 //用户直接在这里输入要执行的函数名及其查找串
 struct _m_usmart_nametab usmart_nametab[]=
 {
-#if USMART_USE_WRFUNS==1 	//如果使能了读写操作
+#if USMART_USE_WRFUNS==1 	//If the read/write operations are enabled
 	(void*)read_addr,"u32 read_addr(u32 addr)",
 	(void*)write_addr,"void write_addr(u32 addr,u32 val)",	 
 #endif		   
@@ -72,8 +72,8 @@ struct _m_usmart_dev usmart_dev=
 	usmart_cmd_rec,
 	usmart_exe,
 	usmart_scan,
-	sizeof(usmart_nametab)/sizeof(struct _m_usmart_nametab),//函数数量
-	0,	  	//参数数量
+	sizeof(usmart_nametab)/sizeof(struct _m_usmart_nametab),//Number of functions
+	0,	  	//Number of parameters
 	0,	 	//函数ID
 	1,		//参数显示类型,0,10进制;1,16进制
 	0,		//参数类型.bitx:,0,数字;1,字符串	    

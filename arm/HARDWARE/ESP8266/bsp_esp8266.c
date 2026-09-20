@@ -75,7 +75,7 @@ void USART_printf ( USART_TypeDef * USARTx, char * Data, ... )
 		{									  //
 			switch ( *++Data )
 			{				
-				case 's':										  //×Ö·û´®
+				case 's':										  //String
 				s = va_arg(ap, const char *);
 				
 				for ( ; *s; s++) 

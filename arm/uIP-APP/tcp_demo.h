@@ -34,7 +34,7 @@ void tcp_server_demo_appcall(void);
 #define UIP_APPCALL tcp_appcall //定义回调函数为 tcp_demo_appcall 
 #endif
 /////////////////////////////////////TCP SERVER/////////////////////////////////////
-extern u8 tcp_server_databuf[];   		//发送数据缓存	 
+extern u8 tcp_server_databuf[];   		//Transmit buffer	 
 extern u8 tcp_server_sta;				//服务端状态  
 
 
@@ -49,7 +49,7 @@ void tcp_server_newdata(void);
 void tcp_server_acked(void);
 void tcp_server_senddata(void);
 /////////////////////////////////////TCP CLIENT/////////////////////////////////////
-extern u8 tcp_client_databuf[];   		//发送数据缓存	 
+extern u8 tcp_client_databuf[];   		//Transmit buffer	 
 //extern u8 tcp_client_sta;				//客户端状态   
 void tcp_client_reconnect(void);
 void tcp_client_connected(void);

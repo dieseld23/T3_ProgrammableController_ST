@@ -103,7 +103,7 @@ u8 RTC_Init(void)
 		RTC_EnterConfigMode();					//允许配置	
 		RTC_SetPrescaler(32767);				//设置RTC预分频的值
 		RTC_WaitForLastTask();					//Wait for the last write to the RTC registers to finish
-		Rtc_Set(16, 8, 27, 15, 42, 55,0);		//设置时间	
+		Rtc_Set(16, 8, 27, 15, 42, 55,0);		//Set the time	
 		RTC_ExitConfigMode(); 
 		//退出配置模式  
 		BKP_WriteBackupRegister(BKP_DR1, 0X5050);//向指定的后备寄存器中写入用户程序数据
@@ -116,7 +116,7 @@ u8 RTC_Init(void)
 	}
 	
 	RTC_NVIC_Config();							//RCT中断分组设置		    				     
-	RTC_Get();									//更新时间	
+	RTC_Get();									//Update the time	
 	return 1;
 }
 

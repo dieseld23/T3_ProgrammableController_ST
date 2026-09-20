@@ -8,7 +8,7 @@
 #include "modbus.h"
 
 #if 0
-u8 tcp_server_databuf[500];   	//发送数据缓存	  
+u8 tcp_server_databuf[500];   	//Transmit buffer	  
 u8 tcp_server_sta;				//服务端状态
 //[7]:0,无连接;1,已经连接;
 //[6]:0,无数据;1,收到客户端数据
@@ -23,11 +23,11 @@ void tcp_server_demo_appcall(void)
 {
  	struct tcp_demo_appstate *s = (struct tcp_demo_appstate *)&uip_conn->appstate;
 	if(uip_aborted())tcp_server_aborted();		//连接终止
- 	if(uip_timedout())tcp_server_timedout();	//连接超时   
-	if(uip_closed())tcp_server_closed();		//连接关闭	   
- 	if(uip_connected())tcp_server_connected();	//连接成功	    
-	if(uip_acked())tcp_server_acked();			//发送的数据成功送达 
-	//接收到一个新的TCP数据包 
+ 	if(uip_timedout())tcp_server_timedout();	//Connection timed out   
+	if(uip_closed())tcp_server_closed();		//Connection closed	   
+ 	if(uip_connected())tcp_server_connected();	//Connected	    
+	if(uip_acked())tcp_server_acked();			//The data was delivered successfully 
+	//A new TCP packet has arrived 
 	if(uip_newdata())//收到客户端发过来的数据
 	{
 		if((tcp_server_sta & (1 << 6)) == 0)	//还未收到数据
@@ -50,7 +50,7 @@ void tcp_server_demo_appcall(void)
 	{
 		s->textptr = tcp_server_databuf;
 		s->textlen = strlen((const char*)tcp_server_databuf);
-		tcp_server_sta &= ~(1 << 5);			//清除标记
+		tcp_server_sta &= ~(1 << 5);			//Clear the flag
 	}
 	
 	//当需要重发、新数据到达、数据包送达、连接建立时，通知uip发送数据 
@@ -60,25 +60,25 @@ void tcp_server_demo_appcall(void)
 	}
 }
 
-//终止连接				    
+//Abort the connection				    
 void tcp_server_aborted(void)
 {
-	tcp_server_sta &= ~(1 << 7);				//标志没有连接
-	uip_log("tcp_server aborted!\r\n");			//打印log
+	tcp_server_sta &= ~(1 << 7);				//Flag: not connected
+	uip_log("tcp_server aborted!\r\n");			//Print the log
 }
 
-//连接超时
+//Connection timed out
 void tcp_server_timedout(void)
 {
-	tcp_server_sta &= ~(1 << 7);				//标志没有连接
-	uip_log("tcp_server timeout!\r\n");			//打印log
+	tcp_server_sta &= ~(1 << 7);				//Flag: not connected
+	uip_log("tcp_server timeout!\r\n");			//Print the log
 }
 
-//连接关闭
+//Connection closed
 void tcp_server_closed(void)
 {
-	tcp_server_sta &= ~(1 << 7);				//标志没有连接
-	uip_log("tcp_server closed!\r\n");			//打印log
+	tcp_server_sta &= ~(1 << 7);				//Flag: not connected
+	uip_log("tcp_server closed!\r\n");			//Print the log
 }
 
 //连接建立
@@ -94,14 +94,14 @@ void tcp_server_connected(void)
 	//定义了1个连接的数组，支持同时创建几个连接。
 	//uip_conn是一个全局的指针，指向当前的tcp或udp连接。
 	tcp_server_sta |= 1 << 7;					//标志连接成功
-  	uip_log("tcp_server connected!\r\n");		//打印log
+  	uip_log("tcp_server connected!\r\n");		//Print the log
 	s->state = STATE_CMD; 						//指令状态
 	s->textlen = 0;
 	s->textptr = "Connect to STM32 Board Successfully!\r\n";
 	s->textlen = strlen((char *)s->textptr);
 }
 
-//发送的数据成功送达
+//The data was delivered successfully
 void tcp_server_acked(void)
 {						    	 
 	struct tcp_demo_appstate *s = (struct tcp_demo_appstate *)&uip_conn->appstate;

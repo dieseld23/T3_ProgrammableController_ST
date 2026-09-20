@@ -42,7 +42,7 @@
 #include "stm32f10x.h" 
 
 //uip时钟
-extern u32 uip_timer;//uip 计时器，每10ms增加1.
+extern u32 uip_timer;//uIP timer, incremented every 10ms.
 /*---------------------------------------------------------------------------*/
 clock_time_t
 clock_time(void)

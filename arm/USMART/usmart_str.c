@@ -1,67 +1,67 @@
 #include "usmart_str.h"
 #include "usmart.h"		   
 //////////////////////////////////////////////////////////////////////////////////	 
-//本程序只供学习使用，未经作者许可，不得用于其它任何用途
-//ALIENTEK STM32开发板	   
-//正点原子@ALIENTEK
-//技术论坛:www.openedv.com 
-//版本：V3.1
-//版权所有，盗版必究。
-//Copyright(C) 正点原子 2011-2021
+//This code is for study use only and may not be used for any other purpose without the author's permission
+//ALIENTEK STM32 development board	   
+//ALIENTEK
+//Support forum: www.openedv.com 
+//Version: V3.1
+//All rights reserved.
+//Copyright(C) ALIENTEK 2011-2021
 //All rights reserved
 //********************************************************************************
-//升级说明
+//Change log
 //V1.4
-//增加了对参数为string类型的函数的支持.适用范围大大提高.
-//优化了内存占用,静态内存占用为79个字节@10个参数.动态适应数字及字符串长度
+//Added support for functions taking string parameters, which widens the range of use considerably.
+//Reduced memory use: 79 bytes of static memory at 10 parameters, adapting dynamically to number and string lengths
 //V2.0 
-//1,修改了list指令,打印函数的完整表达式.
-//2,增加了id指令,打印每个函数的入口地址.
-//3,修改了参数匹配,支持函数参数的调用(输入入口地址).
-//4,增加了函数名长度宏定义.	
+//1, Changed the list command to print the full function expression.
+//2, Added the id command, which prints each function's entry address.
+//3, Changed parameter matching to support calling a function as a parameter (by entry address).
+//4, Added a macro for the function name length.	
 //V2.1 20110707		 
-//1,增加dec,hex两个指令,用于设置参数显示进制,及执行进制转换.
-//注:当dec,hex不带参数的时候,即设定显示参数进制.当后跟参数的时候,即执行进制转换.
-//如:"dec 0XFF" 则会将0XFF转为255,由串口返回.
-//如:"hex 100" 	则会将100转为0X64,由串口返回
-//2,新增usmart_get_cmdname函数,用于获取指令名字.
+//1, Added the dec and hex commands, which set the parameter display base and perform base conversion.
+//Note: with no argument, dec/hex set the display base; with an argument they perform a base conversion.
+//e.g. "dec 0XFF" converts 0XFF to 255 and returns it over the serial port.
+//e.g. "hex 100" 	converts 100 to 0X64 and returns it over the serial port
+//2, Added the usmart_get_cmdname function, which fetches a command name.
 //V2.2 20110726	
-//1,修正了void类型参数的参数统计错误.
-//2,修改数据显示格式默认为16进制.
+//1, Fixed the parameter count being wrong for void parameters.
+//2, Changed the default data display format to hexadecimal.
 //V2.3 20110815
-//1,去掉了函数名后必须跟"("的限制.
-//2,修正了字符串参数中不能有"("的bug.
-//3,修改了函数默认显示参数格式的修改方式. 
+//1, Removed the rule that a function name must be followed by "(".
+//2, Fixed the bug where a string parameter could not contain "(".
+//3, Changed how a function's default parameter display format is set. 
 //V2.4 20110905
-//1,修改了usmart_get_cmdname函数,增加最大参数长度限制.避免了输入错误参数时的死机现象.
-//2,增加USMART_ENTIM2_SCAN宏定义,用于配置是否使用TIM2定时执行scan函数.
+//1, Changed usmart_get_cmdname to cap the maximum parameter length, which stops the hang seen when a bad parameter is entered.
+//2, Added the USMART_ENTIM2_SCAN macro, which selects whether TIM2 is used to run the scan function periodically.
 //V2.5 20110930
-//1,修改usmart_init函数为void usmart_init(u8 sysclk),可以根据系统频率自动设定扫描时间.(固定100ms)
-//2,去掉了usmart_init函数中的uart_init函数,串口初始化必须在外部初始化,方便用户自行管理.
+//1, Changed usmart_init to void usmart_init(u8 sysclk) so the scan interval is set automatically from the system clock (fixed at 100ms).
+//2, Removed the uart_init call from usmart_init; the serial port must now be initialised externally so the user can manage it.
 //V2.6 20111009
-//1,增加了read_addr和write_addr两个函数.可以利用这两个函数读写内部任意地址(必须是有效地址).更加方便调试.
-//2,read_addr和write_addr两个函数可以通过设置USMART_USE_WRFUNS为来使能和关闭.
-//3,修改了usmart_strcmp,使其规范化.			  
+//1, Added the read_addr and write_addr functions, which read and write any internal address (it must be a valid one). Handy for debugging.
+//2, read_addr and write_addr can be enabled or disabled through USMART_USE_WRFUNS.
+//3, Tidied up usmart_strcmp.			  
 //V2.7 20111024
-//1,修正了返回值16进制显示时不换行的bug.
-//2,增加了函数是否有返回值的判断,如果没有返回值,则不会显示.有返回值时才显示其返回值.
+//1, Fixed the missing newline when a return value is shown in hexadecimal.
+//2, Added a check for whether a function has a return value; the value is only shown when there is one.
 //V2.8 20111116
-//1,修正了list等不带参数的指令发送后可能导致死机的bug.
+//1, Fixed the hang that could follow an argument-less command such as list.
 //V2.9 20120917
-//1,修改了形如：void*xxx(void)类型函数不能识别的bug。
+//1, Fixed the bug where functions of the form void*xxx(void) were not recognised.
 //V3.0 20130425
-//1,新增了字符串参数对转义符的支持。
+//1, Added escape-character support in string parameters.
 //V3.1 20131120
-//1,增加runtime系统指令,可以用于统计函数执行时间.
-//用法:
-//发送:runtime 1 ,则开启函数执行时间统计功能
-//发送:runtime 0 ,则关闭函数执行时间统计功能
-///runtime统计功能,必须设置:USMART_ENTIMX_SCAN 为1,才可以使用!!
+//1, Added the runtime system command, which measures function execution time.
+//Usage:
+//Send "runtime 1" to turn function timing on
+//Send "runtime 0" to turn function timing off
+///runtime timing feature: USMART_ENTIMX_SCAN must be 1 for this to work!!
 /////////////////////////////////////////////////////////////////////////////////////
   
 //对比字符串str1和str2
-//*str1:字符串1指针
-//*str2:字符串2指针
+//*str1: pointer to string 1
+//*str2: pointer to string 2
 //返回值:0，相等;1，不相等;
 u8 usmart_strcmp(u8 *str1,u8 *str2)
 {
@@ -75,14 +75,14 @@ u8 usmart_strcmp(u8 *str1,u8 *str2)
 	return 0;//两个字符串相等
 }
 //把str1的内容copy到str2
-//*str1:字符串1指针
-//*str2:字符串2指针			   
+//*str1: pointer to string 1
+//*str2: pointer to string 2			   
 void usmart_strcopy(u8*str1,u8 *str2)
 {
 	while(1)
 	{										   
 		*str2=*str1;	//拷贝
-		if(*str1=='\0')break;//拷贝完成了.
+		if(*str1=='\0')break;//Copy finished.
 		str1++;
 		str2++;
 	}
@@ -95,13 +95,13 @@ u8 usmart_strlen(u8*str)
 	u8 len=0;
 	while(1)
 	{							 
-		if(*str=='\0')break;//拷贝完成了.
+		if(*str=='\0')break;//Copy finished.
 		len++;
 		str++;
 	}
 	return len;
 }
-//m^n函数
+//m raised to the power n
 //返回值:m^n次方
 u32 usmart_pow(u8 m,u8 n)
 {
@@ -170,9 +170,9 @@ u8 usmart_get_cmdname(u8*str,u8*cmdname,u8 *nlen,u8 maxlen)
 		str++;
 		cmdname++;
 		(*nlen)++;//统计命令长度
-		if(*nlen>=maxlen)return 1;//错误的指令
+		if(*nlen>=maxlen)return 1;//Bad command
 	}
-	*cmdname='\0';//加入结束符
+	*cmdname='\0';//Append the terminator
 	return 0;//正常返回
 }
 //获取下一个字符（当中间有很多空格的时候，此函数直接忽略空格，找到空格之后的第一个字符）
@@ -184,12 +184,12 @@ u8 usmart_search_nextc(u8* str)
 	while(*str==' '&&str!='\0')str++;
 	return *str;
 } 
-//从str中得到函数名
-//*str:源字符串指针
+//Extract the function name from str
+//*str: pointer to the source string
 //*fname:获取到的函数名字指针
 //*pnum:函数的参数个数
 //*rval:是否需要显示返回值(0,不需要;1,需要)
-//返回值:0,成功;其他,错误代码.
+//Return: 0 = success; other = error code.
 u8 usmart_get_fname(u8*str,u8*fname,u8 *pnum,u8 *rval)
 {
 	u8 res;
@@ -217,7 +217,7 @@ u8 usmart_get_fname(u8*str,u8*fname,u8 *pnum,u8 *rval)
 	} 
 	if(pcnt)//接收完了
 	{
-		fpname[pcnt&0x7f]='\0';//加入结束符
+		fpname[pcnt&0x7f]='\0';//Append the terminator
 		if(usmart_strcmp(fpname,"void")==0)*rval=0;//不需要返回值
 		else *rval=1;							   //需要返回值
 		pcnt=0;
@@ -242,7 +242,7 @@ u8 usmart_get_fname(u8*str,u8*fname,u8 *pnum,u8 *rval)
 	{
 		if(*strtemp==0)
 		{
-			res=USMART_FUNCERR;//函数错误
+			res=USMART_FUNCERR;//Function error
 			break;
 		}else if(*strtemp=='('&&nchar==0)fover++;//括号深度增加一级	 
 		else if(*strtemp==')'&&nchar==0)
@@ -284,17 +284,17 @@ u8 usmart_get_fname(u8*str,u8*fname,u8 *pnum,u8 *rval)
 	}   
 	if(parmnum==1)//只有1个参数.
 	{
-		fpname[fplcnt]='\0';//加入结束符
+		fpname[fplcnt]='\0';//Append the terminator
 		if(usmart_strcmp(fpname,"void")==0)parmnum=0;//参数为void,表示没有参数.
 	}
 	*pnum=parmnum;	//记录参数个数
-	*fname='\0';	//加入结束符
+	*fname='\0';	//Append the terminator
 	return res;		//返回执行结果
 }
 
 
 //从str中得到一个函数的参数
-//*str:源字符串指针
+//*str: pointer to the source string
 //*fparm:参数字符串指针
 //*ptype:参数类型 0，数字;1，字符串;0XFF，参数错误
 //返回值:0,已经无参数了;其他,下一个参数的偏移量.
@@ -344,7 +344,7 @@ u8 usmart_get_aparm(u8 *str,u8 *fparm,u8 *ptype)
 		i++;//偏移量增加
 		str++;
 	}
-	*fparm='\0';	//加入结束符
+	*fparm='\0';	//Append the terminator
 	*ptype=type;	//返回参数类型
 	return i;		//返回参数长度
 }
@@ -361,7 +361,7 @@ u8 usmart_get_parmpos(u8 num)
 //从str中得到函数参数
 //str:源字符串;
 //parn:参数的多少.0表示无参数 void类型
-//返回值:0,成功;其他,错误代码.
+//Return: 0 = success; other = error code.
 u8 usmart_get_fparam(u8*str,u8 *parn)
 {	
 	u8 i,type;  
@@ -385,8 +385,8 @@ u8 usmart_get_fparam(u8*str,u8 *parn)
 			case 0:	//数字
 				if(tstr[0]!='\0')				//接收到的参数有效
 				{					    
-					i=usmart_str2num(tstr,&res);	//记录该参数	 
-					if(i)return USMART_PARMERR;		//参数错误.
+					i=usmart_str2num(tstr,&res);	//Record this parameter	 
+					if(i)return USMART_PARMERR;		//Parameter error.
 					*(u32*)(usmart_dev.parm+usmart_get_parmpos(n))=res;//记录转换成功的结果.
 					usmart_dev.parmtype&=~(1<<n);	//标记数字
 					usmart_dev.plentbl[n]=4;		//该参数的长度为4  
@@ -394,7 +394,7 @@ u8 usmart_get_fparam(u8*str,u8 *parn)
 					if(n>MAX_PARM)return USMART_PARMOVER;//参数太多
 				}
 				break;
-			case 1://字符串	 	
+			case 1://String	 	
 				len=usmart_strlen(tstr)+1;	//包含了结束符'\0'
 				usmart_strcopy(tstr,&usmart_dev.parm[usmart_get_parmpos(n)]);//拷贝tstr数据到usmart_dev.parm[n]
 				usmart_dev.parmtype|=1<<n;	//标记字符串 
@@ -402,8 +402,8 @@ u8 usmart_get_fparam(u8*str,u8 *parn)
 				n++;
 				if(n>MAX_PARM)return USMART_PARMOVER;//参数太多
 				break;
-			case 0XFF://错误
-				return USMART_PARMERR;//参数错误	  
+			case 0XFF://Error
+				return USMART_PARMERR;//Parameter error	  
 		}
 		if(*str==')'||*str=='\0')break;//查到结束标志了.
 	}

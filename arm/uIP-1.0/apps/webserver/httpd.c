@@ -273,15 +273,15 @@ static PT_THREAD(handle_input(struct httpd_state *s))
 				strx=strstr((const char*)strx,"color:#");//ÕÒµ½"color:#"×Ö·û´®
 				if(LED0)//LED0Ãğ
 				{
-					strncpy(strx+7,"5B5B5B",6);	//»ÒÉ«
+					strncpy(strx+7,"5B5B5B",6);	//Grey
 					strncpy(strx+24,"Ãğ",2);	//Ãğ
-					strx=strstr((const char*)strx,"http:");//ÕÒµ½"http:"×Ö·û´® 
+					strx=strstr((const char*)strx,"http:");//Found the "http:" string 
 					strncpy(strx,(const char*)LED_OFF_PIC_ADDR,strlen((const char*)LED_OFF_PIC_ADDR));//LED0ÃğÍ¼Æ¬	  
 				}else
 				{
-					strncpy(strx+7,"FF0000",6);	//ºìÉ«
+					strncpy(strx+7,"FF0000",6);	//Red
 					strncpy(strx+24,"ÁÁ",2);	//"ÁÁ"
-					strx=strstr((const char*)strx,"http:");//ÕÒµ½"http:"×Ö·û´® 
+					strx=strstr((const char*)strx,"http:");//Found the "http:" string 
 					strncpy(strx,(const char*)LED0_ON_PIC_ADDR,strlen((const char*)LED0_ON_PIC_ADDR));//LED0ÁÁÍ¼Æ¬	  
 				}	
 			}  
@@ -296,15 +296,15 @@ static PT_THREAD(handle_input(struct httpd_state *s))
 				strx=strstr((const char*)strx,"color:#");//ÕÒµ½"color:#"×Ö·û´®
 				if(LED3)//LED1Ãğ
 				{
-					strncpy(strx+7,"5B5B5B",6);	//»ÒÉ«
+					strncpy(strx+7,"5B5B5B",6);	//Grey
 					strncpy(strx+24,"Ãğ",2);	//Ãğ
-					strx=strstr((const char*)strx,"http:");//ÕÒµ½"http:"×Ö·û´® 
+					strx=strstr((const char*)strx,"http:");//Found the "http:" string 
 					strncpy(strx,(const char*)LED_OFF_PIC_ADDR,strlen((const char*)LED_OFF_PIC_ADDR));//LED1ÃğÍ¼Æ¬	  
 				}else
 				{
 					strncpy(strx+7,"00FF00",6);	//ÂÌÉ«
 					strncpy(strx+24,"ÁÁ",2);	//"ÁÁ"
-					strx=strstr((const char*)strx,"http:");//ÕÒµ½"http:"×Ö·û´® 
+					strx=strstr((const char*)strx,"http:");//Found the "http:" string 
 					strncpy(strx,(const char*)LED1_ON_PIC_ADDR,strlen((const char*)LED1_ON_PIC_ADDR));//LED1ÁÁÍ¼Æ¬	  
 				}	
 			} 
@@ -321,7 +321,7 @@ static PT_THREAD(handle_input(struct httpd_state *s))
 		if(strx)
 		{
 //			get_time(dbuf);			//µÃµ½Ê±¼ä  
-			strncpy(strx+33,(const char*)dbuf,16);	//¸üĞÂÊ±¼ä
+			strncpy(strx+33,(const char*)dbuf,16);	//Update the time
 			printf("Update RTC\r\n");
 		}
 		strncpy(s->filename, http_index_html, sizeof(s->filename));
@@ -357,7 +357,7 @@ void httpd_appcall(void)
 	if(uip_closed() || uip_aborted() || uip_timedout())//Òì³£´¦Àí 
 	{
 	}
-	else if(uip_connected())//Á¬½Ó³É¹¦ 
+	else if(uip_connected())//Connected 
 	{
 		PSOCK_INIT(&s->sin, s->inputbuf, sizeof(s->inputbuf) - 1);
 		PSOCK_INIT(&s->sout, s->inputbuf, sizeof(s->inputbuf) - 1);

@@ -108,7 +108,7 @@ void TIM3_Int_Init(u16 arr, u16 psc)
 //}
 
 /////////////////////////////////////////////////////////////////////////////////////////
-u32 uip_timer = 0;	//uip 计时器，每10ms增加1.
+u32 uip_timer = 0;	//uIP timer, incremented every 10ms.
 //定时器6中断服务程序	 
 extern u32  far miliseclast_cur;
 extern u32  far miliseclast;

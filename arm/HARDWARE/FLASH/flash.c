@@ -22,8 +22,8 @@ void SPI_Flash_Init(void)
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;			//PC4-CS
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;  	//PC4推挽输出 
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;	
-	GPIO_Init(GPIOC, &GPIO_InitStructure);				//初始化GPIOA
-	GPIO_SetBits(GPIOC, GPIO_Pin_4);  					//PB7输出高
+	GPIO_Init(GPIOC, &GPIO_InitStructure);				//Initialise GPIOA
+	GPIO_SetBits(GPIOC, GPIO_Pin_4);  					//Drive PB7 high
 
 //	RCC->APB2ENR |= (1<<2) | (1<<4);//使能PORTA,PORTC时钟 	    
 //	GPIOC->CRL &= 0XFFF0FFFF; 
@@ -236,12 +236,12 @@ void SPI_Flash_Erase_Sector(u32 Dst_Addr)
 	SPI_FLASH_CS=1;                            //Deselect the chip     	      
     SPI_Flash_Wait_Busy();   				   //等待擦除完成
 }  
-//等待空闲
+//Wait until idle
 void SPI_Flash_Wait_Busy(void)   
 {   
 	while((SPI_Flash_ReadSR()&0x01)==0x01);   // 等待BUSY位清空
 }  
-//进入掉电模式
+//Enter power-down mode
 void SPI_Flash_PowerDown(void)   
 { 
   	SPI_FLASH_CS=0;                            //Enable the device   
@@ -249,7 +249,7 @@ void SPI_Flash_PowerDown(void)
 	SPI_FLASH_CS=1;                            //Deselect the chip     	      
     delay_us(3);                               //等待TPD  
 }   
-//唤醒
+//Wake up
 void SPI_Flash_WAKEUP(void)   
 {  
   	SPI_FLASH_CS=0;                            //Enable the device   

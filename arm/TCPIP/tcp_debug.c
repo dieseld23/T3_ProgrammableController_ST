@@ -40,7 +40,7 @@ extern  S8_T far smtpc_Buf[256];
 				tcpdebug_length = nstr_length;
 			}
 			
-			void tcp_printf_hex(char *str,int nlength,char *des_str ) //最多将84个转换为hex  buffer为256;
+			void tcp_printf_hex(char *str,int nlength,char *des_str ) //Converts at most 84 values to hex; the buffer is 256 bytes;
 			{
 				int i=0;
         unsigned char des_length = 0;

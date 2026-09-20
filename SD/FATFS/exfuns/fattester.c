@@ -16,8 +16,8 @@
 
     
 //为磁盘注册工作区	 
-//drv:盘符
-//返回值:执行结果
+//drv: drive letter
+//Return: the result
 //u8 mf_mount(u8 drv)
 //{		   
 //	return f_mount(drv, fs[drv]); 
@@ -26,16 +26,16 @@
 //打开路径下的文件
 //path:路径+文件名
 //mode:打开模式
-//返回值:执行结果
+//Return: the result
 u8 mf_open(u8*path, u8 mode)
 {
 	u8 res;	 
-	res = f_open(&file, (const TCHAR*)path, mode);	//打开文件夹
+	res = f_open(&file, (const TCHAR*)path, mode);	//Open a folder
 	return res;
 }
 
 //关闭文件
-//返回值:执行结果
+//Return: the result
 u8 mf_close(void)
 {
 	f_close(&file);
@@ -44,7 +44,7 @@ u8 mf_close(void)
 
 //读出数据
 //len:读出的长度
-//返回值:执行结果
+//Return: the result
 u8 mf_read(u16 len)
 {
 	u16 i, t;
@@ -92,7 +92,7 @@ u8 mf_read(u16 len)
 //Write data
 //dat:数据缓存区
 //len:写入长度
-//返回值:执行结果
+//Return: the result
 u8 mf_write(u8*dat, u16 len)
 {			    
 	u8 res;	   					   
@@ -112,16 +112,16 @@ u8 mf_write(u8*dat, u16 len)
 	return res;
 }
 
-//打开文件夹
- //path:路径
-//返回值:执行结果
+//Open a folder
+ //path: the path
+//Return: the result
 u8 mf_opendir(u8* path)
 {
 	return f_opendir(&dir, (const TCHAR*)path);	
 }
 
 //打读取文件夹
-//返回值:执行结果
+//Return: the result
 //u8 mf_readdir(void)
 //{
 //	u8 res;
@@ -164,8 +164,8 @@ u8 mf_opendir(u8* path)
 //}			 
 
  //遍历文件
- //path:路径
- //返回值:执行结果
+ //path: the path
+ //Return: the result
 //u8 mf_scan_files(char *path)
 //{
 //	FRESULT res;	  
@@ -201,7 +201,7 @@ u8 mf_opendir(u8* path)
 //}
 
 //显示剩余容量
-//drv:盘符
+//drv: drive letter
 //返回值:剩余容量(字节)
 u32 mf_showfree(u8 *drv)
 {
@@ -262,17 +262,17 @@ u32 mf_size(void)
 
 //创建目录
 //pname:目录路径+名字
-//返回值:执行结果
+//Return: the result
 u8 mf_mkdir(u8 *pname)
 {
 	return f_mkdir((const TCHAR *)pname);
 }
 
 //格式化
-//drv:盘符
+//drv: drive letter
 //mode:模式
 //au:簇大小
-//返回值:执行结果
+//Return: the result
 u8 mf_fmkfs(u8 drv, u8 mode, u16 au)
 {
 	return f_mkfs(drv, mode, au);//格式化,drv:盘符;mode:模式;au:簇大小
@@ -280,7 +280,7 @@ u8 mf_fmkfs(u8 drv, u8 mode, u16 au)
 
 //删除文件/目录
 //pname:文件/目录路径+名字
-//返回值:执行结果
+//Return: the result
 u8 mf_unlink(u8 *pname)
 {
 	return  f_unlink((const TCHAR *)pname);
@@ -289,7 +289,7 @@ u8 mf_unlink(u8 *pname)
 //修改文件/目录名字(如果目录不同,还可以移动文件哦!)
 //oldname:之前的名字
 //newname:新名字
-//返回值:执行结果
+//Return: the result
 u8 mf_rename(u8 *oldname, u8* newname)
 {
 	return f_rename((const TCHAR *)oldname, (const TCHAR *)newname);
@@ -315,7 +315,7 @@ void mf_gets(u16 size)
 //需要_USE_STRFUNC>=1
 //写一个字符到文件
 //c:要写入的字符
-//返回值:执行结果
+//Return: the result
 u8 mf_putc(u8 c)
 {
 	return f_putc((TCHAR)c, &file);
