@@ -46,6 +46,53 @@ def blend565(bg, fg, level, top):
             | (bb + (fb - bb) * level // top))
 
 
+def format_value(v, chars):
+    """Mirror of format_value() in ER-TFT024-3_4-Wire_SPI.c: pick the decimal
+    places from what fits in `chars` cells, then measure, because rounding can
+    carry into a new digit."""
+    v = min(9999.0, max(-999.0, float(v)))
+    room = chars - (1 if v < 0 else 0)
+    whole, digits = int(abs(v)), 1
+    while whole >= 10:
+        whole //= 10
+        digits += 1
+    places = min(2, room - digits - 1)
+    while places > 0:
+        out = '%.*f' % (places, v)
+        if len(out) <= chars:
+            return out
+        places -= 1
+    return '%d' % int(v - 0.5 if v < 0 else v + 0.5)
+
+
+def justify_value(text, chars):
+    """Mirror of justify_value(): square the full width off with spaces, then
+    push a short value right. str.rjust() is NOT the same -- it leaves the
+    trailing spaces a memcpy'd literal like "ON  " carries, so the firmware
+    would show "  ON" where rjust() shows "ON  "."""
+    out = (text + ' ' * chars)[:chars]
+    length = len(out.rstrip(' '))
+    if length == 0 or length == chars:
+        return out
+    return ' ' * (chars - length) + out[:length]
+
+
+def round_tenths(value):
+    """Mirror of (value + 5) / 10 in Top_area_display: half away from zero, not
+    Python's round(), which rounds half to even and disagrees on every .5."""
+    neg = value < 0
+    n = (abs(int(value)) + 5) // 10
+    return -n if neg else n
+
+
+# The unit each firmware branch draws, keyed the way Top_area_display switches.
+# Two characters start at UNIT2_POS; one hangs off UNIT_POS, with the degree
+# ring beside it only for the temperature scales.
+UNITS = {'C': ('C', True), 'F': ('F', True), 'PERCENT': ('%', False),
+         'RH': ('%R', False), 'PPM': ('pp', False), 'kPa': ('kP', False),
+         'Pa': ('Pa', False), 'NONE': ('', False)}
+
+
 class Screen:
     def __init__(self):
         self.src = L.read(L.SRC)
@@ -81,7 +128,13 @@ class Screen:
 
     def icon(self, cp, pp, name, x, y):
         data = self.icons[name]
-        for j in range(min(cp * pp, len(data))):
+        # disp_icon() writes exactly cp*pp pixels whatever the array holds, so a
+        # short one desyncs the panel write and corrupts the rest of the screen.
+        # Clipping it here would hide the very failure this tool exists to catch.
+        if len(data) != cp * pp:
+            raise SystemExit('%s holds %d pixels, not the %d that %dx%d needs'
+                             % (name, len(data), cp * pp, cp, pp))
+        for j in range(cp * pp):
             self.put(x + j % cp, y + j // cp, data[j])
 
     def icon4(self, name, x, y):
@@ -108,11 +161,18 @@ class Screen:
                          blend565(bg, fg, (b >> (i * bpp)) & mask, mask))
 
     def ch(self, form, x, y, c, fg, bg):
+        """The same fallbacks disp_ch() applies: the 48x96 table holds only the
+        digits, '-' and ' ', and anything else shows as a space; the 24x36 table
+        is ASCII 32..126 and clamps to a space outside that."""
         if form == 0:
-            idx = 10 if c == '-' else 11 if c == ' ' else ord(c) - 48
+            v = ord(c)
+            idx = 10 if c == '-' else 11 if (v < 0x30 or v > 0x39) else v - 0x30
             self._glyph('chlib', idx, x, y, fg, bg)
         else:
-            self._glyph('chlibsmall', ord(c) - 32, x, y, fg, bg)
+            v = ord(c)
+            if v < 32 or v > 126:
+                v = 32
+            self._glyph('chlibsmall', v - 32, x, y, fg, bg)
 
     def text(self, form, x, y, s, fg, bg):
         for n, c in enumerate(s):
@@ -121,11 +181,17 @@ class Screen:
     def label(self, x, y, s, fg, bg):
         adv = DIMS['char_12_24'][0]
         for n, c in enumerate(s):
-            self._glyph('char_12_24', ord(c) - 32, x + n * adv, y, fg, bg)
+            v = ord(c)
+            if v < 32 or v > 126:               # disp_ch_12_24 clamps the same way
+                v = 32
+            self._glyph('char_12_24', v - 32, x + n * adv, y, fg, bg)
 
     def text_16_24(self, x, y, s, fg, bg):
         for n, c in enumerate(s):
-            self._glyph('char_16_24', ord(c) - 32, x + n * 16, y, fg, bg)
+            v = ord(c)
+            if v < 32 or v > 122:               # this table stops at 'z'
+                v = 32
+            self._glyph('char_16_24', v - 32, x + n * 16, y, fg, bg)
 
     def tangle(self, x, y, w):
         k = self.k
@@ -149,6 +215,9 @@ class Screen:
                        k['PAGE_MARK_XPOS'], k['PAGE_MARK_YPOS'], k['TSTAT8_BACK_COLOR'])
         if count < 2:
             return
+        if count > k['PAGE_MARK_MAX']:
+            raise SystemExit('%d pages, but the strip only holds %d'
+                             % (count, k['PAGE_MARK_MAX']))
         for i in range(count):
             self.null_icon(k['PAGE_MARK_XDOTS'], k['PAGE_MARK_YDOTS'], k['PAGE_MARK_XPOS'],
                            k['PAGE_MARK_YPOS'] + i * k['PAGE_MARK_PITCH'],
@@ -170,7 +239,7 @@ def render(s, labels, values, top, unit, page, pages, clock, selected, icons, rh
 
     # whole degrees, at most three digits, right aligned, with the sign riding
     # in the cell left of the first digit rather than in a column of its own
-    n = int(round(float(top)))
+    n = round_tenths(top) if unit in ('C', 'F', 'RH') else int(top)
     neg = n < 0
     n = min(99 if neg else 999, abs(n))
     cells = [' ', ' ', chr(0x30 + n % 10)]
@@ -187,22 +256,31 @@ def render(s, labels, values, top, unit, page, pages, clock, selected, icons, rh
     # start at UNIT2_POS where the digits end. Both ink on the digits' cap line.
     s.null_icon(k['UNIT_BAND_XDOTS'], k['UNIT_BAND_YDOTS'],
                 k['UNIT_BAND_XPOS'], k['UNIT_BAND_YPOS'], BG)
-    if len(unit) >= 2:
-        s.text(1, k['UNIT2_POS'], k['UNIT_TEXT_YPOS'], unit[:2], CH, BG)
-    elif unit:
-        if unit in ('C', 'F'):
-            s.icon(14, 14, 'degree_o', k['UNIT_POS'] - 14, k['UNIT_YPOS'])
-        s.text(1, k['UNIT_POS'], k['UNIT_TEXT_YPOS'], unit[:1], CH, BG)
+    text, ring = UNITS[unit]
+    if ring:
+        s.icon(14, 14, 'degree_o', k['UNIT_POS'] - 14, k['UNIT_YPOS'])
+    if len(text) == 2:
+        s.text(1, k['UNIT2_POS'], k['UNIT_TEXT_YPOS'], text, CH, BG)
+    elif text:
+        s.text(1, k['UNIT_POS'], k['UNIT_TEXT_YPOS'], text, CH, BG)
 
     rows = (k['SETPOINT_POS'], k['FAN_MODE_POS'], k['SYS_MODE_POS'])
     for y in rows:
-        s.tangle(k['VALUE_BOX_XPOS'], y - 3, k['VALUE_BOX_W'])
+        s.tangle(k['VALUE_BOX_XPOS'], y - k['VALUE_BOX_YOFF'], k['VALUE_BOX_W'])
     for i, y in enumerate(rows):
         back = HL if selected == i + 1 else BG
         n = k['LABEL_CHARS']
         v = k['VALUE_CHARS']
         s.label(k['LABEL_XPOS'], y + k['LABEL_YOFF'], labels[i][:n].ljust(n), SCHC, back)
-        s.text(1, k['VALUE_XPOS'], y + k['VALUE_YOFF'], values[i][:v].rjust(v), SCHC, M2)
+        # an analogue point goes through format_value, a digital one arrives as
+        # a memcpy'd literal; both then go through justify_value, exactly as
+        # display_screen_value_var() does it
+        raw = values[i]
+        try:
+            shown = format_value(float(raw), v)
+        except ValueError:
+            shown = raw
+        s.text(1, k['VALUE_XPOS'], y + k['VALUE_YOFF'], justify_value(shown, v), SCHC, M2)
     s.page_marks(page, pages)
 
     # the corner humidity readout, page 1 only, value over percent sign
@@ -226,9 +304,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('out')
     ap.add_argument('--labels', default='SETPOINT,ROOM,MODE')
-    ap.add_argument('--values', default='72,71,HEAT')
-    ap.add_argument('--top', default='71')
-    ap.add_argument('--unit', default='F')
+    ap.add_argument('--values', default='72,71,HEAT',
+                    help='a number goes through format_value, anything else is a literal')
+    ap.add_argument('--top', default='710', type=int,
+                    help='the big number as the firmware gets it: tenths for C, F and RH')
+    ap.add_argument('--unit', default='F', choices=sorted(UNITS),
+                    help='the firmware unit branch to draw')
     ap.add_argument('--page', type=int, default=0)
     ap.add_argument('--pages', type=int, default=3)
     ap.add_argument('--selected', type=int, default=0)

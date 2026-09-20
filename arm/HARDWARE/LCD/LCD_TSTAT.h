@@ -90,6 +90,11 @@
  * the box draw_tangle() puts round it: the box runs y-3 to y+40 and the 15x30
  * face inks rows 4 to 28 of its cell, which lands two dots high without it. */
 #define VALUE_YOFF						2
+
+/* draw_tangle() starts the frame this far above the row it belongs to.  It
+ * was three literal y values in menuIdle.c that happened to agree with the
+ * row constants; moving a row would have detached its box silently. */
+#define VALUE_BOX_YOFF					3
 /* The three state icons across the bottom.  Each is a 4 bit per pixel index
  * map with its own sixteen entry palette -- see tools/icongen.py -- so a 72x45
  * cell costs 1620 bytes instead of the 6480 the literal RGB565 icons cost, and

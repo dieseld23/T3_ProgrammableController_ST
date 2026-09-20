@@ -193,9 +193,9 @@ void MenuIdle_init(void)
 //	fanspeedbuf = fan_speed_user;
 	
 	
-	draw_tangle(VALUE_BOX_XPOS,105,VALUE_BOX_W);
-	draw_tangle(VALUE_BOX_XPOS,148,VALUE_BOX_W);
-	draw_tangle(VALUE_BOX_XPOS,191,VALUE_BOX_W);
+	draw_tangle(VALUE_BOX_XPOS, SETPOINT_POS - VALUE_BOX_YOFF, VALUE_BOX_W);
+	draw_tangle(VALUE_BOX_XPOS, FAN_MODE_POS - VALUE_BOX_YOFF, VALUE_BOX_W);
+	draw_tangle(VALUE_BOX_XPOS, SYS_MODE_POS - VALUE_BOX_YOFF, VALUE_BOX_W);
 
 	show_page_rows();
 

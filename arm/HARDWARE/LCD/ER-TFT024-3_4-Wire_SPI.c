@@ -1392,6 +1392,8 @@ void display_page_marks(uint8 current, uint8 count)
 		PAGE_MARK_XPOS, PAGE_MARK_YPOS, TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
 	if(count < 2)
 		return;
+	if(count > PAGE_MARK_MAX)		/* the strip is only this tall */
+		count = PAGE_MARK_MAX;
 
 	for(i = 0;i < count;i++)
 		disp_null_icon(PAGE_MARK_XDOTS, PAGE_MARK_YDOTS, 0,

@@ -253,6 +253,17 @@ ramps against it, so changing the background means re-running it.
 rectangle left at the wrong size or position, so any change to the cell geometry
 has to update every `disp_null_icon()` that wipes it by hand.
 
+What it does model, it has to model exactly, because it is the only check this
+work has. It carries mirrors of `format_value()`, `justify_value()` and the
+tenths rounding rather than Python equivalents of them: `str.rjust()` is not
+`justify_value()`, because it keeps the trailing spaces a memcpy'd literal like
+`"ON  "` carries, and `round()` is not `(value + 5) / 10`, because it rounds half
+to even and disagrees on every `.5`. `--unit` takes the firmware's own branch
+names so that `RH` draws `%R` rather than `RH`, and `--values` sends anything
+numeric through `format_value` instead of accepting a pre-formatted string. A
+short icon array and a page count over `PAGE_MARK_MAX` are errors rather than
+silently clipped, since both corrupt the panel write on hardware.
+
 ## Building
 
 Keil MDK, ARMCC V5.06. Headless:
