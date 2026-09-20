@@ -235,6 +235,7 @@ root and need Python 3 with Pillow.
 | `icongen.py` | Generates the ten state icons and their palettes. |
 | `recolour_icons.py` | Recomposites the legacy RGB565 icon bitmaps for a new screen background. |
 | `screenshot.py` | Renders the idle screen to a PNG from the real arrays. |
+| `checkmap.py` | Fails a link that puts data where the stack lives. Run before flashing. |
 
 ```bash
 python tools/fontgen.py                       # report the fit, change nothing
@@ -301,37 +302,35 @@ Two notes on the toolchain:
   the memory map is edited through the `OCR_RVCT` entries in the project rather
   than in `arm/OBJ/Tstat10_arm_revxx.sct`. The `<ScatterFile>` entry naming
   `..\OBJ	est.sct` is a stale leftover; no such file exists and nothing reads it.
-- **Both RAM regions are declared larger than the silicon, and that is load
-  bearing.** `RW_IRAM1` says `0x80000` against 64 KB on chip and `RW_RAM1` says
-  `0x800000` against the 512 KB IS61L5128L. Correcting `RW_RAM1` to the real
-  `0x80000` looks obviously right. It bricks the boot, and here is why.
-
-  `arm/CORE/startup_stm32f10x_hd.s` builds with `DATA_IN_ExtSRAM EQU 1`, and on
-  that branch it does not use the stack the linker placed. It writes an absolute
-  address instead:
+- **The stack is invisible to the linker, and the memory map has to work around
+  it.** `arm/CORE/startup_stm32f10x_hd.s` builds with `DATA_IN_ExtSRAM EQU 1`
+  and writes an absolute stack pointer rather than using the one the linker
+  placed:
 
   ```asm
   __initial_sp EQU 0X20000000 + Stack_Size    ; 0x20002000
   ```
 
   Nothing then references `Stack_Mem`, so the linker discards the section --
-  `Removing startup_stm32f10x_hd.o(STACK), (8192 bytes)` in the map -- and no
-  longer believes anything lives in internal SRAM. The arrangement only works
-  because the oversized `RW_RAM1` swallows every byte of RW and ZI, leaving
-  `0x20000000`-`0x20002000` empty for a stack the linker cannot see.
+  `Removing startup_stm32f10x_hd.o(STACK), (8192 bytes)` in the map -- and stops
+  believing anything occupies internal SRAM. The stack is real: 8 KB growing
+  down from `0x20002000`. The linker just cannot see it.
 
-  Cap `RW_RAM1` and that stops being true: the linker fills
-  `0x20000000`-`0x20005358` with RW and ZI, straight through the stack. The
-  first call corrupts data, and `__main` finishes the job by zeroing the ZI
-  sweep across live stack frames before `main()` is ever reached. A device
-  flashed with that build never left its bootloader.
+  This used to be hidden by `RW_RAM1` being declared as `0x800000` against a
+  512 KB part, which swallowed every byte of RW and ZI and left internal SRAM
+  empty by accident. Declaring it at its real size ended the accident: the
+  linker filled `0x20000000`-`0x20005358` straight through the stack, `__main`
+  zeroed live stack frames during its ZI sweep, and the first device flashed
+  with that build never left its bootloader.
 
-  So the declaration stays. The real fix is to stop the stack and the linker
-  disagreeing -- give `RW_IRAM1` a base of `0x20002000` so the stack region is
-  outside it, or drop the absolute `__initial_sp` and let the linker place the
-  stack -- and only then cap `RW_RAM1`. Until someone does that on hardware, RW
-  and ZI at `0x7a6b8` sit at about 98% of the real part with the overflow check
-  switched off, which is a hazard worth remembering.
+  The fix is to reserve the stack rather than to hide it. `RW_IRAM1` is based at
+  `0x20002000` with size `0xE000`, so the 8 KB below it belongs to the stack
+  alone, and `RW_RAM1` carries its real `0x80000` -- which puts the overflow
+  check back, on a region that runs about 92% full.
+
+  **Run `tools/checkmap.py` before handing anyone a hex.** It fails the build
+  configuration that would not boot, by both the region base and the placement
+  addresses, and warns when a region passes 95% full.
 - Building dirties the checked-in artifacts under `arm/OBJ/`. Those are not part
   of any commit on this branch, with one exception:
   `arm/OBJ/Tstat10_arm_revxx.hex` is committed so the branch carries something
