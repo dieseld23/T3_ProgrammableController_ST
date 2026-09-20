@@ -403,12 +403,12 @@ etError SHT3X_CheckCrc(uint8 dat[], uint8 nbrOfBytes, uint8 checksum);
 
 
 //==============================================================================
-// Calculates the temperature [°C] as a floating point value from the raw data
+// Calculates the temperature [degC] as a floating point value from the raw data
 // that are read from the sensor.
 //------------------------------------------------------------------------------
 // input:  rawValue     temperature raw value (16bit scaled)
 //
-// return:              temperature [°C] as a floating point value
+// return:              temperature [degC] as a floating point value
 //------------------------------------------------------------------------------
 float SHT3X_CalcTemperature(uint16 rawValue);
 
@@ -424,9 +424,9 @@ float SHT3X_CalcHumidity(uint16 rawValue);
 
 
 //==============================================================================
-// Calculates the raw data as 16-bit value from temperature [°C].
+// Calculates the raw data as 16-bit value from temperature [degC].
 //------------------------------------------------------------------------------
-// input:  temperature  temperature [°C] as a floating point value
+// input:  temperature  temperature [degC] as a floating point value
 //
 // return:              temperature raw value (16-bit scaled)
 //------------------------------------------------------------------------------

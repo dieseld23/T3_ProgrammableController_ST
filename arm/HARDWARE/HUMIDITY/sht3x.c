@@ -573,7 +573,7 @@ etError SHT3X_CheckCrc(uint8 dat[], uint8 nbrOfBytes, uint8 checksum){
 float SHT3X_CalcTemperature(uint16 rawValue){
 //==============================================================================
   float temp;
-	// calculate temperature [°C]
+	// calculate temperature [degC]
   // T = -45 + 175 * rawValue / (2^16-1)
   //return 175 * (uint32)rawValue*10 / 65535 - 45;
 	 temp = 175 * (float)rawValue*10/ 65535 - 450;
@@ -591,7 +591,7 @@ float SHT3X_CalcHumidity(uint16 rawValue){
 //==============================================================================
 uint16 SHT3X_CalcRawTemperature(float temperature){
 //==============================================================================
-  // calc raw value from a temperature [°C]
+  // calc raw value from a temperature [degC]
   // rawValue = (T + 45) / 175 * (2^16-1)
 	return (uint16)((temperature + 45) / 175 * 65535);
 }

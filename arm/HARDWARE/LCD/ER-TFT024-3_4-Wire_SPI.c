@@ -24,13 +24,13 @@
 //sbit LCD_RS=P1^5;		//  D/C    DATA/COMMAND SELECT
 //====================================================//
 
-//Tstat10  2022 11 28 字库备注 Fandu
-//点阵格式  阴码
-//取模方式   逐行式
-//每行显示数据16
-//取模走向 逆向
-//输出数制  十六进制
-//字体不详
+//Tstat10  2022 11 28 font library note, Fandu
+//Dot matrix format: negative image
+//Extraction order: row by row
+//16 data bytes per row
+//Extraction direction: reversed
+//Output base: hexadecimal
+//Font not known
 // !"#$%&,()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz
 
 #include "main.h"
@@ -696,15 +696,15 @@ void disp_null_icon(uint16 cp, uint16 pp, uint16 const *icon_name, uint16 x,uint
 }
 
 
-//在原先 setpoint  fan 和sys位置 显示 in out var 值 
+//Show the in, out and var values where setpoint, fan and sys used to be 
 void display_screen_value(uint8 type)
 {
     int i = 0;
     uint8 spbuf[20];
     float show_value = 0;
     uint8 str_length = 0;		
-    memset(spbuf, 0x20, 5);spbuf[5] = 0; //初始化5个字节为空格 避免 第一次显示12345 值变为ABC的时候   会显示ABC45
-    if (type >= 1 && type <= 3)  // 显示在LCD的数据固定为VAR1-VAR3
+    memset(spbuf, 0x20, 5);spbuf[5] = 0; //Initialise 5 bytes to spaces, so that after showing 12345 a later value of ABC does not come out as ABC45
+    if (type >= 1 && type <= 3)  // the data shown on the LCD is fixed as VAR1-VAR3
     {// ONLY var1-3 support MSV
 			if ((vars[type - 1].range >= 101) && (vars[type - 1].range <= 103))  // 101 102 103 	MSV range
 			{

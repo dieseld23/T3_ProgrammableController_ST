@@ -1084,7 +1084,7 @@ uint8_t ESP8266_CIPSTA_CUR(char type)
 			return 0;
 	}
 	// 161
-	// 计算最后一个字节pos == 3
+	// work out the last byte, pos == 3
 	if(datlen == 1)
 		Ip[pos] = temp[0];
 	else if(datlen == 2)
@@ -1108,7 +1108,7 @@ uint8_t ESP8266_CIPSTA_CUR(char type)
 		}
 	}
 	
-	// 获得gateway
+	// get the gateway
 	
 	pos = 0;
 	datlen = 0;
@@ -1174,7 +1174,7 @@ uint8_t ESP8266_CIPSTA_CUR(char type)
 		}
 	}
 	
-	// 获得netmask
+	// get the netmask
 
 	pos = 0;
 	datlen = 0;
@@ -1243,12 +1243,12 @@ uint8_t ESP8266_CIPSTA_CUR(char type)
 }
 
 /*
- * 函数名：ESP8266_UnvarnishSend
- * 描述  ：配置WF-ESP8266模块进入透传发送
- * 输入  ：无
- * 返回  : 1，配置成功
- *         0，配置失败
- * 调用  ：被外部调用
+ * Function   : ESP8266_UnvarnishSend
+ * Description: puts the WF-ESP8266 module into transparent transmission mode
+ * Input      : none
+ * Return  : 1, configured
+ *         0, configuration failed
+ * Called by  : external code
  */
 bool ESP8266_UnvarnishSend ( void )
 {
@@ -1262,11 +1262,11 @@ bool ESP8266_UnvarnishSend ( void )
 
 
 /*
- * 函数名：ESP8266_ExitUnvarnishSend
- * 描述  ：配置WF-ESP8266模块退出透传模式
- * 输入  ：无
- * 返回  : 无
- * 调用  ：被外部调用
+ * Function   : ESP8266_ExitUnvarnishSend
+ * Description: takes the WF-ESP8266 module out of transparent transmission mode
+ * Input      : none
+ * Return  : none
+ * Called by  : external code
  */
 void ESP8266_ExitUnvarnishSend ( void )
 {
@@ -1282,21 +1282,21 @@ extern u8 rec_mstp_index;
 extern u8 rec_mstp_index1;
 
 /*
- * 函数名：ESP8266_SendString
- * 描述  ：WF-ESP8266模块发送字符串
- * 输入  ：enumEnUnvarnishTx，声明是否已使能了透传模式
- *       ：pStr，要发送的字符串
- *       ：ulStrLength，要发送的字符串的字节数
- *       ：ucId，哪个ID发送的字符串
- * 返回  : 1，发送成功
- *         0，发送失败
- * 调用  ：被外部调用
+ * Function   : ESP8266_SendString
+ * Description: sends a string from the WF-ESP8266 module
+ * Input      : enumEnUnvarnishTx, states whether transparent mode is already on
+ *       : pStr, the string to send
+ *       : ulStrLength, the length of the string in bytes
+ *       : ucId, which ID sends the string
+ * Return  : 1, sent
+ *         0, sending failed
+ * Called by  : external code
  */
 bool ESP8266_SendString ( FunctionalState enumEnUnvarnishTx, uint8_t * pStr, u32 ulStrLength, ENUM_ID_NO_TypeDef ucId )
 {
 	uint8_t cStr [600];
 	u16 i,j;
-  u16 temp_length; //计算发送长度
+  u16 temp_length; //Work out the length to send
 									
 	bool bRet = false;
 
@@ -1336,11 +1336,11 @@ bool ESP8266_SendString ( FunctionalState enumEnUnvarnishTx, uint8_t * pStr, u32
 
 
 /*
- * 函数名：ESP8266_ReceiveString
- * 描述  ：WF-ESP8266模块接收字符串
- * 输入  ：enumEnUnvarnishTx，声明是否已使能了透传模式
- * 返回  : 接收到的字符串首地址
- * 调用  ：被外部调用
+ * Function   : ESP8266_ReceiveString
+ * Description: receives a string on the WF-ESP8266 module
+ * Input      : enumEnUnvarnishTx, states whether transparent mode is already on
+ * Return  : the start address of the received string
+ * Called by  : external code
  */
 uint8_t * ESP8266_ReceiveString ( FunctionalState enumEnUnvarnishTx )
 {
