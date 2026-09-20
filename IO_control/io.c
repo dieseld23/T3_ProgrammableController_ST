@@ -70,7 +70,7 @@ uint32_t conver_by_unit_5v(uint32_t sample)
 		if(Modbus.hardRev >= STM_TINY_REV)
 			return  (5000L * sample ) >> 10;
 		else
-			return (8300L * sample ) >> 10;	// input 模块有内阻，必须加调整		 
+			return (8300L * sample ) >> 10;	// the input module has internal resistance, so an adjustment is needed		 
 	}	
 	else if((Modbus.mini_type == MINI_NEW_TINY) || (Modbus.mini_type == MINI_TINY_ARM) || (Modbus.mini_type == MINI_TINY_11I)  )
 	{
@@ -138,7 +138,7 @@ uint32_t conver_by_unit_custable(uint8_t point,uint32_t sample)
 			if(Modbus.hardRev >= STM_TINY_REV)
 				return  ( 5000L * sample ) >> 10;
 			else
-				return ( 8300L * sample ) >> 10;	// input 模块有内阻，必须加调整		 
+				return ( 8300L * sample ) >> 10;	// the input module has internal resistance, so an adjustment is needed		 
 		}
 		else if((Modbus.mini_type == MINI_NEW_TINY) || (Modbus.mini_type == MINI_TINY_ARM)|| (Modbus.mini_type == MINI_TINY_11I))
 		{
@@ -391,7 +391,7 @@ void Store_Pulse_Counter(uint8 flag)
 	else
 		save_time = 3600;
 	
-	if((run_time % save_time == 0) || (flag == 1))  // 每小时检查一次是否需要保存pulse counter
+	if((run_time % save_time == 0) || (flag == 1))  // Check once an hour whether the pulse counter needs saving
 	{
 		for(i = 0;i < HI_COMMON_CHANNEL + temp;i++)
 		{
@@ -401,14 +401,14 @@ void Store_Pulse_Counter(uint8 flag)
 				if(old_pulse[i] != (high_spd_counter[i] + high_spd_counter_tempbuf[i]))
 				{
 					old_pulse[i] = (high_spd_counter[i] + high_spd_counter_tempbuf[i]);
-					write_page_en[1] = 1; // 保存input
+					write_page_en[1] = 1; // Save the input
 					ChangeFlash = 3;
 				}					
 			}
 		}
 	}
 }
-// 10s 调用一次
+// Called once every 10s
 void calculate_RPM(void)
 {
 #if ARM_TSTAT_WIFI
@@ -421,7 +421,7 @@ void calculate_RPM(void)
 	static u16 count[HI_COMMON_CHANNEL];
 	
 #endif
-	// 持续输入计数1分钟重新清掉rpm的时间和count
+	// After a minute of continuous input counting, clear the rpm time and count
 	char i;
 	char channel;
 	uint8 temp;
@@ -444,7 +444,7 @@ void calculate_RPM(void)
 			{	
 				Input_RPM[i] = (high_spd_counter_tempbuf[i] - old_count[i]) * 60L / (run_time - runtime[i]);	
 				
-				if(count[i]++ >= 5)  // 1分钟重新计算
+				if(count[i]++ >= 5)  // Recalculate every minute
 				{
 					runtime[i] = run_time;	
 					old_count[i] = high_spd_counter_tempbuf[i];

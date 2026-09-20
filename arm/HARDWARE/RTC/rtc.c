@@ -82,7 +82,7 @@ u8 RTC_Init(void)
 	u8 temp = 0;	
 	if(BKP_ReadBackupRegister(BKP_DR1) != 0x5050)	//从指定的后备寄存器中读出数据:读出了与写入的指定数据不相乎
 	{	 
-		RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);	//使能PWR和BKP外设时钟   
+		RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);	//Enable the PWR and BKP peripheral clocks   
 		PWR_BackupAccessCmd(ENABLE);												//使能后备寄存器访问 
 		BKP_DeInit();				//复位备份区域 	
 		RCC_LSEConfig(RCC_LSE_ON);	//设置外部低速晶振(LSE),使用外设低速晶振
@@ -96,13 +96,13 @@ u8 RTC_Init(void)
 		
 		RCC_RTCCLKConfig(RCC_RTCCLKSource_LSE);	//设置RTC时钟(RTCCLK),选择LSE作为RTC时钟    
 		RCC_RTCCLKCmd(ENABLE);					//使能RTC时钟  
-		RTC_WaitForLastTask();					//等待最近一次对RTC寄存器的写操作完成
+		RTC_WaitForLastTask();					//Wait for the last write to the RTC registers to finish
 		RTC_WaitForSynchro();					//等待RTC寄存器同步  
-		RTC_ITConfig(RTC_IT_SEC, ENABLE);		//使能RTC秒中断
-		RTC_WaitForLastTask();					//等待最近一次对RTC寄存器的写操作完成
+		RTC_ITConfig(RTC_IT_SEC, ENABLE);		//Enable the RTC second interrupt
+		RTC_WaitForLastTask();					//Wait for the last write to the RTC registers to finish
 		RTC_EnterConfigMode();					//允许配置	
 		RTC_SetPrescaler(32767);				//设置RTC预分频的值
-		RTC_WaitForLastTask();					//等待最近一次对RTC寄存器的写操作完成
+		RTC_WaitForLastTask();					//Wait for the last write to the RTC registers to finish
 		Rtc_Set(16, 8, 27, 15, 42, 55,0);		//设置时间	
 		RTC_ExitConfigMode(); 
 		//退出配置模式  
@@ -110,9 +110,9 @@ u8 RTC_Init(void)
 	}
 	else//系统继续计时
 	{
-		RTC_WaitForSynchro();					//等待最近一次对RTC寄存器的写操作完成
-		RTC_ITConfig(RTC_IT_SEC, ENABLE);		//使能RTC秒中断
-		RTC_WaitForLastTask();					//等待最近一次对RTC寄存器的写操作完成
+		RTC_WaitForSynchro();					//Wait for the last write to the RTC registers to finish
+		RTC_ITConfig(RTC_IT_SEC, ENABLE);		//Enable the RTC second interrupt
+		RTC_WaitForLastTask();					//Wait for the last write to the RTC registers to finish
 	}
 	
 	RTC_NVIC_Config();							//RCT中断分组设置		    				     
@@ -147,11 +147,11 @@ u8 RTC_Init(void)
 //输出:该年份是不是闰年.1,是.0,不是
 u8 Is_Leap_Year(u16 year)
 {			  
-	if(year % 4 == 0)				//必须能被4整除
+	if(year % 4 == 0)				//Must be divisible by 4
 	{ 
 		if(year % 100 == 0) 
 		{ 
-			if(year % 400 == 0)		//如果以00结尾,还要能被400整除
+			if(year % 400 == 0)		//If it ends in 00 it must also be divisible by 400
 				return 1; 	   
 			else
 				return 0;   
@@ -171,7 +171,7 @@ u8 Is_Leap_Year(u16 year)
 //把输入的时钟转换为秒钟
 //以1970年1月1日为基准
 //1970~2099年为合法年份
-//返回值:0,成功;其他:错误代码.
+//Return: 0 = success; other = error code.
 //月份数据表											 
 u8 const table_week[12] = {0, 3, 3, 6, 1, 4, 6, 2, 5, 0, 3, 5};	//月修正数据表	  
 //平年的月份日期表
@@ -187,7 +187,7 @@ u32 Rtc_Set(u16 syear, u8 smon, u8 sday, u8 hour, u8 min, u8 sec, u8 flag)
 	for(t = 1970; t < 2000 + syear; t++)				//把所有年份的秒钟相加
 	{
 		if(Is_Leap_Year(t))
-			seccount += 31622400;				//闰年的秒钟数
+			seccount += 31622400;				//Number of seconds in a leap year
 		else 
 			seccount += 31536000;				//平年的秒钟数
 	}
@@ -204,11 +204,11 @@ u32 Rtc_Set(u16 syear, u8 smon, u8 sday, u8 hour, u8 min, u8 sec, u8 flag)
   seccount += (u32)min * 60;					//分钟秒钟数
 	seccount += sec;							//最后的秒钟加上去
 
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);//使能PWR和BKP外设时钟  
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);//Enable the PWR and BKP peripheral clocks  
 	PWR_BackupAccessCmd(ENABLE);	//使能RTC和后备寄存器访问 
 	if(flag == 0) {	RTC_SetCounter(seccount);	}	//设置RTC计数器的值
 	
-	RTC_WaitForLastTask();			//等待最近一次对RTC寄存器的写操作完成  	
+	RTC_WaitForLastTask();			//Wait for the last write to the RTC registers to finish  	
 	return seccount;	    
 }
 
@@ -236,7 +236,7 @@ void Get_Time_by_sec(u32 sec_time,UN_Time * rtc, uint8_t flag)
 			{
 				if(temp >= 366)
 				{
-					temp -= 366;	//闰年的秒钟数
+					temp -= 366;	//Number of seconds in a leap year
 				}
 				else 
 				{//??????????????????????
@@ -247,7 +247,7 @@ void Get_Time_by_sec(u32 sec_time,UN_Time * rtc, uint8_t flag)
 			}
 			else
 			{
-				temp -= 365;		//平年
+				temp -= 365;		//Common year
 			}			
 			temp1++;  
 		}   
@@ -259,14 +259,14 @@ void Get_Time_by_sec(u32 sec_time,UN_Time * rtc, uint8_t flag)
 			if(Is_Leap_Year(rtc->Clk.year) && temp1 == 1)	//当年是不是闰年/2月份
 			{
 				if(temp >= 29)
-					temp -=	29;		//闰年的秒钟数
+					temp -=	29;		//Number of seconds in a leap year
 				else
 					break; 
 			}
 			else 
 			{
 				if(temp >= mon_table[temp1])
-					temp -= mon_table[temp1];	//平年
+					temp -= mon_table[temp1];	//Common year
 				else
 					break;
 			}
@@ -297,7 +297,7 @@ void Get_Time_by_sec(u32 sec_time,UN_Time * rtc, uint8_t flag)
 
 
 //得到当前的时间
-//返回值:0,成功;其他:错误代码.
+//Return: 0 = success; other = error code.
 u8 RTC_Get(void)
 {
   Get_Time_by_sec(RTC_GetCounter(),&Rtc,1);

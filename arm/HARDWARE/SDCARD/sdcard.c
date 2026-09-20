@@ -3226,7 +3226,7 @@ static void DMA_RxConfiguration(u32 *BufferDST, u32 BufferSize)
 u8 SD_ReadDisk(u8*buf, u32 sector, u8 cnt)
 {
 	u8 r1;
-	if(SD_Type != SD_TYPE_V2HC)sector <<= 9;//转换为字节地址
+	if(SD_Type != SD_TYPE_V2HC)sector <<= 9;//Convert to a byte address
 	if(cnt == 1)
 	{
 		 SD_ReadBlock(sector << 9 ,(u32 *)(&buf[0]),SECTOR_SIZE);

@@ -6,7 +6,7 @@
 // Author    :  RFU
 // Date      :  16-Jun-2014
 // Controller:  STM32F100RB
-// IDE       :  µVision V4.71.2.0
+// IDE       :  uVision V4.71.2.0
 // Compiler  :  Armcc
 // Brief     :  I2C hardware abstraction layer
 //==============================================================================

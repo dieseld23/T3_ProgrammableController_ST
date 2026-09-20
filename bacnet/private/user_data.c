@@ -616,11 +616,11 @@ void init_panel(void)
 				break;
 				case TSTAT_FANSOEED:            
 					ptr.pvar->value = 0;  
-					ptr.pvar->range = 102; //默认选第二个MSV 						 
+					ptr.pvar->range = 102; //Default to the second MSV 						 
 				 break;
 				case TSTAT_SYSTEM_MODE:         
 					ptr.pvar->value = 0; 
-					ptr.pvar->range = 103; //默认选第二个MSV 				 
+					ptr.pvar->range = 103; //Default to the second MSV 				 
 				 break;
 				//case TSTAT_BAUDRATE:	        ptr.pvar->value = uart0_baudrate * 1000; break;
     //            case TSTAT_STATION_NUM:         ptr.pvar->value = Station_NUM * 1000;break;

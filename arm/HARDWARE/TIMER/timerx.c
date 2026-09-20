@@ -17,8 +17,8 @@ void TIM3_IRQHandler(void)
 
 //通用定时器3中断初始化
 //这里时钟选择为APB1的2倍，而APB1为36M
-//arr：自动重装值。
-//psc：时钟预分频数
+//arr: auto-reload value.
+//psc: clock prescaler
 //这里使用的是定时器3!
 void TIM3_Int_Init(u16 arr, u16 psc)
 {
@@ -33,12 +33,12 @@ void TIM3_Int_Init(u16 arr, u16 psc)
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
 	
-	//Timer3 NVIC 配置
+	//Timer3 NVIC configuration
   NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;	//抢占优先级0
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;			//子优先级2
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;				//IRQ通道使能
-	NVIC_Init(&NVIC_InitStructure);								//根据指定的参数初始化NVIC寄存器
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;				//Enable the IRQ channel
+	NVIC_Init(&NVIC_InitStructure);								//Initialise the NVIC registers with the given parameters
 	
 	TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
 	TIM_Cmd(TIM3, ENABLE);
@@ -47,7 +47,7 @@ void TIM3_Int_Init(u16 arr, u16 psc)
 //TIM3 PWM部分初始化 
 //PWM输出初始化
 //arr：自动重装值
-//psc：时钟预分频数
+//psc: clock prescaler
 //void TIM3_PWM_Init(u16 arr, u16 psc)
 //{
 //	GPIO_InitTypeDef GPIO_InitStructure;
@@ -174,8 +174,8 @@ void TIM6_IRQHandler(void)//1ms
 }
 
 //基本定时器6中断初始化					  
-//arr：自动重装值。		
-//psc：时钟预分频数		 
+//arr: auto-reload value.		
+//psc: clock prescaler		 
 //Tout= ((arr+1)*(psc+1))/Tclk；
 void TIM6_Int_Init(u16 arr, u16 psc)
 {
@@ -190,12 +190,12 @@ void TIM6_Int_Init(u16 arr, u16 psc)
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit(TIM6, &TIM_TimeBaseStructure);
 	
-	//Timer3 NVIC 配置
+	//Timer3 NVIC configuration
   NVIC_InitStructure.NVIC_IRQChannel = TIM6_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;	//抢占优先级3
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 3;			//子优先级3
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;				//IRQ通道使能
-	NVIC_Init(&NVIC_InitStructure);								//根据指定的参数初始化NVIC寄存器
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;	//Pre-emption priority 3
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 3;			//Sub-priority 3
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;				//Enable the IRQ channel
+	NVIC_Init(&NVIC_InitStructure);								//Initialise the NVIC registers with the given parameters
 	
 	TIM_ITConfig(TIM6, TIM_IT_Update, ENABLE);
 	TIM_Cmd(TIM6, ENABLE);

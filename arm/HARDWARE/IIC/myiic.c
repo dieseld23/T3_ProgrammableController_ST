@@ -3,7 +3,7 @@
 #include "delay.h" 										 
 
 #if (ARM_MINI || ARM_CM5)
-//IO方向设置
+//IO direction control
 static void SDA_IN(void)
 {
 #if (ARM_MINI || ARM_CM5)
@@ -40,7 +40,7 @@ static void SDA_OUT(void)
 #endif
 }
 #endif
-//IO操作函数	 
+//IO operation macros	 
 void IIC_SCL(u8 status)
 {
 #if (ARM_MINI || ARM_CM5)
@@ -92,19 +92,19 @@ u8 READ_SCL()
 	return status;
 }
 
-//初始化IIC
+//Initialise the IIC bus
 void IIC_Init(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 #if (ARM_MINI || ARM_CM5)
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOD, ENABLE);//使能SCL
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOD, ENABLE);//Enable SCL
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8 | GPIO_Pin_15 ;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
  	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 	GPIO_SetBits(GPIOA, GPIO_Pin_8 | GPIO_Pin_15 );
 #else	
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);//使能SCL
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);//Enable SCL
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3 | GPIO_Pin_2 ;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
  	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -113,35 +113,35 @@ void IIC_Init(void)
 #endif
 }
 
-//产生IIC起始信号
+//Generate an IIC START condition
 void IIC_Start(void)
 {
-	SDA_OUT();		//sda线输出
+	SDA_OUT();		//SDA line as output
 	IIC_SDA(1);	  	  
 	IIC_SCL(1);
 	delay_us(4);
  	IIC_SDA(0);	//START:when CLK is high,DATA change form high to low 
 	delay_us(4);
-	IIC_SCL(0);	//钳住I2C总线，准备发送或接收数据 
+	IIC_SCL(0);	//Hold the I2C bus low, ready to send or receive data 
 }
 	  
-//产生IIC停止信号
+//Generate an IIC STOP condition
 void IIC_Stop(void)
 {
-	SDA_OUT();		//sda线输出
+	SDA_OUT();		//SDA line as output
 	IIC_SCL(0);
 	IIC_SDA(0);	//STOP:when CLK is high DATA change form low to high
  	delay_us(4);
 	IIC_SCL(1); 
-	IIC_SDA(1);	//发送I2C总线结束信号
+	IIC_SDA(1);	//Send the I2C bus STOP signal
 	delay_us(4);							   	
 }
 
 
 #if !(ARM_TSTAT_WIFI )	
-//等待应答信号到来
-//返回值：1，接收应答失败
-//        0，接收应答成功
+//Wait for the slave to acknowledge
+//Return: 1 = no ACK received
+//        0 = ACK received
 u8 IIC_Wait_Ack1(void)
 {
 	u8 i;
@@ -170,7 +170,7 @@ u8 IIC_Wait_Ack(void)
 {
 	u8 ucErrTime = 0;
 	IIC_SDA(1);
-	SDA_IN();		//SDA设置为输入  
+	SDA_IN();		//Set SDA as an input  
 	
 	delay_us(1);	   
 	IIC_SCL(1);
@@ -184,11 +184,11 @@ u8 IIC_Wait_Ack(void)
 			return 1;
 		}
 	}
-	IIC_SCL(0);	//时钟输出0 	   
+	IIC_SCL(0);	//Drive the clock low 	   
 	return 0;  
 }
  //#endif
-//产生ACK应答
+//Send an ACK
 void IIC_Ack(void)
 {
 	IIC_SCL(0);
@@ -200,7 +200,7 @@ void IIC_Ack(void)
 	IIC_SCL(0);
 }
 
-//不产生ACK应答		    
+//Send a NACK		    
 void IIC_NAck(void)
 {
 	IIC_SCL(0);
@@ -212,20 +212,20 @@ void IIC_NAck(void)
 	IIC_SCL(0);
 }
 					 				     
-//IIC发送一个字节
-//返回从机有无应答
-//1，有应答
-//0，无应答			  
+//Send one byte over IIC
+//Returns whether the slave acknowledged
+//1 = ACK
+//0 = no ACK			  
 void IIC_Send_Byte(u8 txd)
 {                        
     u8 t;   
 	SDA_OUT(); 	    
-    IIC_SCL(0);		//拉低时钟开始数据传输
+    IIC_SCL(0);		//Pull the clock low to start the data transfer
     for(t = 0; t < 8; t++)
     {              
         IIC_SDA((txd & 0x80) >> 7);
         txd <<= 1; 	  
-		delay_us(2);   //对TEA5767这三个延时都是必须的
+		delay_us(2);   //All three delays are required for the TEA5767
 		IIC_SCL(1);
 		delay_us(2); 
 		IIC_SCL(0);	
@@ -233,12 +233,12 @@ void IIC_Send_Byte(u8 txd)
     }	 
 }
 	    
-//读1个字节，ack=1时，发送ACK，ack=0，发送nACK   
+//Read one byte; ack=1 sends ACK, ack=0 sends NACK   
 u8 IIC_Read_Byte(unsigned char ack)
 {
 	unsigned char i, receive = 0;
 
-	SDA_IN();			//SDA设置为输入
+	SDA_IN();			//Set SDA as an input
 
   for(i = 0; i < 8; i++)
 	{
@@ -252,9 +252,9 @@ u8 IIC_Read_Byte(unsigned char ack)
 	}
 					 
 	if(!ack)
-			IIC_NAck();//发送nACK
+			IIC_NAck();//Send NACK
 	else
-			IIC_Ack(); //发送ACK
+			IIC_Ack(); //Send ACK
 		 
 	return receive;
 }

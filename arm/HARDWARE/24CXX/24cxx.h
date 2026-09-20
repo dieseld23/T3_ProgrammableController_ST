@@ -23,6 +23,6 @@ void AT24CXX_Write(u16 WriteAddr, u8 *pBuffer, u16 NumToWrite);		//´ÓÖ¸¶¨µØÖ·¿ªÊ
 void AT24CXX_Read(u16 ReadAddr, u8 *pBuffer, u16 NumToRead);   		//´ÓÖ¸¶¨µØÖ·¿ªÊ¼¶Á³öÖ¸¶¨³¤¶ÈµÄÊý¾Ý
 
 u8 AT24CXX_Check(void);  //¼ì²éÆ÷¼þ
-void AT24CXX_Init(void); //³õÊ¼»¯IIC
+void AT24CXX_Init(void); //Initialise the IIC bus
 
 #endif

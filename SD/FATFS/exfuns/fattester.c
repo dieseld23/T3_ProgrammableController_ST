@@ -89,7 +89,7 @@ u8 mf_read(u16 len)
 	return res;
 }
 
-//写入数据
+//Write data
 //dat:数据缓存区
 //len:写入长度
 //返回值:执行结果

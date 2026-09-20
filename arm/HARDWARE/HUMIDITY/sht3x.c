@@ -6,7 +6,7 @@
 // Author    :  RFU
 // Date      :  16-Jun-2014
 // Controller:  STM32F100RB
-// IDE       :  µVision V4.71.2.0
+// IDE       :  uVision V4.71.2.0
 // Compiler  :  Armcc
 // Brief     :  Sensor Layer: Implementation of functions for sensor access.
 //==============================================================================
@@ -197,7 +197,7 @@ etError SHT3X_GetTempAndHumiClkStretch(float         *temp,
 
   SHT3X_StopAccess();
 
-  // if no error, calculate temperature in °C and humidity in %RH
+  // if no error, calculate temperature in degC and humidity in %RH
   if(error == NO_ERROR)
   {
     *temp = SHT3X_CalcTemperature(rawValueTemp);
@@ -262,7 +262,7 @@ etError SHT3X_GetTempAndHumiPolling(float         *temp,
 
   SHT3X_StopAccess();
 
-  // if no error, calculate temperature in °C and humidity in %RH
+  // if no error, calculate temperature in degC and humidity in %RH
   if(error == NO_ERROR)
   {
     *temp = SHT3X_CalcTemperature(rawValueTemp);
@@ -365,7 +365,7 @@ etError SHT3X_ReadMeasurementBuffer(float *temp, float *humi){
 	if(error == NO_ERROR)	error = SHT3X_Read2BytesAndCrc(&rawValueTemp, ACK, 0);
 	if(error == NO_ERROR) error = SHT3X_Read2BytesAndCrc(&rawValueHumi, NACK, 0);
 	
-	// if no error, calculate temperature in °C and humidity in %RH
+	// if no error, calculate temperature in degC and humidity in %RH
 	if(error == NO_ERROR)
 	{
 		*temp = SHT3X_CalcTemperature(rawValueTemp);

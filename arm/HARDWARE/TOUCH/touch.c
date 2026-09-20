@@ -56,7 +56,7 @@ void TP_Write_Byte(u8 num)
 //SPI读数据 
 //从触摸屏IC读取adc值
 //CMD:指令
-//返回值:读到的数据	   
+//Return: the data read	   
 u16 TP_Read_AD(u8 CMD)	  
 {
 #ifndef SIMULATE_TOUCH_TIMING  
@@ -105,7 +105,7 @@ u16 TP_Read_AD(u8 CMD)
 //连续读取READ_TIMES次数据,对这些数据升序排列,
 //然后去掉最低和最高LOST_VAL个数,取平均值 
 //xy:指令（CMD_RDX/CMD_RDY）
-//返回值:读到的数据
+//Return: the data read
 #define READ_TIMES	5 	//读取次数
 #define LOST_VAL	1	//丢弃值
 u16 TP_Read_XOY(u8 xy)

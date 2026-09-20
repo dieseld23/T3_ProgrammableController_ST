@@ -378,19 +378,19 @@ void MenuIdle_display(void)
 					if(vars[num].digital_analog == 1)
 					{
 						flag_digital_top_area = 0;	
-						if(vars[num].range == degF) //如果range选的是10K type2 F 就显示 F
+						if(vars[num].range == degF) //If range is set to 10K type2 F, display F
 						{	
 							Top_area_display(TOP_AREA_DISP_ITEM_TEMPERATURE, vars[num].value / 100, TOP_AREA_DISP_UNIT_F);
 						}
-						else	if(vars[num].range == degC) //如果range选的是10K type2 F 就显示 F
+						else	if(vars[num].range == degC) //If range is set to 10K type2 F, display F
 						{
 							Top_area_display(TOP_AREA_DISP_ITEM_TEMPERATURE, vars[num].value / 100, TOP_AREA_DISP_UNIT_C);
 						}
-						else	if(vars[num].range == KPa) //如果range选的是10K type2 F 就显示 F
+						else	if(vars[num].range == KPa) //If range is set to 10K type2 F, display F
 						{
 							Top_area_display(TOP_AREA_DISP_ITEM_TEMPERATURE, vars[num].value / 1000, TOP_AREA_DISP_UNIT_kPa);
 						}
-						else	if(vars[num].range == Pa) //如果range选的是10K type2 F 就显示 F
+						else	if(vars[num].range == Pa) //If range is set to 10K type2 F, display F
 						{
 							Top_area_display(TOP_AREA_DISP_ITEM_TEMPERATURE, vars[num].value / 1000, TOP_AREA_DISP_UNIT_Pa);
 						}

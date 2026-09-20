@@ -76,11 +76,11 @@ u16 LCD_RD_DATA(void)
 void LCD_WriteReg(u8 LCD_Reg, u16 LCD_RegValue)
 {	
 	LCD->LCD_REG = LCD_Reg;		//写入要写的寄存器序号	 
-	LCD->LCD_RAM = LCD_RegValue;//写入数据	    		 
+	LCD->LCD_RAM = LCD_RegValue;//Write data	    		 
 }	   
 //读寄存器
 //LCD_Reg:寄存器地址
-//返回值:读到的数据
+//Return: the data read
 u16 LCD_ReadReg(u8 LCD_Reg)
 {										   
 	LCD_WR_REG(LCD_Reg);		//写入要读的寄存器序号
@@ -555,7 +555,7 @@ void LCD_Init(void)
 	FSMC_NORSRAMTimingInitTypeDef readWriteTiming; 
 	FSMC_NORSRAMTimingInitTypeDef writeTiming;
 	
-	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_FSMC, ENABLE);													//使能FSMC时钟
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_FSMC, ENABLE);													//Enable the FSMC clock
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD | RCC_APB2Periph_GPIOE | RCC_APB2Periph_AFIO, ENABLE);	//使能PORTD,E以及AFIO复用功能时钟
 
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_4 | GPIO_Pin_5 | GPIO_Pin_7 | GPIO_Pin_8 \
@@ -2263,7 +2263,7 @@ void LCD_Color_Fill(u16 sx, u16 sy, u16 ex, u16 ey, u16 *color)
  		LCD_SetCursor(sx, sy + i);   	//设置光标位置 
 		LCD_WriteRAM_Prepare();     	//开始写入GRAM
 		for(j = 0; j < width; j++)
-			LCD->LCD_RAM = color[i * height + j];//写入数据 
+			LCD->LCD_RAM = color[i * height + j];//Write data 
 	}	  
 }
   

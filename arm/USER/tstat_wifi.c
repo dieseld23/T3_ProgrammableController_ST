@@ -189,13 +189,13 @@ void EXTI15_10_IRQHandler(void)
 		{	
 		// PWM		
 		flag_pulse[0] = 0 ;
-		if(INPUT1) // 上升沿
+		if(INPUT1) // Rising edge
 		{
 			delay_us(DELAY_CHECK_PO);
 			if(INPUT1)
-				flag_pulse[0] =  PLUG_OUT;// 上升沿;
+				flag_pulse[0] =  PLUG_OUT;// Rising edge;
 		}
-		else  // 下降沿
+		else  // Falling edge
 		{Test[39]++;
 			delay_us(DELAY_CHECK_PI);
 			if(INPUT1 == 0)
@@ -229,13 +229,13 @@ void EXTI15_10_IRQHandler(void)
 		{			
 				// PWM		
 		flag_pulse[1] = 0 ;
-		if(INPUT2) // 上升沿
+		if(INPUT2) // Rising edge
 		{
 			delay_us(DELAY_CHECK_PO);
 			if(INPUT2)
-				flag_pulse[1] =  PLUG_OUT;// 上升沿;
+				flag_pulse[1] =  PLUG_OUT;// Rising edge;
 		}
-		else  // 下降沿
+		else  // Falling edge
 		{
 			delay_us(DELAY_CHECK_PI);
 			if(INPUT2 == 0)
@@ -266,13 +266,13 @@ void EXTI15_10_IRQHandler(void)
 		else
 		{				// PWM		
 			flag_pulse[2] = 0 ;
-			if(INPUT3) // 上升沿
+			if(INPUT3) // Rising edge
 			{
 				delay_us(DELAY_CHECK_PO);
 				if(INPUT3)
-					flag_pulse[2] =  PLUG_OUT;// 上升沿;
+					flag_pulse[2] =  PLUG_OUT;// Rising edge;
 			}
-			else  // 下降沿
+			else  // Falling edge
 			{
 				delay_us(DELAY_CHECK_PI);
 				if(INPUT3 == 0)
@@ -303,13 +303,13 @@ void EXTI15_10_IRQHandler(void)
 		else
 		{				// PWM		
 			flag_pulse[3] = 0 ;
-			if(INPUT4) // 上升沿
+			if(INPUT4) // Rising edge
 			{
 				delay_us(DELAY_CHECK_PO);
 				if(INPUT4)
-					flag_pulse[3] =  PLUG_OUT;// 上升沿;
+					flag_pulse[3] =  PLUG_OUT;// Rising edge;
 			}
-			else  // 下降沿
+			else  // Falling edge
 			{
 				delay_us(DELAY_CHECK_PI);
 				if(INPUT4 == 0)

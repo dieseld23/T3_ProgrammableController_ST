@@ -92,9 +92,9 @@ u8 SD_GetResponse(u8 Response)
 }
 
 //从sd卡读取一个数据包的内容
-//buf:数据缓存区
+//buf: data buffer
 //len:要读取的数据长度.
-//返回值:0,成功;其他,失败;	
+//Return: 0 = success; other = failure;	
 u8 SD_RecvData(u8*buf, u16 len)
 {			  	  
 	if(SD_GetResponse(0xFE))return 1;//等待SD卡发回数据起始令牌0xFE
@@ -111,9 +111,9 @@ u8 SD_RecvData(u8*buf, u16 len)
 }
 
 //向sd卡写入一个数据包的内容 512字节
-//buf:数据缓存区
+//buf: data buffer
 //cmd:指令
-//返回值:0,成功;其他,失败;	
+//Return: 0 = success; other = failure;	
 u8 SD_SendBlock(u8*buf, u8 cmd)
 {	
 	u16 t;		  	  
@@ -244,8 +244,8 @@ u8 SD_SendCmd(u8 cmd, u32 arg, u8 crc)
 
 //获取SD卡的CID信息，包括制造商信息
 //输入: u8 *cid_data(存放CID的内存，至少16Byte）	  
-//返回值:0：NO_ERR
-//		 1：错误														   
+//Return: 0 = NO_ERR
+//		 1 = error														   
 u8 SD_GetCID(u8 *cid_data)
 {
     u8 r1;	   
@@ -253,9 +253,9 @@ u8 SD_GetCID(u8 *cid_data)
     r1 = SD_SendCmd(CMD10, 0, 0x01);
     if(r1 == 0x00)
 	{
-		r1 = SD_RecvData(cid_data, 16);//接收16个字节的数据	 
+		r1 = SD_RecvData(cid_data, 16);//Receive 16 bytes of data	 
     }
-	SD_DisSelect();//取消片选
+	SD_DisSelect();//Deselect the chip
 	if(r1)
 		return 1;
 	else 
@@ -264,17 +264,17 @@ u8 SD_GetCID(u8 *cid_data)
 
 //获取SD卡的CSD信息，包括容量和速度信息
 //输入:u8 *cid_data(存放CID的内存，至少16Byte）	    
-//返回值:0：NO_ERR
-//		 1：错误														   
+//Return: 0 = NO_ERR
+//		 1 = error														   
 u8 SD_GetCSD(u8 *csd_data)
 {
     u8 r1;	 
     r1 = SD_SendCmd(CMD9, 0, 0x01);//发CMD9命令，读CSD
     if(r1 == 0)
 	{
-    	r1 = SD_RecvData(csd_data, 16);//接收16个字节的数据 
+    	r1 = SD_RecvData(csd_data, 16);//Receive 16 bytes of data 
     }
-	SD_DisSelect();//取消片选
+	SD_DisSelect();//Deselect the chip
 	if(r1)
 		return 1;
 	else 
@@ -297,13 +297,13 @@ u32 SD_GetSectorCount(void)
     if((csd[0] & 0xC0) == 0x40)	 //V2.00的卡
     {	
 		csize = csd[9] + ((u16)csd[8] << 8) + 1;
-		Capacity = (u32)csize << 10;//得到扇区数	 		   
+		Capacity = (u32)csize << 10;//Get the sector count	 		   
     }
 	else//V1.XX的卡
     {	
 		n = (csd[5] & 15) + ((csd[10] & 128) >> 7) + ((csd[9] & 3) << 1) + 2;
 		csize = (csd[8] >> 6) + ((u16)csd[7] << 2) + ((u16)(csd[6] & 3) << 10) + 1;
-		Capacity= (u32)csize << (n - 9);//得到扇区数   
+		Capacity= (u32)csize << (n - 9);//Get the sector count   
     }
     return Capacity;
 }
@@ -340,8 +340,8 @@ u8 SD_Initialize(void)
 				retry = 0XFFFE;
 				do
 				{
-					SD_SendCmd(CMD55, 0, 0X01);	//发送CMD55
-					r1=SD_SendCmd(CMD41, 0x40000000, 0X01);//发送CMD41
+					SD_SendCmd(CMD55, 0, 0X01);	//Send CMD55
+					r1=SD_SendCmd(CMD41, 0x40000000, 0X01);//Send CMD41
 				}while(r1 && retry--);
 				
 				if(retry && SD_SendCmd(CMD58, 0, 0X01) == 0)//鉴别SD2.0卡版本开始
@@ -356,23 +356,23 @@ u8 SD_Initialize(void)
 		}
 		else//SD V1.x/ MMC	V3
 		{
-			SD_SendCmd(CMD55, 0, 0X01);		//发送CMD55
-			r1 = SD_SendCmd(CMD41, 0, 0X01);//发送CMD41
+			SD_SendCmd(CMD55, 0, 0X01);		//Send CMD55
+			r1 = SD_SendCmd(CMD41, 0, 0X01);//Send CMD41
 			if(r1 <= 1)
 			{		
 				SD_Type = SD_TYPE_V1;
 				retry = 0XFF;//FE;
-				do //等待退出IDLE模式
+				do //Wait for the card to leave IDLE mode
 				{
-					SD_SendCmd(CMD55, 0, 0X01);		//发送CMD55
-					r1 = SD_SendCmd(CMD41, 0, 0X01);//发送CMD41
+					SD_SendCmd(CMD55, 0, 0X01);		//Send CMD55
+					r1 = SD_SendCmd(CMD41, 0, 0X01);//Send CMD41
 				}while(r1 && retry--);
 			}
 			else
 			{
 				SD_Type = SD_TYPE_MMC;//MMC V3
 				retry = 0XFFFE;
-				do //等待退出IDLE模式
+				do //Wait for the card to leave IDLE mode
 				{	
 						vTaskDelay(1);
 					r1 = SD_SendCmd(CMD1, 0, 0X01);//发送CMD1
@@ -387,7 +387,7 @@ u8 SD_Initialize(void)
 		}
 	}
 	
-	SD_DisSelect();//取消片选
+	SD_DisSelect();//Deselect the chip
 //	SD_SPI_SpeedHigh();//高速
 
 	if(SD_Type)
@@ -399,50 +399,50 @@ u8 SD_Initialize(void)
 }
 
 //读SD卡
-//buf:数据缓存区
+//buf: data buffer
 //sector:扇区
-//cnt:扇区数
-//返回值:0,ok;其他,失败.
+//cnt: sector count
+//Return: 0 = ok; other = failure.
 u8 SD_ReadDisk(u8*buf, u32 sector, u8 cnt)
 {
 	u8 r1;
-	if(SD_Type != SD_TYPE_V2HC)sector <<= 9;//转换为字节地址
+	if(SD_Type != SD_TYPE_V2HC)sector <<= 9;//Convert to a byte address
 	if(cnt == 1)
 	{
-		r1 = SD_SendCmd(CMD17, sector, 0X01);//读命令
-		if(r1 == 0)//指令发送成功
+		r1 = SD_SendCmd(CMD17, sector, 0X01);//Read command
+		if(r1 == 0)//Command sent successfully
 		{
-			r1 = SD_RecvData(buf, 512);//接收512个字节	   
+			r1 = SD_RecvData(buf, 512);//Receive 512 bytes	   
 		}
 	}
 	else
 	{
-		r1 = SD_SendCmd(CMD18, sector, 0X01);//连续读命令
+		r1 = SD_SendCmd(CMD18, sector, 0X01);//Multiple-block read command
 		do
 		{
-			r1 = SD_RecvData(buf, 512);//接收512个字节	 
+			r1 = SD_RecvData(buf, 512);//Receive 512 bytes	 
 			buf += 512;  
 		}while(--cnt && r1 == 0);
 		
 		SD_SendCmd(CMD12, 0, 0X01);	//发送停止命令
 	}   
-	SD_DisSelect();//取消片选
+	SD_DisSelect();//Deselect the chip
 	return r1;//
 }
 
 //写SD卡
-//buf:数据缓存区
+//buf: data buffer
 //sector:起始扇区
-//cnt:扇区数
-//返回值:0,ok;其他,失败.
+//cnt: sector count
+//Return: 0 = ok; other = failure.
 u8 SD_WriteDisk(u8*buf, u32 sector, u8 cnt)
 {
 	u8 r1;
-	if(SD_Type != SD_TYPE_V2HC)sector *= 512;//转换为字节地址
+	if(SD_Type != SD_TYPE_V2HC)sector *= 512;//Convert to a byte address
 	if(cnt == 1)
 	{
-		r1 = SD_SendCmd(CMD24, sector, 0X01);//读命令
-		if(r1 == 0)//指令发送成功
+		r1 = SD_SendCmd(CMD24, sector, 0X01);//Read command
+		if(r1 == 0)//Command sent successfully
 		{
 			r1 = SD_SendBlock(buf, 0xFE);//写512个字节	   
 		}
@@ -453,19 +453,19 @@ u8 SD_WriteDisk(u8*buf, u32 sector, u8 cnt)
 			SD_SendCmd(CMD55, 0, 0X01);	
 			SD_SendCmd(CMD23, cnt, 0X01);//发送指令	
 		}
- 		r1 = SD_SendCmd(CMD25, sector, 0X01);//连续读命令
+ 		r1 = SD_SendCmd(CMD25, sector, 0X01);//Multiple-block read command
 		if(r1 == 0)
 		{
 			do
 			{
-				r1 = SD_SendBlock(buf, 0xFC);//接收512个字节	 
+				r1 = SD_SendBlock(buf, 0xFC);//Receive 512 bytes	 
 				buf += 512;  
 			}while(--cnt && r1 == 0);
 			
-			r1 = SD_SendBlock(0, 0xFD);//接收512个字节 
+			r1 = SD_SendBlock(0, 0xFD);//Receive 512 bytes 
 		}
 	}   
-	SD_DisSelect();//取消片选
+	SD_DisSelect();//Deselect the chip
 	return r1;//
 }
 

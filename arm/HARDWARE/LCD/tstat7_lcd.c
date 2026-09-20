@@ -212,7 +212,7 @@ void I2CStart( void )
 	delay_us(4);
  	SDA = 0;	//START:when CLK is high,DATA change form high to low 
 	delay_us(4);
-	SCL = 0;	//钳住I2C总线，准备发送或接收数据 
+	SCL = 0;	//Hold the I2C bus low, ready to send or receive data 
 }
 
 /*****************************************
@@ -246,7 +246,7 @@ MODIFY DATE:
 void I2CSendByte( unsigned char ucWRData )
 {
 	unsigned char   i;
-	SCL = 0;		//拉低时钟开始数据传输 
+	SCL = 0;		//Pull the clock low to start the data transfer 
 	for(i = 0;i < 8;i++)
 	{
 		SDA = ( ucWRData & 0x80 ) >> 7;

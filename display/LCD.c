@@ -728,7 +728,7 @@ void Lcd_Set_X_Addr(U8_T line)// 1 1 1 0/1        page 0 - 129
 
 void LCD_IO_config(void)
 {
-    //GPIO端口设置
+    //GPIO port configuration
   GPIO_InitTypeDef GPIO_InitStructure;
 	 
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD | RCC_APB2Periph_GPIOF | RCC_APB2Periph_GPIOG, ENABLE);	//使能USART1，GPIOA时钟
@@ -736,20 +736,20 @@ void LCD_IO_config(void)
 	//   PD6 PD8 PD9 PD10 PG6 PF11
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_10 | GPIO_Pin_3;				
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;			//普通推挽输出
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;			//Standard push-pull output
 	GPIO_Init(GPIOD, &GPIO_InitStructure);					
  
 	// PG6 
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;				//PG.6
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;	//普通推挽输出
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;	//Standard push-pull output
 	GPIO_Init(GPIOG, &GPIO_InitStructure);	
   GPIO_SetBits(GPIOG, GPIO_Pin_6);	
 	
 	// PF11
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;				//PF.11
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;		//普通推挽输出
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;		//Standard push-pull output
 	GPIO_Init(GPIOF, &GPIO_InitStructure);					
 	GPIO_SetBits(GPIOF, GPIO_Pin_11);	
                   				

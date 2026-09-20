@@ -14,8 +14,8 @@ u8 count_tcp_hwErr_rx;
 u8 count_tcp_hwErr_tx;
 void tcpip_intial(void);
 void QuickSoftReset(void);
-//复位ENC28J60
-//包括SPI初始化/IO初始化等
+//Reset the ENC28J60
+//Includes SPI initialisation, IO initialisation and so on
 void ENC28J60_Reset(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
@@ -40,30 +40,30 @@ void ENC28J60_Reset(void)
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 	
 	
-//	RCC->APB2ENR |= 1 << 3;     //使能PORTB时钟, INT=PA0, RST=PA1, CS=PA4 
+//	RCC->APB2ENR |= 1 << 3;     //Enable the PORTB clock, INT=PA0, RST=PA1, CS=PA4 
 //	
 //	GPIOB->CRL &= 0XFFF0FF00; 
 //	GPIOB->CRL |= 0X00030038;
 //	
 //	GPIOB->CRL &= 0XFFF0FF00; 
-//	GPIOB->CRL |= 0X00030038;						//PA1,PA4推挽输出, PA0输入 	    
-//	GPIOB->ODR |= (1 << 0) | (1 << 1) | (1 << 4);	//PA1,PA4,PA0上拉
+//	GPIOB->CRL |= 0X00030038;						//PA1,PA4 push-pull output, PA0 input 	    
+//	GPIOB->ODR |= (1 << 0) | (1 << 1) | (1 << 4);	//PA1,PA4,PA0 pull-up
 	
-//	//这里PC4,PB7,PB12拉高,是为了防止其他SPI设备影响.
-//	//因为他们共用一个SPI口. 
+//	//PC4, PB7 and PB12 are driven high here to stop other SPI devices interfering.
+//	//Because they share a single SPI port. 
 //	GPIOB->CRH &= 0XFFF0FFFF; 
-//	GPIOB->CRH |= 0X00030000;	//PB12 推挽 	    
-//	GPIOB->ODR |= 1 << 12;     	//PB12上拉
+//	GPIOB->CRH |= 0X00030000;	//PB12 push-pull 	    
+//	GPIOB->ODR |= 1 << 12;     	//PB12 pull-up
 //	GPIOB->CRL &= 0X0FFFFFFF; 
-//	GPIOB->CRL |= 0X30000000;	//PB7 推挽 	    
-//	GPIOB->ODR |= 1 << 7;     	//PB7上拉
+//	GPIOB->CRL |= 0X30000000;	//PB7 push-pull 	    
+//	GPIOB->ODR |= 1 << 7;     	//PB7 pull-up
 //	GPIOB->CRL &= 0X0FFFFFFF; 
-//	GPIOB->CRL |= 0X30000000;	//PB7 推挽 	    
-//	GPIOB->ODR |= 1 << 7;     	//PB7上拉
-//	RCC->APB2ENR |= 1 << 4;     //使能PORTC时钟, 其他SPI设备CS=PC4
+//	GPIOB->CRL |= 0X30000000;	//PB7 push-pull 	    
+//	GPIOB->ODR |= 1 << 7;     	//PB7 pull-up
+//	RCC->APB2ENR |= 1 << 4;     //Enable the PORTC clock, other SPI devices CS=PC4
 //	GPIOC->CRL &= 0XFFF0FFFF; 
-//	GPIOC->CRL |= 0X00030000;	//PC4 推挽 	    
-//	GPIOC->ODR |= 1 << 4;     	//PC4 上拉
+//	GPIOC->CRL |= 0X00030000;	//PC4 push-pull 	    
+//	GPIOC->ODR |= 1 << 4;     	//PC4 pull-up
 	
 	
 //	ENC28J60_RST = 0;
@@ -93,10 +93,10 @@ void ENC28J60_Reset(void)
 	delay_ms(10);
 }
 
-//读取ENC28J60寄存器(带操作码) 
-//op：操作码
-//addr:寄存器地址/参数
-//返回值:读到的数据
+//Read an ENC28J60 register (with opcode) 
+//op: opcode
+//addr: register address / parameter
+//Return: the data read
 u8 ENC28J60_Read_Op(u8 op, u8 addr)
 {
 	u8 dat = 0;	 
@@ -107,7 +107,7 @@ u8 ENC28J60_Read_Op(u8 op, u8 addr)
 	SPI2_ReadWriteByte(dat);
 	dat = SPI2_ReadWriteByte(0xFF);
 	
-	//如果是读取MAC/MII寄存器,则第二次读到的数据才是正确的,见手册29页
+	//When reading a MAC/MII register only the second read returns the correct data - see page 29 of the manual
  	if(addr & 0x80)
 		dat = SPI2_ReadWriteByte(0xFF);
 	
@@ -116,10 +116,10 @@ u8 ENC28J60_Read_Op(u8 op, u8 addr)
 	return dat;
 }
 
-//读取ENC28J60寄存器(带操作码) 
-//op：操作码
-//addr:寄存器地址
-//data:参数
+//Read an ENC28J60 register (with opcode) 
+//op: opcode
+//addr: register address
+//data: parameter
 void ENC28J60_Write_Op(u8 op, u8 addr, u8 _data)
 {
 	u8 dat = 0;	    
@@ -132,9 +132,9 @@ void ENC28J60_Write_Op(u8 op, u8 addr, u8 _data)
 	GPIO_SetBits(GPIOB, GPIO_Pin_12);
 }
 
-//读取ENC28J60接收缓存数据
-//len:要读取的数据长度
-//data:输出数据缓存区(末尾自动添加结束符)
+//Read data from the ENC28J60 receive buffer
+//len: number of bytes to read
+//data: output buffer (a terminator is appended automatically)
 void ENC28J60_Read_Buf(u32 len, u8* _data)
 {
 	//ENC28J60_CS = 0;
@@ -151,9 +151,9 @@ void ENC28J60_Read_Buf(u32 len, u8* _data)
 	GPIO_SetBits(GPIOB, GPIO_Pin_12);
 }
 
-//向ENC28J60写发送缓存数据
-//len:要写入的数据长度
-//data:数据缓存区 
+//Write data into the ENC28J60 transmit buffer
+//len: number of bytes to write
+//data: data buffer 
 extern u16 Test[50];
 void ENC28J60_Write_Buf(u32 len, u8* _data)
 {
@@ -170,11 +170,11 @@ void ENC28J60_Write_Buf(u32 len, u8* _data)
 	GPIO_SetBits(GPIOB, GPIO_Pin_12);
 }
 
-//设置ENC28J60寄存器Bank
-//ban:要设置的bank
+//Select the ENC28J60 register bank
+//ban: the bank to select
 void ENC28J60_Set_Bank(u8 bank)
 {								    
-	if((bank & BANK_MASK) != ENC28J60BANK)	//和当前bank不一致的时候,才设置
+	if((bank & BANK_MASK) != ENC28J60BANK)	//Only switch when it differs from the current bank
 	{				  
 		ENC28J60_Write_Op(ENC28J60_BIT_FIELD_CLR, ECON1, (ECON1_BSEL1 | ECON1_BSEL0));
 		ENC28J60_Write_Op(ENC28J60_BIT_FIELD_SET, ECON1, (bank & BANK_MASK) >> 5);
@@ -182,32 +182,32 @@ void ENC28J60_Set_Bank(u8 bank)
 	}
 }
 
-//读取ENC28J60指定寄存器 
-//addr:寄存器地址
-//返回值:读到的数据
+//Read the given ENC28J60 register 
+//addr: register address
+//Return: the data read
 u8 ENC28J60_Read(u8 addr)
 {		
-	ENC28J60_Set_Bank(addr);	//设置BANK	
+	ENC28J60_Set_Bank(addr);	//Select the bank	
 	return ENC28J60_Read_Op(ENC28J60_READ_CTRL_REG, addr);
 }
 
-//向ENC28J60指定寄存器写数据
-//addr:寄存器地址
-//data:要写入的数据		 
+//Write data to the given ENC28J60 register
+//addr: register address
+//data: the data to write		 
 void ENC28J60_Write(u8 addr, u8 _data)
 {					  
 	ENC28J60_Set_Bank(addr);		 
 	ENC28J60_Write_Op(ENC28J60_WRITE_CTRL_REG, addr, _data);
 }
 
-//向ENC28J60的PHY寄存器写入数据
-//addr:寄存器地址
-//data:要写入的数据		 
+//Write data to an ENC28J60 PHY register
+//addr: register address
+//data: the data to write		 
 void ENC28J60_PHY_Write(u8 addr, u32 _data)
 {
 	u16 retry = 0;
 	ENC28J60_Write(MIREGADR, addr);		//设置PHY寄存器地址
-	ENC28J60_Write(MIWRL, _data);		//写入数据
+	ENC28J60_Write(MIWRL, _data);		//Write data
 	ENC28J60_Write(MIWRH, _data >> 8);		   
 	while((ENC28J60_Read(MISTAT) & MISTAT_BUSY) && (retry < 0XFFF))
 		retry++;						//等待写入PHY结束		  
@@ -301,22 +301,22 @@ u8 ENC28J60_Init(u8* macaddr)
 	// This is hex 303F->EPMM0=0x3f,EPMM1=0x30
 	//接收过滤器
 	//UCEN：单播过滤器使能位
-	//当ANDOR = 1 时：
+	//When ANDOR = 1:
 	//1 = 目标地址与本地MAC 地址不匹配的数据包将被丢弃
-	//0 = 禁止过滤器
-	//当ANDOR = 0 时：
+	//0 = filter disabled
+	//When ANDOR = 0:
 	//1 = 目标地址与本地MAC 地址匹配的数据包会被接受
-	//0 = 禁止过滤器
+	//0 = filter disabled
 	//CRCEN：后过滤器CRC 校验使能位
 	//1 = 所有CRC 无效的数据包都将被丢弃
 	//0 = 不考虑CRC 是否有效
 	//PMEN：格式匹配过滤器使能位
-	//当ANDOR = 1 时：
+	//When ANDOR = 1:
 	//1 = 数据包必须符合格式匹配条件，否则将被丢弃
-	//0 = 禁止过滤器
-	//当ANDOR = 0 时：
+	//0 = filter disabled
+	//When ANDOR = 0:
 	//1 = 符合格式匹配条件的数据包将被接受
-	//0 = 禁止过滤器
+	//0 = filter disabled
 	ENC28J60_Write(ERXFCON, ERXFCON_UCEN | ERXFCON_CRCEN | ERXFCON_BCEN);//ERXFCON_PMEN);
 	ENC28J60_Write(EPMM0, 0x3f);
 	ENC28J60_Write(EPMM1, 0x30);
