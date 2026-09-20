@@ -78,6 +78,7 @@
 #define PAGE_MARK_YDOTS					9
 #define PAGE_MARK_PITCH					15
 #define PAGE_MARK_STRIP_YDOTS			(PAGE_MARK_MAX * PAGE_MARK_PITCH)
+#define PAGE_MARK_DIM_COLOR			0x29c9	/* #2E3A48 a page you are not on */
 
 
 #define TOP_AREA_DISP_ITEM_TEMPERATURE   	0
@@ -97,17 +98,28 @@
 #define TOP_AREA_DISP_UNIT_NONE			 			100
 
 
-#define TSTAT8_CH_COLOR   	0xffff //0xd6e0
-#define TSTAT8_MENU_COLOR   0x7e17//0x3bef//0x43f2//0x14a9
+/* Screen palette, RGB565.
 
+   The screen used to be white on a light teal (0x7E19).  It is now white on a
+   near black blue, which reads better in a plant room and stops the backlight
+   lighting up a dark space.
 
-#define SCH_COLOR  0xffff//0XB73F
-#define SCH_BACK_COLOR  0x3bef//0x43f2//0x14E9
-
-#define TSTAT8_BACK_COLOR1  0x3cef//0x7E19
-#define TSTAT8_BACK_COLOR   0x7E19//
-#define TSTAT8_MENU_COLOR2  0x7e17
-#define TANGLE_COLOR        0xbe9c
+   The icons cannot follow a constant: disp_icon() blits their pixels literally,
+   so each one carries the background it was drawn against.  They were
+   recomposited onto this background by tools/recolour_icons.py -- change the
+   background here and that has to be run again, from a checkout whose icons
+   still hold the old one. */
+#define TSTAT8_CH_COLOR   	0xffff	/* white, the only ink colour */
+#define TSTAT8_MENU_COLOR   0x1106	/* #172230 panel behind a value */
+#define SCH_COLOR  			0xffff
+#define SCH_BACK_COLOR  	0x3bef	/* unused */
+#define TSTAT8_BACK_COLOR1  0x220b	/* #22435E row picked with the LEFT key;
+									   has to sit lighter than the background */
+#define TSTAT8_BACK_COLOR   0x08a4	/* #0D1520 the screen itself */
+#define TSTAT8_MENU_COLOR2  0x1106
+#define TANGLE_COLOR        0xbe9c	/* frame round each value; left light on
+									   purpose, and draw_tangle()'s corner
+									   bitmaps carry this same colour */
 
 #define FAN_OFF 	0
 #define FAN_AUTO 	4
