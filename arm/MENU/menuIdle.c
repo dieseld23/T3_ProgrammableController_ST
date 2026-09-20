@@ -8,7 +8,7 @@
 char UI_DIS_LINE1[LABEL_CHARS + 1]; //Corresponds to the old setpoint, fan and sys
 char UI_DIS_LINE2[LABEL_CHARS + 1];
 char UI_DIS_LINE3[LABEL_CHARS + 1];
-char UI_DIS_TOP[9];
+char UI_DIS_TOP[10];
 
 static uint8 display_around_time_ctr = NODES_POLL_PERIOD;
 static uint8 disp_index = 0;
@@ -33,6 +33,9 @@ extern uint16_t count_suspend_mstp;
  * Pages past the last VAR that carries a label are left out, so a panel that
  * labels VAR1-VAR6 gets two pages rather than eight.
  */
+/* a point_type no drawing branch matches, so nothing is drawn */
+#define TOP_AREA_NO_POINT	0xff
+
 #define IDLE_PAGE_ROWS		3
 static uint8 page_index = 0;
 
@@ -68,6 +71,38 @@ static void load_label(char *dst, uint8 num)
 		dst[i] = ended ? ' ' : (char)c;
 	}
 	dst[LABEL_CHARS] = 0;
+}
+
+/* The top area shows one configured point. npoint.number is 1-based and comes
+ * from T3000, so 0 underflows to 255, and nothing range checks it against the
+ * table it indexes; point_type is unchecked too and can hold any of the
+ * MAX_POINT_TYPE kinds rather than the three drawn here. Flash supplies a sane
+ * default only when it reads back erased, so a bad pair written over Modbus
+ * arrives here untouched.
+ *
+ * An unusable pair selects no point at all: the type becomes one that none of
+ * the drawing branches match, so the top area stays blank, and the index is
+ * pinned to 0 so that anything reading it anyway stays inside the table. Blank
+ * is the honest thing to show for a point that is not there. */
+static void load_top_area_point(uint8 *type, uint8 *num)
+{
+	uint8 t = Setting_Info.reg.display_lcd.lcd_mod_reg.npoint.point_type;
+	uint8 n = (uint8)(Setting_Info.reg.display_lcd.lcd_mod_reg.npoint.number - 1);
+	uint8 ok = (t == IN && n < MAX_INS)
+			|| (t == OUT && n < MAX_OUTS)
+			|| (t == VAR && n < MAX_VARS);
+
+	*type = ok ? t : TOP_AREA_NO_POINT;
+	*num = ok ? n : 0;
+}
+
+/* label[] is nine bytes and need not carry a NUL, so copying all nine into
+ * UI_DIS_TOP and handing it to disp_str_16_24() ran off the end of the buffer
+ * until it happened to meet a zero. */
+static void load_top_label(const void *label)
+{
+	memcpy(UI_DIS_TOP, label, 9);
+	UI_DIS_TOP[9] = 0;
 }
 
 /* Pages to offer: page 0 always, then every page up to the last labelled VAR. */
@@ -132,10 +167,9 @@ void MenuIdle_init(void)
   digital_top_area_num = 0;
 	digital_top_area_changed = 0;
 
-	digital_top_area_type = Setting_Info.reg.display_lcd.lcd_mod_reg.npoint.point_type;
-	digital_top_area_num = Setting_Info.reg.display_lcd.lcd_mod_reg.npoint.number - 1;	
+	load_top_area_point(&digital_top_area_type, &digital_top_area_num);
 						
-	memset(UI_DIS_TOP,0,9);
+	memset(UI_DIS_TOP,0,sizeof(UI_DIS_TOP));
 	digital_top_area_changed = 0;
 	
 	disp_str(FORM15X30, SCH_XPOS,  0, "              ",SCH_COLOR,TSTAT8_BACK_COLOR);					
@@ -145,12 +179,12 @@ void MenuIdle_init(void)
 	
 	if(digital_top_area_type == IN)
 	{
-		memcpy(UI_DIS_TOP, inputs[digital_top_area_num].label, 9);		
+		load_top_label(inputs[digital_top_area_num].label);		
 	}
 	else if(digital_top_area_type == OUT)
-		memcpy(UI_DIS_TOP, outputs[digital_top_area_num].label, 9);
+		load_top_label(outputs[digital_top_area_num].label);
 	else if(digital_top_area_type == VAR)
-		memcpy(UI_DIS_TOP, vars[digital_top_area_num].label, 9);		
+		load_top_label(vars[digital_top_area_num].label);		
 
 	disp_null_icon(240, 36, 0, 0,TIME_POS,TSTAT8_CH_COLOR, TSTAT8_MENU_COLOR2);
 	
@@ -311,23 +345,16 @@ void MenuIdle_display(void)
 			char type,num;
 			//if(Setting_Info.reg.display_lcd.lcddisplay[0] == 1) // modbus
 			{				
-				if(digital_top_area_type != Setting_Info.reg.display_lcd.lcd_mod_reg.npoint.point_type)
 				{
-					digital_top_area_type = Setting_Info.reg.display_lcd.lcd_mod_reg.npoint.point_type;
-					digital_top_area_changed = 1;
-//					disp_str(FORM15X30, SCH_XPOS,  0, "              ",SCH_COLOR,TSTAT8_BACK_COLOR);					
-//					disp_str(FORM15X30, SCH_XPOS,  IDLE_LINE2_POS, "            ",SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-//					disp_str(FORM15X30, SCH_XPOS,  CH_HEIGHT, "              ",SCH_COLOR,TSTAT8_BACK_COLOR);
-//					disp_str(FORM15X30, SCH_XPOS,  CH_HEIGHT * 2 - 7, "              ",SCH_COLOR,TSTAT8_BACK_COLOR);
-				}
-				if(digital_top_area_num != Setting_Info.reg.display_lcd.lcd_mod_reg.npoint.number - 1)
-				{
-					digital_top_area_num = Setting_Info.reg.display_lcd.lcd_mod_reg.npoint.number - 1;
-					digital_top_area_changed = 1;
-//					disp_str(FORM15X30, SCH_XPOS,  0, "              ",SCH_COLOR,TSTAT8_BACK_COLOR);					
-//					disp_str(FORM15X30, SCH_XPOS,  IDLE_LINE2_POS, "            ",SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-//					disp_str(FORM15X30, SCH_XPOS,  CH_HEIGHT, "              ",SCH_COLOR,TSTAT8_BACK_COLOR);
-//					disp_str(FORM15X30, SCH_XPOS,  CH_HEIGHT * 2 - 7, "              ",SCH_COLOR,TSTAT8_BACK_COLOR);
+					uint8 new_type, new_num;
+
+					load_top_area_point(&new_type, &new_num);
+					if(digital_top_area_type != new_type || digital_top_area_num != new_num)
+					{
+						digital_top_area_type = new_type;
+						digital_top_area_num = new_num;
+						digital_top_area_changed = 1;
+					}
 				}
 			
 				type = digital_top_area_type;
@@ -362,7 +389,7 @@ void MenuIdle_display(void)
 					else
 					{			
 						flag_digital_top_area = 1;						
-						memcpy(UI_DIS_TOP, inputs[digital_top_area_num].label, 9);
+						load_top_label(inputs[digital_top_area_num].label);
 						disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
 						
 						
@@ -426,7 +453,7 @@ void MenuIdle_display(void)
 					{
 						flag_digital_top_area = 1;
 
-						memcpy(UI_DIS_TOP, outputs[digital_top_area_num].label, 9);
+						load_top_label(outputs[digital_top_area_num].label);
 						disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
 						if(outputs[num].control)
 						{
@@ -505,7 +532,7 @@ void MenuIdle_display(void)
 					{
 						flag_digital_top_area = 1;						
 						
-						memcpy(UI_DIS_TOP, vars[digital_top_area_num].label, 9);
+						load_top_label(vars[digital_top_area_num].label);
 						disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
 						
 						if(vars[num].control)

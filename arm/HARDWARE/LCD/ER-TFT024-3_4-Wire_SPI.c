@@ -537,14 +537,18 @@ void disp_ch(uint8 form, uint16 x, uint16 y,uint8 value,uint16 dcolor,uint16 bgc
 			temp += 10 * 576;	
 		else if(value == ' ')
       temp += 11 * 576;			
-		else	
-			temp += (value - 48) * 576;	
+		else if(value >= '0' && value <= '9')
+			temp += (value - 48) * 576;
+		else
+			temp += 11 * 576;		// not in this table, so show a space
 	//	LCD_SetPos(x,x+47,y,y+119);
 		}
 	else
 		{
 		temp = chlibsmall;
 		cp = 24; pp = 36;
+		if(value < 32 || value > 126)
+			value = ' ';		// labels carry anything; stay inside the table
 		temp += (value - 32) * 108;		
 		}
 //	if(form == FORM32X64)	
@@ -610,13 +614,17 @@ void disp_ch_16_24(uint8 form, uint16 x, uint16 y, uint8 value, uint16 dcolor, u
 			temp += 10 * 576;
 		else if (value == ' ')
 			temp += 11 * 576;
-		else
+		else if(value >= '0' && value <= '9')
 			temp += (value - 48) * 576;
+		else
+			temp += 11 * 576;		// not in this table, so show a space
 	}
 	else
 	{
 		temp = char_16_24;
 		cp = 16; pp = 24;
+		if(value < 32 || value > 122)
+			value = ' ';		// this table stops at 'z'
 		temp += (value - 32) * 48;
 	}
 	LCD_SetPos(x, x + cp - 1, y, y + pp - 1);
