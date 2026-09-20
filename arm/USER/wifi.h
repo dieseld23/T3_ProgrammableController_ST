@@ -25,7 +25,7 @@ typedef struct
 
 extern STR_SSID	SSID_Info;
 
-typedef enum
+enum
 {
 	WIFI_NONE,
 	WIFI_NO_WIFI,
@@ -74,4 +74,4 @@ extern uint16 rece_sizeB;
 extern uint8 update_flag;
 extern uint8 serial_receive_timeout_countB;
 
-void dma_init_uart4();
+void dma_init_uart4(void);

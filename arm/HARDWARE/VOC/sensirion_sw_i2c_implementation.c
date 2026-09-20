@@ -50,7 +50,7 @@
  * Initialize all hard- and software components that are needed to set the
  * SDA and SCL pins.
  */
-void sensirion_init_pins() {
+void sensirion_init_pins(void) {
     //__GPIOB_CLK_ENABLE();
     sensirion_SDA_in();
     sensirion_SCL_in();
@@ -61,7 +61,7 @@ void sensirion_init_pins() {
  * should be left floating, without external pull-up resistor, the input must be
  * configured to use the internal pull-up resistor.
  */
-void sensirion_SDA_in() {
+void sensirion_SDA_in(void) {
 	
 	GPIO_InitTypeDef GPIO_InitStructure; 
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
@@ -80,7 +80,7 @@ void sensirion_SDA_in() {
 /**
  * Configure the SDA pin as an output and drive it low or set to logical false.
  */
-void sensirion_SDA_out() {
+void sensirion_SDA_out(void) {
 	
 	GPIO_InitTypeDef GPIO_InitStructure; 
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
@@ -103,7 +103,7 @@ void sensirion_SDA_out() {
  * Read the value of the SDA pin.
  * @returns 0 if the pin is low and 1 otherwise.
  */
-uint8_t sensirion_SDA_read() {
+uint8_t sensirion_SDA_read(void) {
 	//return READ_SDA();
 	u8 status;
 	status = GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_2);  		  
@@ -116,7 +116,7 @@ uint8_t sensirion_SDA_read() {
  * should be left floating, without external pull-up resistor, the input must be
  * configured to use the internal pull-up resistor.
  */
-void sensirion_SCL_in() {
+void sensirion_SCL_in(void) {
 	GPIO_InitTypeDef GPIO_InitStructure; 
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING; 
@@ -133,7 +133,7 @@ void sensirion_SCL_in() {
 /**
  * Configure the SCL pin as an output and drive it low or set to logical false.
  */
-void sensirion_SCL_out() {
+void sensirion_SCL_out(void) {
 	
 	GPIO_InitTypeDef GPIO_InitStructure; 
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
@@ -155,7 +155,7 @@ void sensirion_SCL_out() {
  * Read the value of the SCL pin.
  * @returns 0 if the pin is low and 1 otherwise.
  */
-uint8_t sensirion_SCL_read() {
+uint8_t sensirion_SCL_read(void) {
 	u8 status;
 	status = GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_3);  		  
 	return status;

@@ -70,7 +70,7 @@ void IIC_SDA(u8 status)
 		GPIO_ResetBits(GPIOA, GPIO_Pin_2); 
 #endif
 }	
-u8 READ_SDA()
+u8 READ_SDA(void)
 {
 	u8 status;
 #if (ARM_MINI || ARM_CM5)

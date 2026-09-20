@@ -21,14 +21,14 @@
 #define  DEVICE_SEND_HEART_BEAT_TO_SERVER_PACKAGE_LENGTH (3 + HEARTBEAT_LENGTH)
 
 // Client send message to server when log in
-typedef struct stLoginMessage
+struct stLoginMessage
 {
  char userName[30];
  char password[20];
 };
 
 // Client send message to server when log out
-typedef struct stLogoutMessage
+struct stLogoutMessage
 {
  char userName[10];
 };

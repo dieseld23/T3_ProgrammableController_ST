@@ -52,7 +52,7 @@
 
 void IIC_SCL(u8 status);
 void IIC_SDA(u8 status);
-u8 READ_SDA();
+u8 READ_SDA(void);
 
 #endif
 

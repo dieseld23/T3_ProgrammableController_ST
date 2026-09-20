@@ -1070,7 +1070,7 @@ uint8_t SendBuff[SENDBUFF_SIZE]; //����DMA ���ڷ���
 
 
 //dma2�ĳ�ʼ����ע��tx��rx��dma��ʼ��ʱ��ͬ�ģ������洢����ַ�������ַ��ͬ������uart->DR��������dma�ķ���Ҳ����ͬ��
-void dma_init_uart4()
+void dma_init_uart4(void)
 {
     DMA_InitTypeDef DMA_InitTypeStruct;
     RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA2, ENABLE);

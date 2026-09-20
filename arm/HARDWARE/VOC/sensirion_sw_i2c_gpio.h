@@ -38,19 +38,19 @@
 extern "C" {
 #endif
 
-void sensirion_init_pins();
+void sensirion_init_pins(void);
 
-void sensirion_SDA_in();
+void sensirion_SDA_in(void);
 
-void sensirion_SDA_out();
+void sensirion_SDA_out(void);
 
-uint8_t sensirion_SDA_read();
+uint8_t sensirion_SDA_read(void);
 
-void sensirion_SCL_in();
+void sensirion_SCL_in(void);
 
-void sensirion_SCL_out();
+void sensirion_SCL_out(void);
 
-uint8_t sensirion_SCL_read();
+uint8_t sensirion_SCL_read(void);
 
 void sensirion_sleep_usec(uint32_t useconds);
 

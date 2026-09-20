@@ -613,7 +613,7 @@ void check_graphic_element(void)
 //};
 
 
-void Ethernet_Debug_Task();
+void Ethernet_Debug_Task(void);
 U8_T count_10s = 0;
 U8_T count_reset_zigbee = 0;
 U16_T last_reset_zigbee;
