@@ -270,17 +270,17 @@ static PT_THREAD(handle_input(struct httpd_state *s))
 			strx=strstr((const char*)(data_index_html+13),"LED2×´Ì¬");  
 			if(strx)//´æÔÚ"LED0×´Ì¬"Õâ¸ö×Ö·û´®
 			{
-				strx=strstr((const char*)strx,"color:#");//ÕÒµ½"color:#"×Ö·û´®
+				strx=strstr((const char*)strx,"color:#");//Found the "color:#" string
 				if(LED0)//LED0Ãð
 				{
 					strncpy(strx+7,"5B5B5B",6);	//Grey
-					strncpy(strx+24,"Ãð",2);	//Ãð
+					strncpy(strx+24,"Ãð",2);	//off
 					strx=strstr((const char*)strx,"http:");//Found the "http:" string 
 					strncpy(strx,(const char*)LED_OFF_PIC_ADDR,strlen((const char*)LED_OFF_PIC_ADDR));//LED0ÃðÍ¼Æ¬	  
 				}else
 				{
 					strncpy(strx+7,"FF0000",6);	//Red
-					strncpy(strx+24,"ÁÁ",2);	//"ÁÁ"
+					strncpy(strx+24,"ÁÁ",2);	//"on"
 					strx=strstr((const char*)strx,"http:");//Found the "http:" string 
 					strncpy(strx,(const char*)LED0_ON_PIC_ADDR,strlen((const char*)LED0_ON_PIC_ADDR));//LED0ÁÁÍ¼Æ¬	  
 				}	
@@ -293,17 +293,17 @@ static PT_THREAD(handle_input(struct httpd_state *s))
 			strx=strstr((const char*)(data_index_html+13),"LED3×´Ì¬");  
 			if(strx)//´æÔÚ"LED1×´Ì¬"Õâ¸ö×Ö·û´®
 			{
-				strx=strstr((const char*)strx,"color:#");//ÕÒµ½"color:#"×Ö·û´®
+				strx=strstr((const char*)strx,"color:#");//Found the "color:#" string
 				if(LED3)//LED1Ãð
 				{
 					strncpy(strx+7,"5B5B5B",6);	//Grey
-					strncpy(strx+24,"Ãð",2);	//Ãð
+					strncpy(strx+24,"Ãð",2);	//off
 					strx=strstr((const char*)strx,"http:");//Found the "http:" string 
 					strncpy(strx,(const char*)LED_OFF_PIC_ADDR,strlen((const char*)LED_OFF_PIC_ADDR));//LED1ÃðÍ¼Æ¬	  
 				}else
 				{
 					strncpy(strx+7,"00FF00",6);	//ÂÌÉ«
-					strncpy(strx+24,"ÁÁ",2);	//"ÁÁ"
+					strncpy(strx+24,"ÁÁ",2);	//"on"
 					strx=strstr((const char*)strx,"http:");//Found the "http:" string 
 					strncpy(strx,(const char*)LED1_ON_PIC_ADDR,strlen((const char*)LED1_ON_PIC_ADDR));//LED1ÁÁÍ¼Æ¬	  
 				}	

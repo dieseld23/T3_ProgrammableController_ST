@@ -3,8 +3,8 @@
 #ifndef __ENC28J60_H
 #define __ENC28J60_H	  
 
-#define ENC28J60_CS		PBout(12) 	//ENC28J60片选信号
-#define ENC28J60_RST	PEout(6)	//ENC28J60复位信号
+#define ENC28J60_CS		PBout(12) 	//ENC28J60 chip select
+#define ENC28J60_RST	PEout(6)	//ENC28J60 reset
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // ENC28J60 Control Registers
@@ -38,7 +38,7 @@
 //The ERXWRPTH:ERXWRPTL registers define where in the FIFO the hardware
 //writes the bytes it receives. The pointer is read-only and is updated
 //automatically by the hardware once a packet has been received. The pointer can
-//用于判断FIFO 内剩余空间的大小。
+//Used to work out how much room is left in the FIFO.
 #define ERXRDPTL         (0x0C|0x00)
 #define ERXRDPTH         (0x0D|0x00)
 #define ERXWRPTL         (0x0E|0x00)

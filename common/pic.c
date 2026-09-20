@@ -47,7 +47,7 @@ U8_T I2C_RdmRead(U8_T cmd,U8_T *ptPktTemp,U16_T readLen)
 	u8 i;
 	IIC_Start();  
 
-	IIC_Send_Byte(0xc0);	//发送器件地址0Xc0,写数据 	   
+	IIC_Send_Byte(0xc0);	//Send device address 0xC0, write data 	   
 	if(IIC_Wait_Ack())
 	{
 //		IIC_Stop(); 
@@ -80,7 +80,7 @@ U8_T I2C_RdmRead(U8_T cmd,U8_T *ptPktTemp,U16_T readLen)
 U8_T I2C_ByteWrite(U16_T cmd, U16_T byteData)
 {
 	IIC_Start(); 
-	IIC_Send_Byte(0xc0);	//发送器件地址0Xc0,写数据 	 
+	IIC_Send_Byte(0xc0);	//Send device address 0xC0, write data 	 
 
 
 	IIC_Wait_Ack1();	   

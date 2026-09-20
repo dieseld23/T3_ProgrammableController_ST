@@ -35,7 +35,7 @@ void tcp_server_demo_appcall(void);
 #endif
 /////////////////////////////////////TCP SERVER/////////////////////////////////////
 extern u8 tcp_server_databuf[];   		//Transmit buffer	 
-extern u8 tcp_server_sta;				//·þÎñ¶Ë×´Ì¬  
+extern u8 tcp_server_sta;				//Server state  
 
 
 extern u8_t uip_server_time[UIP_CONF_MAX_LISTENPORTS]; // added by chelsea

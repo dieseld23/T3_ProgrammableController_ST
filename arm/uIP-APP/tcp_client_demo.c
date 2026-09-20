@@ -7,18 +7,18 @@
 
 u8 tcp_client_databuf[500];   	//Transmit buffer	  
 u8 tcp_client_sta;				//客户端状态
-//[7]:0,无连接;1,已经连接;
-//[6]:0,无数据;1,收到客户端数据
-//[5]:0,无数据;1,有数据需要发送
+//[7]: 0 = not connected; 1 = connected;
+//[6]: 0 = no data; 1 = data received from the client
+//[5]: 0 = no data; 1 = data waiting to be sent
 
 //这是一个TCP 客户端应用回调函数。
 //该函数通过UIP_APPCALL(tcp_demo_appcall)调用,实现Web Client的功能.
 //当uip事件发生时，UIP_APPCALL函数会被调用,根据所属端口(1400),确定是否执行该函数。
-//例如 : 当一个TCP连接被创建时、有新的数据到达、数据已经被应答、数据需要重发等事件
+//For example: a TCP connection is created, new data arrives, data has been acknowledged, data needs resending, and so on
 void tcp_client_demo_appcall(void)
 {		  
  	struct tcp_demo_appstate *s = (struct tcp_demo_appstate *)&uip_conn->appstate;
-	if(uip_aborted())tcp_client_aborted();		//连接终止	   
+	if(uip_aborted())tcp_client_aborted();		//Connection aborted	   
 	if(uip_timedout())tcp_client_timedout();	//Connection timed out   
 	if(uip_closed())tcp_client_closed();		//Connection closed	   
  	if(uip_connected())tcp_client_connected();	//Connected	    
@@ -26,24 +26,24 @@ void tcp_client_demo_appcall(void)
  	//A new TCP packet has arrived 
 	if(uip_newdata())
 	{
-		if((tcp_client_sta & (1 << 6)) == 0)	//还未收到数据
+		if((tcp_client_sta & (1 << 6)) == 0)	//No data received yet
 		{
 			if(uip_len > 499)
 			{		   
 				((u8*)uip_appdata)[499] = 0;
 			}		    
 	    	strcpy((char*)tcp_client_databuf, uip_appdata);				   	  		  
-			tcp_client_sta |= 1 << 6;			//表示收到客户端数据
+			tcp_client_sta |= 1 << 6;			//Means data was received from the client
 		}				  
 	}
-	else if(tcp_client_sta & (1 << 5))			//有数据需要发送
+	else if(tcp_client_sta & (1 << 5))			//There is data waiting to be sent
 	{
 		s->textptr = tcp_client_databuf;
 		s->textlen = strlen((const char*)tcp_client_databuf);
 		tcp_client_sta &= ~(1 << 5);			//Clear the flag
 	}
 	
-	//当需要重发、新数据到达、数据包送达、连接建立时，通知uip发送数据 
+	//Tell uIP to send data on a resend, on new data arriving, on a packet being delivered, and on a connection being established 
 	if(uip_rexmit() || uip_newdata() || uip_acked() || uip_connected() || uip_poll())
 	{
 		tcp_client_senddata();
@@ -83,13 +83,13 @@ void tcp_client_closed(void)
 //	uip_log("tcp_client closed!\r\n");			//打印log
 }
 
-//连接建立
+//Connection established
 void tcp_client_connected(void)
 { 
 	struct tcp_demo_appstate *s = (struct tcp_demo_appstate *)&uip_conn->appstate;
- 	tcp_client_sta |= 1 << 7;					//标志连接成功
+ 	tcp_client_sta |= 1 << 7;					//Flag the connection as established
  // 	uip_log("tcp_client connected!\r\n");		//打印log
-	s->state = STATE_CMD;				 		//指令状态
+	s->state = STATE_CMD;				 		//Command state
 	s->textlen = 0;
 	s->textptr = "Demo Board Connected Successfully!\r\n";//回应消息
 	s->textlen = strlen((char *)s->textptr);	  
@@ -99,7 +99,7 @@ void tcp_client_connected(void)
 void tcp_client_acked(void)
 {											    
 	struct tcp_demo_appstate *s = (struct tcp_demo_appstate *)&uip_conn->appstate;
-	s->textlen = 0;								//发送清零
+	s->textlen = 0;								//Clear the send flag
 //	uip_log("tcp_client acked!\r\n");			//表示成功发送		 
 }
 
@@ -110,5 +110,5 @@ void tcp_client_senddata(void)
 	//s->textptr:发送的数据包缓冲区指针
 	//s->textlen:数据包的大小（单位字节）		   
 	if(s->textlen > 0)
-		uip_send(s->textptr, s->textlen);//发送TCP数据包	 
+		uip_send(s->textptr, s->textlen);//Send a TCP packet	 
 }

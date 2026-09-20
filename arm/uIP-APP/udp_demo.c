@@ -115,8 +115,8 @@ void dhcpc_configured(const struct dhcpc_state *s)
 	uip_setdraddr(s->default_router);
 	resolv_conf((u16_t *)s->dnsaddr);
 	
-	uip_listen(HTONS(1200));			//监听1200端口,用于TCP Server
-	uip_listen(HTONS(80));				//监听80端口,用于Web Server
-	tcp_client_reconnect();	   		    //尝试连接到TCP Server端,用于TCP Client
+	uip_listen(HTONS(1200));			//Listen on port 1200 for the TCP server
+	uip_listen(HTONS(80));				//Listen on port 80 for the web server
+	tcp_client_reconnect();	   		    //Try to connect to the TCP server, for the TCP client
 	udp_app_init();
 }

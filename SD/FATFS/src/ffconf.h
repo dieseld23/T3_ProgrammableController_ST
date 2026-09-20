@@ -36,11 +36,11 @@
 /   3: f_lseek is removed in addition to 2. */
 
 
-#define	_USE_STRFUNC	0//1	/* 0:Disable or 1-2:Enable 支持字符串类函数*/
+#define	_USE_STRFUNC	0//1	/* 0:Disable or 1-2:Enable string functions*/
 /* To enable string functions, set _USE_STRFUNC to 1 or 2. */
 
 
-#define	_USE_MKFS		1	/* 0:Disable or 1:Enable 使能格式化*/
+#define	_USE_MKFS		1	/* 0:Disable or 1:Enable formatting*/
 /* To enable f_mkfs function, set _USE_MKFS to 1 and set _FS_READONLY to 0 */
 
 
@@ -48,7 +48,7 @@
 /* To enable f_forward function, set _USE_FORWARD to 1 and set _FS_TINY to 1. */
 
 
-#define	_USE_FASTSEEK	0//1	/* 0:Disable or 1:Enable 使能快速查找特性*/
+#define	_USE_FASTSEEK	0//1	/* 0:Disable or 1:Enable the fast seek feature*/
 /* To enable fast seek feature, set _USE_FASTSEEK to 1. */
 
 
@@ -57,7 +57,7 @@
 / Locale and Namespace Configurations
 /----------------------------------------------------------------------------*/
 
-#define _CODE_PAGE	1//936	//采用中文GBK编码
+#define _CODE_PAGE	1//936	//use the Chinese GBK code page
 /* The _CODE_PAGE specifies the OEM code page to be used on the target system.
 /  Incorrect setting of the code page can cause a file open failure.
 /
@@ -90,7 +90,7 @@
 */
 
 
-#define	_USE_LFN	0		/* 0 to 3 设置为1,支持长文件名，并采用动态内存*/
+#define	_USE_LFN	0		/* 0 to 3; set to 1 for long file name support using dynamic memory*/
 #define	_MAX_LFN	255		/* Maximum LFN length to handle (12 to 255) */
 /* The _USE_LFN option switches the LFN support.
 /
@@ -125,7 +125,7 @@
 / Physical Drive Configurations
 /----------------------------------------------------------------------------*/
 
-#define _VOLUMES	1//2	 //支持2个磁盘
+#define _VOLUMES	1//2	 //support 2 drives
 /* Number of volumes (logical drives) to be used. */
 
 

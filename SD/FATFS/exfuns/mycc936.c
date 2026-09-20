@@ -4,14 +4,14 @@
 //#include "flash.h"   
 //////////////////////////////////////////////////////////////////////////////////	 
 //This code is for study use only and may not be used for any other purpose without the author's permission
-//ALIENTEK战舰STM32开发板
-//cc936.c修改后 代码	   
+//ALIENTEK Warship STM32 development board
+//cc936.c, modified	   
 //ALIENTEK
 //Support forum: www.openedv.com
-//修改日期:2012/9/18
-//版本：V1.0
+//Modified: 2012/9/18
+//Version: V1.0
 //All rights reserved.
-//Copyright(C) 广州市星翼电子科技有限公司 2009-2019
+//Copyright(C) Guangzhou Xingyi Electronic Technology Co., Ltd. 2009-2019
 //All rights reserved									  
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -26,7 +26,7 @@ WCHAR ff_convert (	/* Converted code, 0 means conversion error */
 	u16 n;			 
 	u32 gbk2uni_offset=0;		  
 						  
-	if (src < 0x80)c = src;//ASCII,直接不用转换.
+	if (src < 0x80)c = src;//ASCII, so no conversion is needed.
 	else 
 	{
  		if(dir)	//GBK 2 UNICODE
@@ -37,13 +37,13 @@ WCHAR ff_convert (	/* Converted code, 0 means conversion error */
 			gbk2uni_offset=0;	
 		}    
 		/* Unicode to OEMCP */
-		hi=ftinfo.ugbksize/2;//对半开.
+		hi=ftinfo.ugbksize/2;//Halve the range.
 		hi =hi / 4 - 1;
 		li = 0;
 		for (n = 16; n; n--)
 		{
 			i = li + (hi - li) / 2;	
-			SPI_Flash_Read((u8*)&t,ftinfo.ugbkaddr+i*4+gbk2uni_offset,4);//读出4个字节  
+			SPI_Flash_Read((u8*)&t,ftinfo.ugbkaddr+i*4+gbk2uni_offset,4);//Read 4 bytes  
 			if (src == t[0]) break;
 			if (src > t[0])li = i;  
 			else hi = i;    

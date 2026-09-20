@@ -312,9 +312,9 @@ u8 usmart_get_aparm(u8 *str,u8 *fparm,u8 *ptype)
 		{
 			if((*str>='0' && *str<='9')||(*str>='a' && *str<='f')||(*str>='A' && *str<='F')||*str=='X'||*str=='x')//数字串检测
 			{
-				if(enout)break;					//找到了下一个参数,直接退出.
+				if(enout)break;					//Found the next parameter, so return straight away.
 				if(*str>='a')*fparm=*str-0X20;	//小写转换为大写
-				else *fparm=*str;		   		//小写或者数字保持不变
+				else *fparm=*str;		   		//Lower case and digits are left alone
 				fparm++;
 			}else if(*str=='"')//找到字符串的开始标志
 			{
@@ -329,7 +329,7 @@ u8 usmart_get_aparm(u8 *str,u8 *fparm,u8 *ptype)
 		}else//string类
 		{ 
 			if(*str=='"')string=0;
-			if(enout)break;			//找到了下一个参数,直接退出.
+			if(enout)break;			//Found the next parameter, so return straight away.
 			if(string)				//字符串正在读
 			{	
 				if(*str=='\\')		//遇到转义符(不复制转义符)
@@ -337,7 +337,7 @@ u8 usmart_get_aparm(u8 *str,u8 *fparm,u8 *ptype)
 					str++;			//偏移到转义符后面的字符,不管什么字符,直接COPY
 					i++;
 				}					
-				*fparm=*str;		//小写或者数字保持不变
+				*fparm=*str;		//Lower case and digits are left alone
 				fparm++;
 			}	
 		}
@@ -391,7 +391,7 @@ u8 usmart_get_fparam(u8*str,u8 *parn)
 					usmart_dev.parmtype&=~(1<<n);	//标记数字
 					usmart_dev.plentbl[n]=4;		//该参数的长度为4  
 					n++;							//参数增加  
-					if(n>MAX_PARM)return USMART_PARMOVER;//参数太多
+					if(n>MAX_PARM)return USMART_PARMOVER;//Too many parameters
 				}
 				break;
 			case 1://String	 	
@@ -400,7 +400,7 @@ u8 usmart_get_fparam(u8*str,u8 *parn)
 				usmart_dev.parmtype|=1<<n;	//标记字符串 
 				usmart_dev.plentbl[n]=len;	//该参数的长度为len  
 				n++;
-				if(n>MAX_PARM)return USMART_PARMOVER;//参数太多
+				if(n>MAX_PARM)return USMART_PARMOVER;//Too many parameters
 				break;
 			case 0XFF://Error
 				return USMART_PARMERR;//Parameter error	  

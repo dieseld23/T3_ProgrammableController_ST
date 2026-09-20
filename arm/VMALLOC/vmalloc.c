@@ -13,17 +13,17 @@ const u32 memblksize[2] = {MEM1_BLOCK_SIZE,MEM2_BLOCK_SIZE};							//ÄÚ´æ·Ö¿é´óĞ
 const u32 memsize[2] = {MEM1_MAX_SIZE,MEM2_MAX_SIZE};									//ÄÚ´æ×Ü´óĞ¡
 
 
-//ÄÚ´æ¹ÜÀí¿ØÖÆÆ÷
+//Memory management controller
 struct _m_mallco_dev mallco_dev =
 {
 	mem_init,				//ÄÚ´æ³õÊ¼»¯
-	mem_perused,			//ÄÚ´æÊ¹ÓÃÂÊ
+	mem_perused,			//Memory usage
 	mem1base, mem2base,		//ÄÚ´æ³Ø
-	mem1mapbase, mem2mapbase,//ÄÚ´æ¹ÜÀí×´Ì¬±í
+	mem1mapbase, mem2mapbase,//Memory management state table
 	0,0,  					//ÄÚ´æ¹ÜÀíÎ´¾ÍĞ÷
 };
 
-//¸´ÖÆÄÚ´æ
+//Copy memory
 //*des:Ä¿µÄµØÖ·
 //*src:Ô´µØÖ·
 //n:ĞèÒª¸´ÖÆµÄÄÚ´æ³¤¶È(×Ö½ÚÎªµ¥Î»)
@@ -35,7 +35,7 @@ void mymemcpy(void *des, void *src, u32 n)
 		*xdes++ = *xsrc++;  
 }
 
-//ÉèÖÃÄÚ´æ
+//Set memory
 //*s:ÄÚ´æÊ×µØÖ·
 //c :ÒªÉèÖÃµÄÖµ
 //count:ĞèÒªÉèÖÃµÄÄÚ´æ´óĞ¡(×Ö½ÚÎªµ¥Î»)
@@ -71,9 +71,9 @@ u8 mem_perused(u8 memx)
     return (used * 100) / (memtblsize[memx]);  
 }
 
-//ÄÚ´æ·ÖÅä(ÄÚ²¿µ÷ÓÃ)
+//Allocate memory (internal)
 //memx: which memory block
-//size:Òª·ÖÅäµÄÄÚ´æ´óĞ¡(×Ö½Ú)
+//size: number of bytes to allocate
 //·µ»ØÖµ:0XFFFFFFFF,´ú±í´íÎó;ÆäËû,ÄÚ´æÆ«ÒÆµØÖ· 
 u32 mem_malloc(u8 memx, u32 size)  
 {  
@@ -82,7 +82,7 @@ u32 mem_malloc(u8 memx, u32 size)
 	u16 cmemb = 0;											//Á¬Ğø¿ÕÄÚ´æ¿éÊı
     u32 i;  
     if(!mallco_dev.memrdy[memx])
-		mallco_dev.init(memx);								//Î´³õÊ¼»¯,ÏÈÖ´ĞĞ³õÊ¼»¯ 
+		mallco_dev.init(memx);								//Not initialised yet, so initialise first 
 	
     if(size == 0)
 		return 0XFFFFFFFF;									//²»ĞèÒª·ÖÅä
@@ -119,7 +119,7 @@ u32 mem_malloc(u8 memx, u32 size)
 u8 mem_free(u8 memx, u32 offset)  
 {  
     int i;  
-    if(!mallco_dev.memrdy[memx])					//Î´³õÊ¼»¯,ÏÈÖ´ĞĞ³õÊ¼»¯
+    if(!mallco_dev.memrdy[memx])					//Not initialised yet, so initialise first
 	{
 		mallco_dev.init(memx);    
         return 1;									//Î´³õÊ¼»¯  
@@ -167,10 +167,10 @@ void *mymalloc(u8 memx, u32 size)
 		return (void*)((u32)mallco_dev.membase[memx] + offset);  
 }
 
-//ÖØĞÂ·ÖÅäÄÚ´æ(Íâ²¿µ÷ÓÃ)
+//Reallocate memory (external)
 //memx: which memory block
 //*ptr:¾ÉÄÚ´æÊ×µØÖ·
-//size:Òª·ÖÅäµÄÄÚ´æ´óĞ¡(×Ö½Ú)
+//size: number of bytes to allocate
 //·µ»ØÖµ:ĞÂ·ÖÅäµ½µÄÄÚ´æÊ×µØÖ·.
 void *myrealloc(u8 memx, void *ptr, u32 size)  
 {  
