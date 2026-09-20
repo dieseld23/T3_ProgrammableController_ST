@@ -6,9 +6,9 @@
 
 #define SW_REV	6808
 
-#define ARM_MINI 1
+#define ARM_MINI 0
 #define ARM_CM5  0
-#define ARM_TSTAT_WIFI 0
+#define ARM_TSTAT_WIFI 1
 
 #define MSTP_UPDATE 0//1
 
