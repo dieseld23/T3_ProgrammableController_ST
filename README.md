@@ -296,13 +296,19 @@ Two notes on the toolchain:
 - The scatter file is **generated** from the target dialog, not hand written, so
   the memory map is edited through the `OCR_RVCT` entries in the project rather
   than in `arm/OBJ/Tstat10_arm_revxx.sct`. The `<ScatterFile>` entry naming
-  `..\OBJ\test.sct` is a stale leftover; no such file exists and nothing reads it.
-  Both RAM regions were declared larger than the silicon and have been
-  corrected: `RW_IRAM1` to `0x10000`, the STM32F103ZE's internal SRAM, and
-  `RW_RAM1` to `0x80000`, the IS61L5128L on the board. `RW_RAM1` had been
-  declared as `0x800000` — sixteen times the real part — on a region that runs
-  about 92% full, so an overflow would have linked cleanly and corrupted at run
-  time. It now fails the link instead.
+  `..\OBJ	est.sct` is a stale leftover; no such file exists and nothing reads it.
+- **Both RAM regions are declared larger than the silicon, and that is
+  deliberate.** `RW_IRAM1` says `0x80000` against 64 KB on chip and `RW_RAM1`
+  says `0x800000` against the 512 KB IS61L5128L on the board. Correcting them
+  looks obviously right and was tried: capping `RW_RAM1` at the real `0x80000`
+  makes the linker spill about 21 KB into internal SRAM at `0x20000000`, which
+  no shipped image has ever used, and the first device flashed with that build
+  never left its bootloader. The over-declaration is what every released
+  firmware was linked with, so it stays until someone can say what the
+  bootloader keeps in internal SRAM. RW and ZI come to `0x7a6b8`, about 98% of
+  the real part, so the headroom that the declaration hides is genuinely small
+  and an overflow would corrupt at run time rather than fail the link. That is a
+  real hazard, but a smaller one than a board that will not boot.
 - Building dirties the checked-in artifacts under `arm/OBJ/`. Those are not part
   of any commit on this branch, with one exception:
   `arm/OBJ/Tstat10_arm_revxx.hex` is committed so the branch carries something
