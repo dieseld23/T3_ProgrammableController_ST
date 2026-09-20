@@ -116,6 +116,13 @@ Two notes on the toolchain:
 
 - UV4 rewrites `Tstat10_wifi.uvprojx` on build to match the locally installed
   compiler and device pack. That drift should not be committed.
+- The scatter file is **generated** from the target dialog, not hand written, so
+  the memory map is edited through the `OCR_RVCT` entries in the project rather
+  than in `arm/OBJ/Tstat10_arm_revxx.sct`. The `<ScatterFile>` entry naming
+  `..\OBJ\test.sct` is a stale leftover; no such file exists and nothing reads it.
+  `RW_IRAM1` was declared as `0x80000` against the device's actual `0x10000` of
+  internal SRAM — harmless, because `RW_RAM1` at `0x60000000` is matched first
+  and internal RAM links empty, but wrong for anyone reading the map. Corrected.
 - Building dirties the checked-in artifacts under `arm/OBJ/`. Those are not part
   of any commit on this branch.
 
@@ -150,11 +157,6 @@ explicit casts). `ER_IROM1` is `0x47b98` of `0x60000`, leaving about 97 KB free.
   land in the 8 MB external SRAM at `0x60000000` (`RW_RAM1`, which precedes
   `RW_IRAM1` in the scatter), and that is where the ~488 KB of ZI data sits; the
   internal 64 KB is barely touched.
-
-  Worth fixing whatever is decided: `RW_IRAM1` is declared as `0x80000` in the
-  scatter, but the device only has `0x10000` of internal SRAM. Nothing lands
-  there today because `RW_RAM1` is matched first, so the error is latent — but
-  anyone reasoning about memory from that file will be misled by it.
 
   The real obstacle is the bootloader. It is not in this repository, it is
   flashed below `0x08008000`, and changing silicon needs one that runs on the
