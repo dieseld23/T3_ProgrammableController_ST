@@ -9,8 +9,12 @@ the fork rather than upstream.
 ![Three pages of the idle screen](docs/idle-pages.png)
 
 Rendered by `tools/screenshot.py` from the firmware's own font tables, icon
-arrays and colour constants — not a mockup. **Nothing here has been verified on
-a physical panel.**
+arrays and colour constants — not a mockup.
+
+`rev68VPF` boots on hardware and draws the screen. What that confirms is that it
+runs and renders; it does not confirm the layout matches these pictures pixel for
+pixel, and the state icons and the corner humidity have not been driven yet
+because nothing writes VAR25-28.
 
 ## Scope
 
@@ -360,10 +364,14 @@ regression.
 
 ## Not done yet
 
-- **Nothing here has been verified on hardware.** The font packing is proven by
-  round-trip and the layout by rendering from the real arrays and constants, but
-  no physical panel has been driven. The value most likely to need nudging by eye
-  is `LABEL_YOFF`.
+- **Only the boot is confirmed on hardware.** `rev68VPF` starts and draws the
+  screen on a real panel. Nobody has yet checked the layout against these renders
+  by eye, stepped the pages with the RIGHT key, or driven VAR25-28 to see the
+  state icons and the humidity readout change. The value most likely to need
+  nudging by eye is `LABEL_YOFF`.
+- **The first hardware attempt did not boot at all**, and the cause was the
+  memory map rather than anything on screen — see the `RW_RAM1` note under
+  Building. The display code had not run when the device hung.
 - **The icon VARs are a proposal, not a convention.** VAR25-27 were chosen
   because they sit just past the paged range; nothing else in the firmware or in
   T3000 knows about them yet, and a Control Basic program has to be written to
