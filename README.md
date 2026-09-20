@@ -140,6 +140,30 @@ Humidity comes from `TOP_RH_VAR` (VAR28), following the three icon VARs and
 carrying whole percent in `value/1000`, the same convention. A value outside
 0..99 draws blank rather than a wrong number.
 
+### Three things the layout work uncovered
+
+None of these were introduced by the new layout; all three were made reachable
+or visible by it.
+
+**The value format overran the box.** `"%.1f"` needs five cells for `-12.5` and
+for `123.4` alike, and the old code let `sprintf` write them and then cut at
+four, leaving `-12.` and `123.` -- a dangling point that reads as a broken
+number rather than a rounded one. `format_value()` picks the number of decimals
+from what will fit, measures the result because rounding can carry into a new
+digit (`9.996` at two places is `10.00`), and drops places until it does.
+
+**A two character unit sat on the hundreds digit.** `"%R"`, `"pp"`, `"kP"` and
+`"Pa"` were drawn at `UNIT_POS - 23`, which is x=166 -- inside the third digit
+cell. They start at `UNIT2_POS` now, where the digits end, and still finish six
+dots clear of the page marks. The whole unit band is wiped before each draw, so
+switching from a two character unit to a one character one cannot leave a tail.
+
+**`display_dec()` cut a notch out of the third digit.** It painted an 8x8
+rectangle at x=130 to hide the decimal point, which was between the digits in
+the old geometry. Moving the number left put that rectangle inside the third
+digit cell, where it erased rows 85..87 of the glyph. There is no decimal point
+on the big number any more, so the function is gone rather than repositioned.
+
 ### A clock instead of scrolling text
 
 `display_clock()` draws `Sep 20 | 12:00 PM` in the 12-dot face — date and time on

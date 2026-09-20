@@ -73,6 +73,19 @@
 #define UNIT_YPOS						(THERM_METER_POS + CHLIB_CAP_TOP)
 #define UNIT_TEXT_YPOS					(UNIT_YPOS - CHSMALL_CAP_TOP)
 
+/* A two character unit cannot hang off UNIT_POS the way a one character one
+ * does: two 23 dot advances from UNIT_POS - 23 start at x=166, inside the
+ * third digit cell, so "%R" sat on top of the hundreds digit.  It starts
+ * where the digits end instead, and still finishes six dots clear of the page
+ * marks.  The band spans everything any unit can touch -- the degree ring at
+ * UNIT_POS - 14 through the right edge of a two character unit -- and is
+ * wiped before each draw so that changing unit leaves no tail behind. */
+#define UNIT2_POS						(THIRD_CH_POS + 48)
+#define UNIT_BAND_XPOS					UNIT2_POS
+#define UNIT_BAND_XDOTS					(2 * 23 + 1)
+#define UNIT_BAND_YPOS					UNIT_TEXT_YPOS
+#define UNIT_BAND_YDOTS					36
+
 /* The value text sits two dots below the cell top so that its ink centres in
  * the box draw_tangle() puts round it: the box runs y-3 to y+40 and the 15x30
  * face inks rows 4 to 28 of its cell, which lands two dots high without it. */

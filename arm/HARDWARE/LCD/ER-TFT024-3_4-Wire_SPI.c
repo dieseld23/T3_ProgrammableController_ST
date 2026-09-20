@@ -782,6 +782,45 @@ void display_screen_value(uint8 type)
 
 /* The same, but the row and the VAR it shows are chosen separately, so a page
  * past the first can put VAR4 on row 1. */
+/* Pick the number of decimal places from what will actually fit.  The box
+ * holds VALUE_CHARS cells and a sign and a point each eat one, so any fixed
+ * format overruns somewhere: "%.1f" needs five cells for -12.5 and for 123.4
+ * alike.  The old code let sprintf write them and then cut at four, leaving a
+ * dangling point -- "-12.", "123." -- which reads as a broken number rather
+ * than a rounded one.  Rounding can carry into a new digit as well (9.996 at
+ * two places is "10.00"), so the result is measured and the places dropped
+ * until it fits, ending at a plain rounded integer. */
+static void format_value(uint8 *buf, float v)
+{
+	int32_t whole;
+	int room, digits = 1, places;
+
+	if(v > 9999.0f)
+		v = 9999.0f;
+	if(v < -999.0f)				/* four cells, one of them the sign */
+		v = -999.0f;
+
+	room = VALUE_CHARS - (v < 0 ? 1 : 0);
+	whole = (int32_t)(v < 0 ? -v : v);
+	while(whole >= 10)
+	{
+		whole /= 10;
+		digits++;
+	}
+
+	places = room - digits - 1;		/* the point costs a cell of its own */
+	for(places = (places > 2) ? 2 : places;places > 0;places--)
+	{
+		if(places == 2)
+			sprintf((char *)buf, "%.2f", v);
+		else
+			sprintf((char *)buf, "%.1f", v);
+		if(strlen((char *)buf) <= VALUE_CHARS)
+			return;
+	}
+	sprintf((char *)buf, "%d", (int)(v < 0 ? v - 0.5f : v + 0.5f));
+}
+
 /* The value boxes are VALUE_CHARS cells wide and what lands in them runs from
  * one character to four.  sprintf leaves a terminator part way along, which
  * would stop disp_str() before it repainted the rest of the box and leave the
@@ -938,26 +977,7 @@ void display_screen_value_var(uint8 type, uint8 var_index)
 					}	
 					else
 					{
-						if(show_value >= 1000)
-						{	
-							sprintf(spbuf, "%d",(int)show_value);
-						}
-						else if(vars[var_index].value / 1000 >= 10)
-						{
-							sprintf(spbuf, "%.1f", show_value);
-						}
-						else
-						{
-							if(vars[var_index].value > 0)
-							{
-								sprintf(spbuf, "%.2f", show_value);
-							}
-							else
-							{  // '-' occupies the first position 
-								sprintf(spbuf, "%.1f", show_value);
-							}				
-							
-						}
+						format_value(spbuf, show_value);
 					}
 			}
     }
@@ -1857,15 +1877,6 @@ void scroll_warning(uint8 item)
 }
 
 
-void display_dec(uint8 blink)
-{
-	if(blink)//show dec
-		disp_null_icon(8, 8,0, SECOND_CH_POS + 48 + 4,85,TSTAT8_CH_COLOR, TSTAT8_CH_COLOR);
-
-	else//hide dec
-		disp_null_icon(8, 8,0, SECOND_CH_POS + 48 + 4,85,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
-}	
-
 void Top_area_display(uint8 item, int16 value, uint8 unit)
 {
 	int16 value_buf;
@@ -1924,56 +1935,45 @@ void Top_area_display(uint8 item, int16 value, uint8 unit)
 //	{
 //		if(EEP_DEGCorF == 0)
 
-    if(unit == TOP_AREA_DISP_UNIT_C)
-		{			
-			//disp_null_icon(240, 36, 0, 0,TIME_POS,TSTAT8_CH_COLOR, TSTAT8_MENU_COLOR2);
-			disp_icon(14, 14, degree_o, UNIT_POS - 14,UNIT_YPOS ,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
-		
-			if(value>1000)
-				display_dec(0);
-			else
-				display_dec(0);
-				disp_str(FORM15X30, UNIT_POS,UNIT_TEXT_YPOS,"C",TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-		}
-    else if(unit == TOP_AREA_DISP_UNIT_F)
-		{	
-			//disp_null_icon(240, 36, 0, 0,TIME_POS,TSTAT8_CH_COLOR, TSTAT8_MENU_COLOR2);
-			disp_icon(14, 14, degree_o, UNIT_POS - 14,UNIT_YPOS ,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
-			if(value>1000)
-				display_dec(0);
-			else
-				display_dec(0);
-        disp_str(FORM15X30, UNIT_POS, UNIT_TEXT_YPOS, "F", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
-		}
-		else if(unit == TOP_AREA_DISP_UNIT_RH)
-		{
-			display_dec(0);
-      disp_str(FORM15X30, UNIT_POS - 23, UNIT_TEXT_YPOS, "%R", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
-		}
-		else if(unit == TOP_AREA_DISP_UNIT_PPM)
-		{display_dec(0);
-        disp_str(FORM15X30, UNIT_POS - 23, UNIT_TEXT_YPOS, "pp", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
-		}
-		else if(unit == TOP_AREA_DISP_UNIT_PERCENT)
-		{display_dec(0);
-        disp_str(FORM15X30, UNIT_POS, UNIT_TEXT_YPOS, "%", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
-		}
-		else if(unit == TOP_AREA_DISP_UNIT_kPa)
-		{display_dec(0);
-        disp_str(FORM15X30, UNIT_POS - 23, UNIT_TEXT_YPOS, "kP", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
-		}
-		else if(unit == TOP_AREA_DISP_UNIT_Pa)
-		{display_dec(0);
-        disp_str(FORM15X30, UNIT_POS - 23, UNIT_TEXT_YPOS, "Pa", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
-		}		
-		else //if(unit == TOP_AREA_DISP_UNIT_NONE)
-		{display_dec(0);
-        disp_str(FORM15X30, UNIT_POS - 16, UNIT_TEXT_YPOS, "  ", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
-		}
-//		else
-//			disp_str(FORM15X30, UNIT_POS,UNIT_TEXT_YPOS,"F",TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-//		icon.unit = 0;
-//	}
+	/* Everything any unit can reach, wiped before whichever one is drawn, so that
+	 * switching from a two character unit to a one character one cannot leave its
+	 * tail on screen.  TOP_AREA_DISP_UNIT_NONE then needs no drawing of its own.
+	 *
+	 * A one character unit hangs off UNIT_POS with the degree ring to its left
+	 * where the temperature scales want one.  A two character unit starts at
+	 * UNIT2_POS instead: two 23 dot advances back from UNIT_POS would begin at
+	 * x=166, inside the third digit cell, which put "%R" on the hundreds digit. */
+	disp_null_icon(UNIT_BAND_XDOTS, UNIT_BAND_YDOTS, 0, UNIT_BAND_XPOS, UNIT_BAND_YPOS,
+		TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
+
+	switch(unit)
+	{
+	case TOP_AREA_DISP_UNIT_C:
+		disp_icon(14, 14, degree_o, UNIT_POS - 14, UNIT_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+		disp_str(FORM15X30, UNIT_POS, UNIT_TEXT_YPOS, "C", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+		break;
+	case TOP_AREA_DISP_UNIT_F:
+		disp_icon(14, 14, degree_o, UNIT_POS - 14, UNIT_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+		disp_str(FORM15X30, UNIT_POS, UNIT_TEXT_YPOS, "F", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+		break;
+	case TOP_AREA_DISP_UNIT_PERCENT:
+		disp_str(FORM15X30, UNIT_POS, UNIT_TEXT_YPOS, "%", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+		break;
+	case TOP_AREA_DISP_UNIT_RH:
+		disp_str(FORM15X30, UNIT2_POS, UNIT_TEXT_YPOS, "%R", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+		break;
+	case TOP_AREA_DISP_UNIT_PPM:
+		disp_str(FORM15X30, UNIT2_POS, UNIT_TEXT_YPOS, "pp", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+		break;
+	case TOP_AREA_DISP_UNIT_kPa:
+		disp_str(FORM15X30, UNIT2_POS, UNIT_TEXT_YPOS, "kP", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+		break;
+	case TOP_AREA_DISP_UNIT_Pa:
+		disp_str(FORM15X30, UNIT2_POS, UNIT_TEXT_YPOS, "Pa", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+		break;
+	default:					/* TOP_AREA_DISP_UNIT_NONE, and anything unknown */
+		break;
+	}
 }
 
 

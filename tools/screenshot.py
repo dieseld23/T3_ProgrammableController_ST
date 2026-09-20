@@ -182,10 +182,17 @@ def render(s, labels, values, top, unit, page, pages, clock, selected, icons, rh
         cells[1 if n < 10 else 0] = '-'
     for col, xk in enumerate(('FIRST_CH_POS', 'SECOND_CH_POS', 'THIRD_CH_POS')):
         s.ch(0, k[xk], k['THERM_METER_POS'], cells[col], CH, BG)
-    # the degree ring is its own icon, with the letter beside it, both top
-    # aligned with the cap line of the digits rather than sitting at their foot
-    s.icon(14, 14, 'degree_o', k['UNIT_POS'] - 14, k['UNIT_YPOS'])
-    s.text(1, k['UNIT_POS'], k['UNIT_TEXT_YPOS'], unit[:1], CH, BG)
+    # the unit band, wiped then drawn: one character hangs off UNIT_POS with the
+    # degree ring beside it where a temperature scale wants one, two characters
+    # start at UNIT2_POS where the digits end. Both ink on the digits' cap line.
+    s.null_icon(k['UNIT_BAND_XDOTS'], k['UNIT_BAND_YDOTS'],
+                k['UNIT_BAND_XPOS'], k['UNIT_BAND_YPOS'], BG)
+    if len(unit) >= 2:
+        s.text(1, k['UNIT2_POS'], k['UNIT_TEXT_YPOS'], unit[:2], CH, BG)
+    elif unit:
+        if unit in ('C', 'F'):
+            s.icon(14, 14, 'degree_o', k['UNIT_POS'] - 14, k['UNIT_YPOS'])
+        s.text(1, k['UNIT_POS'], k['UNIT_TEXT_YPOS'], unit[:1], CH, BG)
 
     rows = (k['SETPOINT_POS'], k['FAN_MODE_POS'], k['SYS_MODE_POS'])
     for y in rows:
