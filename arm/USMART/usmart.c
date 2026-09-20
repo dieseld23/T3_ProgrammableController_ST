@@ -90,36 +90,36 @@ u8 usmart_sys_cmd_exe(u8 *str)
 			printf("\r\n");
 #if USMART_USE_HELP
 			printf("------------------------USMART V3.1------------------------ \r\n");
-			printf("    USMART是由ALIENTEK开发的一个灵巧的串口调试互交组件,通过 \r\n");
-			printf("它,你可以通过串口助手调用程序里面的任何函数,并执行.因此,你可\r\n");
-			printf("以随意更改函数的输入参数(支持数字(10/16进制)、字符串、函数入\r\n");	  
-			printf("口地址等作为参数),单个函数最多支持10个输入参数,并支持函数返 \r\n");
-			printf("回值显示.新增参数显示进制设置功能,新增进制转换功能.\r\n");
-			printf("技术支持:www.openedv.com\r\n");
-			printf("USMART有7个系统命令:\r\n");
-			printf("?:      获取帮助信息\r\n");
-			printf("help:   获取帮助信息\r\n");
-			printf("list:   可用的函数列表\r\n\n");
-			printf("id:     可用函数的ID列表\r\n\n");
-			printf("hex:    参数16进制显示,后跟空格+数字即执行进制转换\r\n\n");
-			printf("dec:    参数10进制显示,后跟空格+数字即执行进制转换\r\n\n");
-			printf("runtime:1,开启函数运行计时;0,关闭函数运行计时;\r\n\n");
-			printf("请按照程序编写格式输入函数名及参数并以回车键结束.\r\n");    
+			printf("    USMART is a neat serial debugging component from ALIENTEK. With \r\n");
+			printf("it you can call and run any function in your program from a serial \r\n");
+			printf("terminal, so you can freely change a function's inputs (numbers in \r\n");	  
+			printf("decimal or hex, strings and entry addresses), up to 10 per call, and \r\n");
+			printf("the return value is shown. Display base and base conversion are new.\r\n");
+			printf("Support: www.openedv.com\r\n");
+			printf("USMART has 7 system commands:\r\n");
+			printf("?:      show this help\r\n");
+			printf("help:   show this help\r\n");
+			printf("list:   list the available functions\r\n\n");
+			printf("id:     list the function IDs\r\n\n");
+			printf("hex:    show arguments in hex; follow with a space and a number to convert\r\n\n");
+			printf("dec:    show arguments in decimal; follow with a space and a number to convert\r\n\n");
+			printf("runtime:1 turns function timing on; 0 turns it off;\r\n\n");
+			printf("Type the function name and arguments as they are written in the code, then press Enter.\r\n");    
 			printf("--------------------------ALIENTEK------------------------- \r\n");
 #else
-			printf("指令失效\r\n");
+			printf("Command failed\r\n");
 #endif
 			break;
 		case 2:	//list command
 			printf("\r\n");
-			printf("-------------------------函数清单--------------------------- \r\n");
+			printf("-------------------------function list--------------------------- \r\n");
 			for(i = 0; i < usmart_dev.fnum; i++)
 				printf("%s\r\n", usmart_dev.funs[i].name);
 			printf("\r\n");
 			break;	 
 		case 3:	//query the ID
 			printf("\r\n");
-			printf("-------------------------函数 ID --------------------------- \r\n");
+			printf("-------------------------function ID --------------------------- \r\n");
 			for(i = 0; i < usmart_dev.fnum; i++)
 			{
 				usmart_get_fname((u8*)usmart_dev.funs[i].name, sfname, &pnum,&rval);	//Get the local function name 
@@ -143,7 +143,7 @@ u8 usmart_sys_cmd_exe(u8 *str)
 				}
 				else 				   					//Parameter display setting
 				{
-					printf("16进制参数显示!\r\n");
+					printf("Arguments shown in hex!\r\n");
 					usmart_dev.sptype = SP_TYPE_HEX;  
 				}
 
@@ -168,7 +168,7 @@ u8 usmart_sys_cmd_exe(u8 *str)
 				}
 				else 				   					//Parameter display setting
 				{
-					printf("10进制参数显示!\r\n");
+					printf("Arguments shown in decimal!\r\n");
 					usmart_dev.sptype = SP_TYPE_DEC;  
 				}
 
@@ -417,16 +417,16 @@ void usmart_scan(void)
 				switch(sta)
 				{
 					case USMART_FUNCERR:
-						printf("函数错误!\r\n");   			
+						printf("Bad function!\r\n");   			
 						break;	
 					case USMART_PARMERR:
-						printf("参数错误!\r\n");   			
+						printf("Bad argument!\r\n");   			
 						break;				
 					case USMART_PARMOVER:
-						printf("参数太多!\r\n");   			
+						printf("Too many arguments!\r\n");   			
 						break;		
 					case USMART_NOFUNCFIND:
-						printf("未找到匹配的函数!\r\n");   			
+						printf("No matching function found!\r\n");   			
 						break;		
 				}
 			}
