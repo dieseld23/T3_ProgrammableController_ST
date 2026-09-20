@@ -96,6 +96,28 @@ than assuming one, and the box is anchored to the right edge because the page
 marks no longer live there. The 44 state words were shortened to fit, which also
 retired the original `NAORM` typo.
 
+### The link corner, the unit and the value boxes
+
+The wifi bars moved from the top right to the top left, with the RS485 send and
+receive arrows stacked underneath them, so everything about the link is in one
+corner. Both sit left of `FIRST_CH_POS`, which is x=39, so the column is clear
+of the big number for its whole height.
+
+The unit moved from the foot of the number to its cap line. The digits are drawn
+from the top of a 96 dot cell but their ink only starts nine rows in, so
+`UNIT_YPOS` is `THERM_METER_POS + CHLIB_CAP_TOP` rather than `THERM_METER_POS`.
+
+The value text drops two dots (`VALUE_YOFF`) so that its ink centres in the box:
+`draw_tangle()` runs the box from y-3 to y+40 and the 15x30 face inks rows 4 to
+28 of its cell, which sits two dots high without the offset.
+
+A value shorter than four characters is now right justified, so the units column
+of a number stays in one place as the number grows. That also fixed a repaint
+bug: `sprintf` leaves a terminator part way along the buffer, which stopped
+`disp_str()` before it repainted the rest of the box, so going from `AUTO` to
+`72` left `TO` behind. `justify_value()` squares the full width off with spaces
+before shifting.
+
 ### A clock instead of scrolling text
 
 `display_clock()` draws `Sep 20 | 12:00 PM` in the 12-dot face — date and time on

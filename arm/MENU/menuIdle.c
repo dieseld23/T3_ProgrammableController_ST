@@ -140,9 +140,9 @@ static void show_page_rows(void)
 		page_index = 0;
 	base = page_var_base();
 
-	disp_str(FORM15X30, VALUE_XPOS,  SETPOINT_POS, "    ",SCH_COLOR,TSTAT8_MENU_COLOR2);
-	disp_str(FORM15X30, VALUE_XPOS,  FAN_MODE_POS, "    ",SCH_COLOR,TSTAT8_MENU_COLOR2);
-	disp_str(FORM15X30, VALUE_XPOS,  SYS_MODE_POS, "    ",SCH_COLOR,TSTAT8_MENU_COLOR2);
+	disp_str(FORM15X30, VALUE_XPOS,  SETPOINT_POS + VALUE_YOFF, "    ",SCH_COLOR,TSTAT8_MENU_COLOR2);
+	disp_str(FORM15X30, VALUE_XPOS,  FAN_MODE_POS + VALUE_YOFF, "    ",SCH_COLOR,TSTAT8_MENU_COLOR2);
+	disp_str(FORM15X30, VALUE_XPOS,  SYS_MODE_POS + VALUE_YOFF, "    ",SCH_COLOR,TSTAT8_MENU_COLOR2);
 
 	load_label(UI_DIS_LINE1, base);
 	load_label(UI_DIS_LINE2, base + 1);
@@ -654,20 +654,20 @@ void MenuIdle_display(void)
 			if(SSID_Info.IP_Wifi_Status == WIFI_NORMAL)//Show the wifi status in the top right of the screen
 			{
 				if(SSID_Info.rssi < 70)		
-					disp_icon(26, 26, wifi_4, 210,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+					disp_icon(WIFI_XDOTS, WIFI_YDOTS, wifi_4, WIFI_XPOS,	WIFI_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 				else if(SSID_Info.rssi < 80)							
-					disp_icon(26, 26, wifi_3, 210,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+					disp_icon(WIFI_XDOTS, WIFI_YDOTS, wifi_3, WIFI_XPOS,	WIFI_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 				else if(SSID_Info.rssi < 90)							
-					disp_icon(26, 26, wifi_2, 210,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+					disp_icon(WIFI_XDOTS, WIFI_YDOTS, wifi_2, WIFI_XPOS,	WIFI_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 				else							
-					disp_icon(26, 26, wifi_1, 210,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+					disp_icon(WIFI_XDOTS, WIFI_YDOTS, wifi_1, WIFI_XPOS,	WIFI_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 			}
 			else	if((SSID_Info.IP_Wifi_Status == WIFI_NO_CONNECT)
 				|| (SSID_Info.IP_Wifi_Status == WIFI_SSID_FAIL))
-					disp_icon(26, 26, wifi_0, 210,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+					disp_icon(WIFI_XDOTS, WIFI_YDOTS, wifi_0, WIFI_XPOS,	WIFI_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 				// if WIFI_NONE, do not show wifi flag
 			else //if((SSID_Info.IP_Wifi_Status == WIFI_NO_WIFI)
-				disp_icon(26, 26, wifi_none, 210,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+				disp_icon(WIFI_XDOTS, WIFI_YDOTS, wifi_none, WIFI_XPOS,	WIFI_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 			
 						
 			// show TX,RX
@@ -675,14 +675,14 @@ void MenuIdle_display(void)
 			if(flagLED_uart0_tx > 0)
 			{
 				if(count_tx++ % 2 == 0)
-					disp_icon(13, 26, cmnct_send, 	0,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+					disp_icon(LINK_XDOTS, LINK_YDOTS, cmnct_send, 	LINK_TX_XPOS,	LINK_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 				else
-					disp_null_icon(13, 26, 0, 0,0,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+					disp_null_icon(LINK_XDOTS, LINK_YDOTS, 0, LINK_TX_XPOS,LINK_YPOS,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 			}
 			else
 			{
 				count_tx = 0;
-				disp_null_icon(13, 26, 0, 0,0,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);//(26, 26, cmnct_icon, 	0,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+				disp_null_icon(LINK_XDOTS, LINK_YDOTS, 0, LINK_TX_XPOS,LINK_YPOS,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);//(26, 26, cmnct_icon, 	0,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 			}
 			
 			if(flagLED_uart0_rx > 0)
@@ -691,14 +691,14 @@ void MenuIdle_display(void)
 				if(count_tx % 2 == 1)
 					count_rx = 0;
 				if(count_rx++ % 2 == 1)
-					disp_icon(13, 26, cmnct_rcv, 	13,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+					disp_icon(LINK_XDOTS, LINK_YDOTS, cmnct_rcv, 	LINK_RX_XPOS,	LINK_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 				else
-					disp_null_icon(13, 26, 0, 13,0,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+					disp_null_icon(LINK_XDOTS, LINK_YDOTS, 0, LINK_RX_XPOS,LINK_YPOS,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 			}
 			else
 			{
 				count_rx = 0;
-				disp_null_icon(13, 26, 0, 13,0,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);//(26, 26, cmnct_icon, 	0,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+				disp_null_icon(LINK_XDOTS, LINK_YDOTS, 0, LINK_RX_XPOS,LINK_YPOS,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);//(26, 26, cmnct_icon, 	0,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 			}
 			
 			if(flagLED_uart0_tx > 0)

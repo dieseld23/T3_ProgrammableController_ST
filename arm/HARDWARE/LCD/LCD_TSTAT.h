@@ -48,6 +48,30 @@
 
 
 
+/* The link indicators share the top left corner: the wifi bars, and under them
+ * the RS485 send and receive arrows.  Both sit left of FIRST_CH_POS (39), so
+ * the column is clear of the big number for its whole height. */
+#define WIFI_XPOS						0
+#define WIFI_YPOS						0
+#define WIFI_XDOTS						26
+#define WIFI_YDOTS						26
+#define LINK_XDOTS						13
+#define LINK_YDOTS						26
+#define LINK_TX_XPOS					0
+#define LINK_RX_XPOS					(LINK_TX_XPOS + LINK_XDOTS)
+#define LINK_YPOS						(WIFI_YPOS + WIFI_YDOTS + 2)
+
+/* The unit sits at the top of the number rather than at its foot.  The big
+ * digits are drawn from the top of a 96 dot cell but their ink only starts at
+ * the cap line, so top aligning the unit means starting at that line, not at
+ * THERM_METER_POS. */
+#define CHLIB_CAP_TOP					9
+#define UNIT_YPOS						(THERM_METER_POS + CHLIB_CAP_TOP)
+
+/* The value text sits two dots below the cell top so that its ink centres in
+ * the box draw_tangle() puts round it: the box runs y-3 to y+40 and the 15x30
+ * face inks rows 4 to 28 of its cell, which lands two dots high without it. */
+#define VALUE_YOFF						2
 /* The three state icons across the bottom.  Each is a 4 bit per pixel index
  * map with its own sixteen entry palette -- see tools/icongen.py -- so a 72x45
  * cell costs 1620 bytes instead of the 6480 the literal RGB565 icons cost, and

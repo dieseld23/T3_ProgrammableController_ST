@@ -782,6 +782,32 @@ void display_screen_value(uint8 type)
 
 /* The same, but the row and the VAR it shows are chosen separately, so a page
  * past the first can put VAR4 on row 1. */
+/* The value boxes are VALUE_CHARS cells wide and what lands in them runs from
+ * one character to four.  sprintf leaves a terminator part way along, which
+ * would stop disp_str() before it repainted the rest of the box and leave the
+ * tail of a longer previous value behind, so the full width is squared off with
+ * spaces first.  A short value is then pushed right, which keeps the units
+ * column of a number in one place as the number grows -- that is the column the
+ * eye tracks while a reading changes. */
+static void justify_value(uint8 *buf)
+{
+	uint8 len = 0, pad, i;
+
+	while(len < VALUE_CHARS && buf[len] != 0)
+		len++;
+	for(i = len;i < VALUE_CHARS;i++)
+		buf[i] = 0x20;
+	buf[VALUE_CHARS] = 0;
+
+	while(len > 0 && buf[len - 1] == 0x20)
+		len--;
+	pad = (uint8)(VALUE_CHARS - len);
+	if(len == 0 || pad == 0)
+		return;
+	for(i = VALUE_CHARS;i > 0;i--)
+		buf[i - 1] = (i > pad) ? buf[i - 1 - pad] : 0x20;
+}
+
 void display_screen_value_var(uint8 type, uint8 var_index)
 {
     int i = 0;
@@ -936,14 +962,14 @@ void display_screen_value_var(uint8 type, uint8 var_index)
 			}
     }
 		
-		spbuf[VALUE_CHARS] = 0;		// the box holds four, whatever sprintf produced
+		justify_value(spbuf);		// square the box off, then push a short value right
 
 		if(type == 1)	        
-			disp_str(FORM15X30, VALUE_XPOS, SETPOINT_POS, spbuf, SCH_COLOR, TSTAT8_MENU_COLOR2);
+			disp_str(FORM15X30, VALUE_XPOS, SETPOINT_POS + VALUE_YOFF, spbuf, SCH_COLOR, TSTAT8_MENU_COLOR2);
     else if (type == 2)
-			disp_str(FORM15X30, VALUE_XPOS, FAN_MODE_POS, spbuf, SCH_COLOR, TSTAT8_MENU_COLOR2);
+			disp_str(FORM15X30, VALUE_XPOS, FAN_MODE_POS + VALUE_YOFF, spbuf, SCH_COLOR, TSTAT8_MENU_COLOR2);
     else if (type == 3)
-      disp_str(FORM15X30, VALUE_XPOS, SYS_MODE_POS, spbuf, SCH_COLOR, TSTAT8_MENU_COLOR2);
+      disp_str(FORM15X30, VALUE_XPOS, SYS_MODE_POS + VALUE_YOFF, spbuf, SCH_COLOR, TSTAT8_MENU_COLOR2);
 }
 
 void display_SP(int16 disp_setpoint)
@@ -1872,51 +1898,51 @@ void Top_area_display(uint8 item, int16 value, uint8 unit)
     if(unit == TOP_AREA_DISP_UNIT_C)
 		{			
 			//disp_null_icon(240, 36, 0, 0,TIME_POS,TSTAT8_CH_COLOR, TSTAT8_MENU_COLOR2);
-			disp_icon(14, 14, degree_o, UNIT_POS - 14,56 ,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+			disp_icon(14, 14, degree_o, UNIT_POS - 14,UNIT_YPOS ,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 		
 			if(value>1000)
 				display_dec(0);
 			else
 				display_dec(0);
-				disp_str(FORM15X30, UNIT_POS,56,"C",TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
+				disp_str(FORM15X30, UNIT_POS,UNIT_YPOS,"C",TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
 		}
     else if(unit == TOP_AREA_DISP_UNIT_F)
 		{	
 			//disp_null_icon(240, 36, 0, 0,TIME_POS,TSTAT8_CH_COLOR, TSTAT8_MENU_COLOR2);
-			disp_icon(14, 14, degree_o, UNIT_POS - 14,56 ,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+			disp_icon(14, 14, degree_o, UNIT_POS - 14,UNIT_YPOS ,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 			if(value>1000)
 				display_dec(0);
 			else
 				display_dec(0);
-        disp_str(FORM15X30, UNIT_POS, 56, "F", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+        disp_str(FORM15X30, UNIT_POS, UNIT_YPOS, "F", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		else if(unit == TOP_AREA_DISP_UNIT_RH)
 		{
 			display_dec(0);
-      disp_str(FORM15X30, UNIT_POS - 23, 56, "%R", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+      disp_str(FORM15X30, UNIT_POS - 23, UNIT_YPOS, "%R", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		else if(unit == TOP_AREA_DISP_UNIT_PPM)
 		{display_dec(0);
-        disp_str(FORM15X30, UNIT_POS - 23, 56, "pp", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+        disp_str(FORM15X30, UNIT_POS - 23, UNIT_YPOS, "pp", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		else if(unit == TOP_AREA_DISP_UNIT_PERCENT)
 		{display_dec(0);
-        disp_str(FORM15X30, UNIT_POS, 56, "%", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+        disp_str(FORM15X30, UNIT_POS, UNIT_YPOS, "%", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		else if(unit == TOP_AREA_DISP_UNIT_kPa)
 		{display_dec(0);
-        disp_str(FORM15X30, UNIT_POS - 23, 56, "kP", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+        disp_str(FORM15X30, UNIT_POS - 23, UNIT_YPOS, "kP", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		else if(unit == TOP_AREA_DISP_UNIT_Pa)
 		{display_dec(0);
-        disp_str(FORM15X30, UNIT_POS - 23, 56, "Pa", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+        disp_str(FORM15X30, UNIT_POS - 23, UNIT_YPOS, "Pa", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 		}		
 		else //if(unit == TOP_AREA_DISP_UNIT_NONE)
 		{display_dec(0);
-        disp_str(FORM15X30, UNIT_POS - 16, 56, "  ", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+        disp_str(FORM15X30, UNIT_POS - 16, UNIT_YPOS, "  ", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 		}
 //		else
-//			disp_str(FORM15X30, UNIT_POS,56,"F",TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
+//			disp_str(FORM15X30, UNIT_POS,UNIT_YPOS,"F",TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
 //		icon.unit = 0;
 //	}
 }

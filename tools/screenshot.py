@@ -164,18 +164,22 @@ def render(s, labels, values, top, unit, page, pages, clock, selected, icons):
     M2, HL = k['TSTAT8_MENU_COLOR2'], k['TSTAT8_BACK_COLOR1']
     s.clear(BG)
 
-    s.icon(13, 26, 'cmnct_send', 0, 0)
-    s.icon(13, 26, 'cmnct_rcv', 13, 0)
-    s.icon(26, 26, 'wifi_4', 210, 0)
+    # the link corner: wifi bars, and the RS485 arrows under them. The firmware
+    # only paints the arrows while there is traffic and blinks them; they are
+    # drawn unconditionally here because the render carries no traffic state.
+    s.icon(k['WIFI_XDOTS'], k['WIFI_YDOTS'], 'wifi_4', k['WIFI_XPOS'], k['WIFI_YPOS'])
+    s.icon(k['LINK_XDOTS'], k['LINK_YDOTS'], 'cmnct_send', k['LINK_TX_XPOS'], k['LINK_YPOS'])
+    s.icon(k['LINK_XDOTS'], k['LINK_YDOTS'], 'cmnct_rcv', k['LINK_RX_XPOS'], k['LINK_YPOS'])
 
     # whole degrees, at most three digits, right aligned with leading blanks
     n = max(-99, min(999, int(round(float(top)))))
     digits = '%3d' % n
     for col, xk in enumerate(('FIRST_CH_POS', 'SECOND_CH_POS', 'THIRD_CH_POS')):
         s.ch(0, k[xk], k['THERM_METER_POS'], digits[col], CH, BG)
-    # the degree ring is its own icon, with the letter beside it
-    s.icon(14, 14, 'degree_o', k['UNIT_POS'] - 14, 56)
-    s.text(1, k['UNIT_POS'], 56, unit[:1], CH, BG)
+    # the degree ring is its own icon, with the letter beside it, both top
+    # aligned with the cap line of the digits rather than sitting at their foot
+    s.icon(14, 14, 'degree_o', k['UNIT_POS'] - 14, k['UNIT_YPOS'])
+    s.text(1, k['UNIT_POS'], k['UNIT_YPOS'], unit[:1], CH, BG)
 
     rows = (k['SETPOINT_POS'], k['FAN_MODE_POS'], k['SYS_MODE_POS'])
     for y in rows:
@@ -185,7 +189,7 @@ def render(s, labels, values, top, unit, page, pages, clock, selected, icons):
         n = k['LABEL_CHARS']
         v = k['VALUE_CHARS']
         s.label(k['LABEL_XPOS'], y + k['LABEL_YOFF'], labels[i][:n].ljust(n), SCHC, back)
-        s.text(1, k['VALUE_XPOS'], y, values[i][:v].ljust(v), SCHC, M2)
+        s.text(1, k['VALUE_XPOS'], y + k['VALUE_YOFF'], values[i][:v].rjust(v), SCHC, M2)
     s.page_marks(page, pages)
 
     s.null_icon(240, 36, 0, k['TIME_POS'], M2)
