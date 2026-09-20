@@ -335,7 +335,7 @@ void Key_Process(void ) reentrant
 	{
 		if((key_temp = KEY_Scan()) != pre_key)
 		{
-			if(pre_key == 0) // 避免单键和组合键粘连
+			if(pre_key == 0) // stops a single key and a key combination running together
 				xQueueSend(qKey, &key_temp, 0);
 			pre_key = key_temp;
 			long_press_key_start = 0;

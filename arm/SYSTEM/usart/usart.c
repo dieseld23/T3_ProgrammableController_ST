@@ -14,31 +14,31 @@
 //2, Changed USART_RX_STA so the maximum receive length is 2^14 bytes
 //3, Added USART_REC_LEN, which sets the maximum number of bytes the serial port will accept (no more than 2^14)
 //4, Changed how EN_USART1_RX is enabled
-//V1.5ÐÞ¸ÄËµÃ÷
+//V1.5 change log
 ////////////////////////////////////////////////////////////////////////////////// 	  
  
 
 //////////////////////////////////////////////////////////////////
-//¼ÓÈëÒÔÏÂ´úÂë,Ö§³Öprintfº¯Êý,¶ø²»ÐèÒªÑ¡Ôñuse MicroLIB	  
+//Added the code below so printf works without having to select MicroLIB	  
 #if 1
 #pragma import(__use_no_semihosting)             
-//±ê×¼¿âÐèÒªµÄÖ§³Öº¯Êý                 
+//Support functions the standard library needs                 
 struct __FILE 
 { 
 	int handle; 
 }; 
 FILE __stdout;
        
-//¶¨Òå_sys_exit()ÒÔ±ÜÃâÊ¹ÓÃ°ëÖ÷»úÄ£Ê½    
+//Define _sys_exit() to avoid semihosting    
 void _sys_exit(int x) 
 { 
 	x = x; 
 }
 
-//ÖØ¶¨Òåfputcº¯Êý 
+//Redefine fputc 
 int fputc(int ch, FILE *f)
 {      
-//	while((USART1->SR & 0X40) == 0);//Ñ­»··¢ËÍ,Ö±µ½·¢ËÍÍê±Ï   
+//	while((USART1->SR & 0X40) == 0);//loop until the byte has gone out   
 //	USART1->DR = (u8)ch;
 //	TXEN = SEND;
 	while(USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET);
@@ -48,7 +48,7 @@ int fputc(int ch, FILE *f)
 }
 #endif 
 
-/*Ê¹ÓÃmicroLibµÄ·½·¨*/
+/*The MicroLIB way of doing it*/
  /* 
 int fputc(int ch, FILE *f)
 {
@@ -67,20 +67,20 @@ int GetKey (void)  {
 }
 */
  
-#if EN_USART1_RX   //Èç¹ûÊ¹ÄÜÁË½ÓÊÕ
-//´®¿Ú1ÖÐ¶Ï·þÎñ³ÌÐò
-//×¢Òâ,¶ÁÈ¡USARTx->SRÄÜ±ÜÃâÄªÃûÆäÃîµÄ´íÎó   	
+#if EN_USART1_RX   //If receiving is enabled
+//USART1 interrupt service routine
+//Note that reading USARTx->SR avoids some baffling errors   	
 
 
 
-//½ÓÊÕ×´Ì¬
-//bit15£¬	½ÓÊÕÍê³É±êÖ¾
-//bit14£¬	½ÓÊÕµ½0x0d
-//bit13~0£¬	½ÓÊÕµ½µÄÓÐÐ§×Ö½ÚÊýÄ¿
-u16 USART_RX_STA = 0;       //½ÓÊÕ×´Ì¬±ê¼Ç	  
+//Receive state
+//bit15,	receive complete flag
+//bit14,	0x0d has been received
+//bit13~0,	number of valid bytes received
+u16 USART_RX_STA = 0;       //Receive state flags	  
 
-//³õÊ¼»¯IO ´®¿Ú1 
-//bound:²¨ÌØÂÊ
+//Initialise the IO and USART1 
+//bound: the baud rate
 // SUB
 void uart1_init(u32 bound)
 {
@@ -121,10 +121,10 @@ void uart1_init(u32 bound)
 	//RS485_TXEN	PD.8
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;				//PD.8
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;		//Standard push-pull output
-	GPIO_Init(GPIOD, &GPIO_InitStructure);					//³õÊ¼»¯PD8
+	GPIO_Init(GPIOD, &GPIO_InitStructure);					//Initialise PD8
 //	GPIO_SetBits(GPIOC, GPIO_Pin_2);
 	
-	//Usart1 NVIC ÅäÖÃ
+	//USART1 NVIC configuration
   NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;	//Pre-emption priority 3
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;			//Sub-priority 3
@@ -148,8 +148,8 @@ void uart1_init(u32 bound)
 	}
 	else
 	{
-		USART_InitStructure.USART_Parity = USART_Parity_No;			//ÎÞÆæÅ¼Ð£ÑéÎ
-		USART_InitStructure.USART_WordLength = USART_WordLength_8b;	//×Ö³¤Îª8Î»Êý¾Ý¸ñÊ½»	
+		USART_InitStructure.USART_Parity = USART_Parity_No;			//No parity
+		USART_InitStructure.USART_WordLength = USART_WordLength_8b;	//8-bit word length	
 	}
 	// stop bit
 //	USART_StopBits_1        0             
@@ -175,7 +175,7 @@ void uart1_init(u32 bound)
 //	
 //	if((Modbus.uart_WordLen[0] == 8) && (Modbus.uart_parity[0] != 0))
 //	{ 
-//		USART_InitStructure.USART_WordLength = USART_WordLength_9b;	//×Ö³¤Îª9Î»Êý¾Ý¸ñ
+//		USART_InitStructure.USART_WordLength = USART_WordLength_9b;	//9-bit word length
 //	}
 //	else 
 //	{		// default 8 bit
@@ -199,18 +199,18 @@ void uart3_init(u32 bound)
 	NVIC_InitTypeDef NVIC_InitStructure;
 	
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3,ENABLE); 
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOE, ENABLE);	//Ê¹ÄÜUSART3£¬GPIOAÊ±ÖÓ
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOE, ENABLE);	//Enable the USART3 and GPIOA clocks
  	USART_DeInit(USART3);  //Reset USART1
 	//USART3_TX   PB.10
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;				//PB.10
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;			//Alternate-function push-pull output
-	GPIO_Init(GPIOB, &GPIO_InitStructure);					//³õÊ¼»¯PB10
+	GPIO_Init(GPIOB, &GPIO_InitStructure);					//Initialise PB10
  
 	//USART3_RX	  PB.11
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;				//PB.11
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;	//Floating input
-	GPIO_Init(GPIOB, &GPIO_InitStructure);					//³õÊ¼»¯PB11
+	GPIO_Init(GPIOB, &GPIO_InitStructure);					//Initialise PB11
 	
 	//RS485_TXEN	PE.11
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;				//PE.11
@@ -218,7 +218,7 @@ void uart3_init(u32 bound)
 	GPIO_Init(GPIOE, &GPIO_InitStructure);				
 //	GPIO_SetBits(GPIOE, GPIO_Pin_11);
 	
-	//Usart3 NVIC ÅäÖÃ
+	//USART3 NVIC configuration
   NVIC_InitStructure.NVIC_IRQChannel = USART3_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;	//Pre-emption priority 3
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 3;			//Sub-priority 3
@@ -270,7 +270,7 @@ void uart3_init(u32 bound)
 	
 //	if((Modbus.uart_WordLen[2] == 8) && (Modbus.uart_parity[2] != 0))
 //	{
-//		USART_InitStructure.USART_WordLength = USART_WordLength_9b;	//×Ö³¤Îª9Î»Êý¾Ý¸ñÊ½
+//		USART_InitStructure.USART_WordLength = USART_WordLength_9b;	//9-bit word length
 //	}
 //	else 
 //	{
@@ -294,8 +294,8 @@ void uart2_init(u32 bound)
 	NVIC_InitTypeDef NVIC_InitStructure;
 	 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2,ENABLE); 
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA , ENABLE);	//Ê¹ÄÜUSART2£¬GPIOAÊ±ÖÓ
- 	USART_DeInit(USART2);  //¸´Î»´®¿Ú2
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA , ENABLE);	//Enable the USART2 and GPIOA clocks
+ 	USART_DeInit(USART2);  //Reset USART2
 	//USART1_TX   PA.2
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;				//PA.2
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -316,7 +316,7 @@ void uart2_init(u32 bound)
 	GPIO_Init(GPIOC, &GPIO_InitStructure);		
 	}
 	
-	//Usart2 NVIC ÅäÖÃ
+	//USART2 NVIC configuration
   NVIC_InitStructure.NVIC_IRQChannel = USART2_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;	//Pre-emption priority 3
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 3;			//Sub-priority 3
@@ -326,7 +326,7 @@ void uart2_init(u32 bound)
 	//USART initialisation settings
 	USART_InitStructure.USART_BaudRate = bound;					//Baud rate setting
 	USART_InitStructure.USART_WordLength = USART_WordLength_8b;	//8-bit word length
-	USART_InitStructure.USART_StopBits = USART_StopBits_1;		//Ò»¸öÍ£Ö¹Î»
+	USART_InitStructure.USART_StopBits = USART_StopBits_1;		//One stop bit
 	USART_InitStructure.USART_Parity = USART_Parity_No;			//No parity bit
 	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;	//No hardware flow control
 	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;					//Transmit and receive mode

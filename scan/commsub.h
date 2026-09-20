@@ -7,7 +7,7 @@
 
 #define SUB_NO  MAX_ID//254 -> 100
 
-// ¿©’πIO”≥…‰
+// expansion IO mapping
 typedef struct
 {
   U8_T sub_index;

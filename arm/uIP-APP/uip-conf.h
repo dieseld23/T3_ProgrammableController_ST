@@ -62,30 +62,30 @@ typedef uint16_t u16_t;
 typedef unsigned short uip_stats_t;
 
 
-//最大TCP连接数
+//Maximum number of TCP connections
 #define UIP_CONF_MAX_CONNECTIONS 10
 
-//最大TCP端口监听数
+//Maximum number of listening TCP ports
 #define UIP_CONF_MAX_LISTENPORTS 10
 
-//uIP缓存大小
+//uIP buffer size
 #define UIP_CONF_BUFFER_SIZE     4096
 
-//CPU大小端模式
-//STM32是小端模式的
+//CPU endianness
+//The STM32 is little endian
 #define UIP_CONF_BYTE_ORDER  UIP_LITTLE_ENDIAN
 
-//日志开关
+//Logging on/off
 #define UIP_CONF_LOGGING         0
 
-//UDP支持开关
+//UDP support on/off
 #define UIP_CONF_UDP             1
 
-//UDP校验和开关
+//UDP checksum on/off
 #define UIP_CONF_UDP_CHECKSUMS	1	    
 
 
-//uIP统计开关 	 
+//uIP statistics on/off 	 
 #define UIP_CONF_STATISTICS      1
 
 

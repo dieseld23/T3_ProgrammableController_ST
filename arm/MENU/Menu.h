@@ -9,7 +9,7 @@
 #include "menuSet.h"
 #include "menuDaySet.h"
 
-#define MENU_BLOCK_SECONDS_DEFAULT	    250  //	15 //60  dufan ¸Ä15Ãë²»¶¯
+#define MENU_BLOCK_SECONDS_DEFAULT	    250  //	15 //60  dufan changed it to 15 seconds idle
 #define BACKLIGHT_KEEP_SECONDS_DEFAULT	30
 #define SWTIMER_COUNT_SECOND	 configTICK_RATE_HZ   
 

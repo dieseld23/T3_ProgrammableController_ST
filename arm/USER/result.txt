@@ -107,17 +107,17 @@ FILE __stdout;
              ^
 "*** LINT: ..\SYSTEM\usart\usart.c(30) Note 956: Non const, non volatile static or external variable '__stdout'"
 
-u16 USART_RX_STA = 0;       //接收状态标记	  
+u16 USART_RX_STA = 0;       //receive state flags	  
                  ^
 "*** LINT: ..\SYSTEM\usart\usart.c(80) Note 956: Non const, non volatile static or external variable 'USART_RX_STA'"
 
 
 --- Module:   ..\SYSTEM\delay\delay.c (C)
-static u8  fac_us = 0;	//us延时倍乘数			   
+static u8  fac_us = 0;	//microsecond delay multiplier			   
                   ^
 "*** LINT: ..\SYSTEM\delay\delay.c(9) Note 956: Non const, non volatile static or external variable 'fac_us'"
 
-static u16 fac_ms = 0;	//ms延时倍乘数,在os下,代表每个节拍的ms数
+static u16 fac_ms = 0;	//millisecond delay multiplier; under an OS it is the ms per tick
                   ^
 "*** LINT: ..\SYSTEM\delay\delay.c(10) Note 956: Non const, non volatile static or external variable 'fac_ms'"
 

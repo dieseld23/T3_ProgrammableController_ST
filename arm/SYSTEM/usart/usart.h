@@ -23,7 +23,7 @@
 void uart1_init(u32 bound);
 void uart2_init(u32 bound);
 void uart3_init(u32 bound);
-#define EN_USART1_RX 			1		//使能（1）/禁止（0）串口1接收
+#define EN_USART1_RX 			1		//Enable (1) or disable (0) USART1 receive
 
 
 #endif

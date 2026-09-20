@@ -220,18 +220,18 @@ PT_THREAD(handle_output(struct httpd_state *s))
 {
 	char *ptr;		  
 	PT_BEGIN(&s->outputpt);		  
-	if(!httpd_fs_open(s->filename,&s->file))//打开HTML文件不成功 
+	if(!httpd_fs_open(s->filename,&s->file))//The HTML file could not be opened 
 	{
 		httpd_fs_open(http_404_html, &s->file);
 		strcpy(s->filename, http_404_html);
 		PT_WAIT_THREAD(&s->outputpt,
-		send_headers(s,http_header_404));	//发送404失败页面
+		send_headers(s,http_header_404));	//Send the 404 page
 		PT_WAIT_THREAD(&s->outputpt,send_file(s));
-	}else //打开HTML文件成功
+	}else //The HTML file opened
 	{
 		PT_WAIT_THREAD(&s->outputpt,send_headers(s,http_header_200));
 		ptr=strchr(s->filename, ISO_period);
-		if(ptr != NULL && strncmp(ptr,http_shtml,6) == 0)//判断文件后缀是否为.SHTML 
+		if(ptr != NULL && strncmp(ptr,http_shtml,6) == 0)//Check whether the extension is .SHTML 
 		{
 			PT_INIT(&s->scriptpt);
 			PT_WAIT_THREAD(&s->outputpt, handle_script(s));
@@ -244,45 +244,45 @@ PT_THREAD(handle_output(struct httpd_state *s))
 	PT_END(&s->outputpt);
 }
 /*---------------------------------------------------------------------------*/
-extern unsigned char data_index_html[];	//在httpd-fsdata.c里面被定义,用于存放html网页源代码
-extern void get_temperature(u8 *temp);	//在main函数实现,用于获取温度字符串
-extern void get_time(u8 *time);		    //在main函数实现,用于获取时间字符串
+extern unsigned char data_index_html[];	//Defined in httpd-fsdata.c, which holds the HTML page source
+extern void get_temperature(u8 *temp);	//Implemented in main; returns the temperature string
+extern void get_time(u8 *time);		    //Implemented in main; returns the time string
 
-const char * LED0_ON_PIC_ADDR="http://www.openedv.com/upload/2012/9/27/ad65ee9f478ca11241933beed5b5dbcc_971.gif";	//LED0亮,图标地址
-const char * LED1_ON_PIC_ADDR="http://www.openedv.com/upload/2012/9/27/bab5bef0379dc50129202157c2739c57_775.gif";	//LED1亮,图标地址
-const char * LED_OFF_PIC_ADDR="http://www.openedv.com/upload/2012/9/27/ccecf4ebeb84b095545b8feb0cecc671_254.gif";	//LED灭,图标地址
-//处理HTTP输入数据
+const char * LED0_ON_PIC_ADDR="http://www.openedv.com/upload/2012/9/27/ad65ee9f478ca11241933beed5b5dbcc_971.gif";	//LED0 on, icon address
+const char * LED1_ON_PIC_ADDR="http://www.openedv.com/upload/2012/9/27/bab5bef0379dc50129202157c2739c57_775.gif";	//LED1 on, icon address
+const char * LED_OFF_PIC_ADDR="http://www.openedv.com/upload/2012/9/27/ccecf4ebeb84b095545b8feb0cecc671_254.gif";	//LED off, icon address
+//Handle incoming HTTP data
 static PT_THREAD(handle_input(struct httpd_state *s))
 {		    	  
 	char *strx;
 	u8 dbuf[17];
 	PSOCK_BEGIN(&s->sin);		 
 	PSOCK_READTO(&s->sin, ISO_space);	 
-	if(strncmp(s->inputbuf, http_get, 4)!=0)PSOCK_CLOSE_EXIT(&s->sin);	//比较客户端浏览器输入的指令是否是申请WEB指令 “GET ” 	   
+	if(strncmp(s->inputbuf, http_get, 4)!=0)PSOCK_CLOSE_EXIT(&s->sin);	//Check whether what the browser sent is a web request, "GET " 	   
 	PSOCK_READTO(&s->sin, ISO_space);		     						//" "
-	if(s->inputbuf[0] != ISO_slash)PSOCK_CLOSE_EXIT(&s->sin);		 	//判断第一个(去掉IP地址之后)数据,是否是"/"
-	if(s->inputbuf[1] == ISO_space||s->inputbuf[1] == '?') 				//第二个数据是空格/问号
+	if(s->inputbuf[0] != ISO_slash)PSOCK_CLOSE_EXIT(&s->sin);		 	//Check whether the first item after the IP address is "/"
+	if(s->inputbuf[1] == ISO_space||s->inputbuf[1] == '?') 				//The second item is a space or a question mark
 	{ 
 		if(s->inputbuf[1]=='?'&&s->inputbuf[6]==0x31)//LED1  
 		{
 			printf("Change LED0 Status\r\n");
 			LED2 = !LED2;	
 			strx=strstr((const char*)(data_index_html+13),"LED2状态");  
-			if(strx)//存在"LED0状态"这个字符串
+			if(strx)//The "LED0 state" string is present
 			{
 				strx=strstr((const char*)strx,"color:#");//Found the "color:#" string
-				if(LED0)//LED0灭
+				if(LED0)//LED0 off
 				{
 					strncpy(strx+7,"5B5B5B",6);	//Grey
 					strncpy(strx+24,"灭",2);	//off
 					strx=strstr((const char*)strx,"http:");//Found the "http:" string 
-					strncpy(strx,(const char*)LED_OFF_PIC_ADDR,strlen((const char*)LED_OFF_PIC_ADDR));//LED0灭图片	  
+					strncpy(strx,(const char*)LED_OFF_PIC_ADDR,strlen((const char*)LED_OFF_PIC_ADDR));//LED0 off image	  
 				}else
 				{
 					strncpy(strx+7,"FF0000",6);	//Red
 					strncpy(strx+24,"亮",2);	//"on"
 					strx=strstr((const char*)strx,"http:");//Found the "http:" string 
-					strncpy(strx,(const char*)LED0_ON_PIC_ADDR,strlen((const char*)LED0_ON_PIC_ADDR));//LED0亮图片	  
+					strncpy(strx,(const char*)LED0_ON_PIC_ADDR,strlen((const char*)LED0_ON_PIC_ADDR));//LED0 on image	  
 				}	
 			}  
 		}
@@ -291,42 +291,42 @@ static PT_THREAD(handle_input(struct httpd_state *s))
 			printf("Change LED1 Status\r\n");
 			LED3 = !LED3;	
 			strx=strstr((const char*)(data_index_html+13),"LED3状态");  
-			if(strx)//存在"LED1状态"这个字符串
+			if(strx)//The "LED1 state" string is present
 			{
 				strx=strstr((const char*)strx,"color:#");//Found the "color:#" string
-				if(LED3)//LED1灭
+				if(LED3)//LED1 off
 				{
 					strncpy(strx+7,"5B5B5B",6);	//Grey
 					strncpy(strx+24,"灭",2);	//off
 					strx=strstr((const char*)strx,"http:");//Found the "http:" string 
-					strncpy(strx,(const char*)LED_OFF_PIC_ADDR,strlen((const char*)LED_OFF_PIC_ADDR));//LED1灭图片	  
+					strncpy(strx,(const char*)LED_OFF_PIC_ADDR,strlen((const char*)LED_OFF_PIC_ADDR));//LED1 off image	  
 				}else
 				{
-					strncpy(strx+7,"00FF00",6);	//绿色
+					strncpy(strx+7,"00FF00",6);	//Green
 					strncpy(strx+24,"亮",2);	//"on"
 					strx=strstr((const char*)strx,"http:");//Found the "http:" string 
-					strncpy(strx,(const char*)LED1_ON_PIC_ADDR,strlen((const char*)LED1_ON_PIC_ADDR));//LED1亮图片	  
+					strncpy(strx,(const char*)LED1_ON_PIC_ADDR,strlen((const char*)LED1_ON_PIC_ADDR));//LED1 on image	  
 				}	
 			} 
 		}
 		
-		strx = strstr((const char*)(data_index_html+13),"℃");//找到"℃"字符
+		strx = strstr((const char*)(data_index_html+13),"℃");//Found the degree-C character
 		if(strx)
 		{
-//			get_temperature(dbuf);	//得到温度	  
-			strncpy(strx-4,(const char*)dbuf,4);	//更新温度
+//			get_temperature(dbuf);	//get the temperature	  
+			strncpy(strx-4,(const char*)dbuf,4);	//Update the temperature
 			printf("Update Temperature\r\n");			
 		}
-		strx=strstr((const char*)strx,"RTC时间:");//找到"RTC时间:"字符
+		strx=strstr((const char*)strx,"RTC时间:");//Found the RTC time marker
 		if(strx)
 		{
-//			get_time(dbuf);			//得到时间  
+//			get_time(dbuf);			//get the time  
 			strncpy(strx+33,(const char*)dbuf,16);	//Update the time
 			printf("Update RTC\r\n");
 		}
 		strncpy(s->filename, http_index_html, sizeof(s->filename));
 	}
-	else //如果不是' '/'?'
+	else //If it is neither ' ' nor '?'
 	{
 		s->inputbuf[PSOCK_DATALEN(&s->sin)-1] = 0;
 		strncpy(s->filename,&s->inputbuf[0],sizeof(s->filename));
@@ -343,18 +343,18 @@ static PT_THREAD(handle_input(struct httpd_state *s))
 	PSOCK_END(&s->sin);
 }
 /*---------------------------------------------------------------------------*/
-//分析http数据
+//Parse the HTTP data
 static void handle_connection(struct httpd_state *s)
 {
-	handle_input(s);  //处理http输入数据
-	if(s->state==STATE_OUTPUT)handle_output(s);//输出状态，处理输出数据 
+	handle_input(s);  //Handle the incoming HTTP data
+	if(s->state==STATE_OUTPUT)handle_output(s);//Output state, and handling of the outgoing data 
 }
 /*---------------------------------------------------------------------------*/
-//http服务(WEB)处理
+//HTTP (web) service handling
 void httpd_appcall(void)
 {
-	struct httpd_state *s = (struct httpd_state *)&(uip_conn->appstate);//读取连接状态
-	if(uip_closed() || uip_aborted() || uip_timedout())//异常处理 
+	struct httpd_state *s = (struct httpd_state *)&(uip_conn->appstate);//Read the connection state
+	if(uip_closed() || uip_aborted() || uip_timedout())//Error handling 
 	{
 	}
 	else if(uip_connected())//Connected 
@@ -365,7 +365,7 @@ void httpd_appcall(void)
 		s->state = STATE_WAITING;
 		/* timer_set(&s->timer, CLOCK_SECOND * 100); */
 		s->timer = 0;
-		handle_connection(s);//处理
+		handle_connection(s);//Handle it
 	}
 	else if(s!=NULL) 
 	{

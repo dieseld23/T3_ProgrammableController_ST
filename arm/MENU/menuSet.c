@@ -18,7 +18,7 @@ void MenuSet_init(void)
 //	clear_line(1);
 //	clear_line(0);
 	//set_value = Modbus.address;
-	if (item_to_adjust == 0) // 初始化ID；
+	if (item_to_adjust == 0) // initialise the ID;
 	{
 			set_value = Setting_Info.reg.modbus_id;
 	}
@@ -40,7 +40,7 @@ void MenuSet_init(void)
 	}
 
 	clear_lines();
-	//if(item_to_adjust != 3)  //不希望在Schedule 界面 出现 set schedule 的 固定字符;
+	//if(item_to_adjust != 3)  //we do not want the fixed "set schedule" text on the Schedule screen;
 	start_menu();
 	flag_blink = 1;
 	//blink_count = 0;
@@ -59,11 +59,11 @@ void MenuSet_display(void)
 
     if(blink_count %2  == 0)
     {
-        if(item_to_adjust == 0) //如果是调整modbusID
+        if(item_to_adjust == 0) //If the Modbus ID is being adjusted
             display_value(0, set_value, ' ');
-        else if (item_to_adjust == 1) //如果是调整波特率
+        else if (item_to_adjust == 1) //If the baud rate is being adjusted
         {
-            if (set_value < 5) //限制 波特率的范围 其他波特率 菜单不显示;
+            if (set_value < 5) //Limit the baud rate range; other baud rates are not shown in the menu;
                 set_value = 5;
             if (set_value > 9)
                 set_value = 9;
@@ -71,16 +71,16 @@ void MenuSet_display(void)
 						
             disp_str(FORM15X30, 0, MENU_VALUE_POS, temp_buffer, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
         }
-        else if (item_to_adjust == 2) //调整协议
+        else if (item_to_adjust == 2) //Adjust the protocol
         {
             if (set_value == 0)
                 disp_str(FORM15X30, 0, MENU_VALUE_POS, "BACNET", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
             else
                 disp_str(FORM15X30, 0, MENU_VALUE_POS, "MODBUS", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
         }
-				else if (item_to_adjust == 3) //设置Schedlue
+				else if (item_to_adjust == 3) //Set the schedule
 				{
-					if(set_value < 0) //限制 schedule的范围 其他波特率 菜单不显示;
+					if(set_value < 0) //Limit the schedule range; the rest are not shown in the menu;
 						set_value = 0;
 					if(set_value > 7)
 						set_value = 7;
@@ -112,7 +112,7 @@ void Save_Parmeter(item_to_adjust)
         if (Modbus.protocal == 0)
             dlmstp_init(NULL);
         break;
-    case 1:  //修改 波特率
+    case 1:  //Change the baud rate
     {        
         uart0_baudrate = set_value;
         Setting_Info.reg.com_baudrate[0] = uart0_baudrate;
@@ -133,9 +133,9 @@ void Save_Parmeter(item_to_adjust)
     }		
 
     break;
-    case 2:  //修改 协议
+    case 2:  //Change the protocol
     {
-        if (set_value == 0)         //这里只定义了两种协议 所以用0 和1 来表示
+        if (set_value == 0)         //Only two protocols are defined here, so 0 and 1 are used
             set_value = BACNET_SLAVE;
         else
             set_value = MODBUS_SLAVE;

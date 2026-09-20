@@ -957,7 +957,7 @@ void SPI_Get(U8_T cmd,U8_T len)
 					for(i = 0;i < 8 / 2;i++)
 					{								
 						AO_feedback[i] = (U32_T)(tmpbuf[i * 2 + 55] + tmpbuf[i * 2 + 54] * 256);
-								//						13;  // 13 is  0.04v µÄÄÚ×è;
+								//						13;  // 13 is the internal resistance at 0.04v;
 						if(AO_feedback[i] < 450)
 							AO_feedback[i] += 1000 / AO_feedback[i];
 						else

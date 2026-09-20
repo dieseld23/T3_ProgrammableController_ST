@@ -47,13 +47,13 @@ u16 TP_Read_XOY(u8 xy);								//Filtered coordinate read (X/Y)
 u8 TP_Read_XY(u16 *x, u16 *y);						//Read both directions (X+Y)
 u8 TP_Read_XY2(u16 *x, u16 *y);						//Read both directions with stronger filtering
 void TP_Drow_Touch_Point(u16 x, u16 y, u16 color);	//Draw a calibration point
-void TP_Draw_Big_Point(u16 x, u16 y, u16 color);	//画一个大点
+void TP_Draw_Big_Point(u16 x, u16 y, u16 color);	//Draw a large point
 u8 TP_Scan(u8 tp);									//Scan
 void TP_Save_Adjdata(void);							//Save the calibration parameters
-u8 TP_Get_Adjdata(void);							//读取校准参数
+u8 TP_Get_Adjdata(void);							//Read the calibration parameters
 void TP_Adjust(void);								//Touch screen calibration
 u8 TP_Init(void);									//Initialise
 																 
-void TP_Adj_Info_Show(u16 x0, u16 y0, u16 x1, u16 y1, u16 x2, u16 y2, u16 x3, u16 y3, u16 fac);//显示校准信息
+void TP_Adj_Info_Show(u16 x0, u16 y0, u16 x1, u16 y1, u16 x2, u16 y2, u16 x3, u16 y3, u16 fac);//Show the calibration details
  		  
 #endif

@@ -1017,7 +1017,7 @@ void update_extio_to_database(void)
 		if(ptr->reg.product_id == PM_T322AI || ptr->reg.product_id == PM_T38AI8AO6DO
 			|| ptr->reg.product_id == PM_T3PT12)
 		{  // external io must be T3 module
-			// 扩展的IO手动添加时port是有优先顺序的get_baut_by_port(0) uart2>uart0>uart1
+			// when expansion IO is added by hand the port order matters: get_baut_by_port(0) is uart2>uart0>uart1
 #if (ASIX_MINI || ASIX_CM5)
 			check_id_in_database(ptr->reg.modbus_id,ptr->reg.sn,ptr->reg.port,get_baut_by_port(0),ptr->reg.product_id);
 #else			

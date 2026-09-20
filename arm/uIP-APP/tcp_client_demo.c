@@ -6,14 +6,14 @@
 
 
 u8 tcp_client_databuf[500];   	//Transmit buffer	  
-u8 tcp_client_sta;				//客户端状态
+u8 tcp_client_sta;				//Client state
 //[7]: 0 = not connected; 1 = connected;
 //[6]: 0 = no data; 1 = data received from the client
 //[5]: 0 = no data; 1 = data waiting to be sent
 
-//这是一个TCP 客户端应用回调函数。
-//该函数通过UIP_APPCALL(tcp_demo_appcall)调用,实现Web Client的功能.
-//当uip事件发生时，UIP_APPCALL函数会被调用,根据所属端口(1400),确定是否执行该函数。
+//This is the TCP client application callback.
+//It is reached through UIP_APPCALL (tcp_demo_appcall) and provides the web client.
+//When a uIP event happens UIP_APPCALL is called, and the port (1400) decides whether this runs.
 //For example: a TCP connection is created, new data arrives, data has been acknowledged, data needs resending, and so on
 void tcp_client_demo_appcall(void)
 {		  
@@ -50,14 +50,14 @@ void tcp_client_demo_appcall(void)
 	}											   
 }
 
-//这里我们假定Server端的IP地址为:192.168.0.111
-//这个IP必须根据Server端的IP修改.
+//The server is assumed to be at 192.168.0.111
+//Change this to match the server's actual address.
 //Try to reconnect
 void tcp_client_reconnect(void)
 {
 	uip_ipaddr_t ipaddr;
-	uip_ipaddr(&ipaddr, 192, 168, 0, 124);		//设置IP为192.168.1.103
-	uip_connect(&ipaddr, htons(1400)); 			//端口为1400
+	uip_ipaddr(&ipaddr, 192, 168, 0, 124);		//Set the IP to 192.168.1.103
+	uip_connect(&ipaddr, htons(1400)); 			//Port 1400
 }
 
 //Abort the connection				    
@@ -65,14 +65,14 @@ void tcp_client_aborted(void)
 {
 	tcp_client_sta &= ~(1 << 7);				//Flag: not connected
 	tcp_client_reconnect();						//Try to reconnect
-//	uip_log("tcp_client aborted!\r\n");			//打印log
+//	uip_log("tcp_client aborted!\r\n");			//print the log
 }
 
 //Connection timed out
 void tcp_client_timedout(void)
 {
 	tcp_client_sta &= ~(1 << 7);				//Flag: not connected	   
-//	uip_log("tcp_client timeout!\r\n");			//打印log
+//	uip_log("tcp_client timeout!\r\n");			//print the log
 }
 
 //Connection closed
@@ -80,7 +80,7 @@ void tcp_client_closed(void)
 {
 	tcp_client_sta &= ~(1 << 7);				//Flag: not connected
 	tcp_client_reconnect();						//Try to reconnect
-//	uip_log("tcp_client closed!\r\n");			//打印log
+//	uip_log("tcp_client closed!\r\n");			//print the log
 }
 
 //Connection established
@@ -88,10 +88,10 @@ void tcp_client_connected(void)
 { 
 	struct tcp_demo_appstate *s = (struct tcp_demo_appstate *)&uip_conn->appstate;
  	tcp_client_sta |= 1 << 7;					//Flag the connection as established
- // 	uip_log("tcp_client connected!\r\n");		//打印log
+ // 	uip_log("tcp_client connected!\r\n");		//print the log
 	s->state = STATE_CMD;				 		//Command state
 	s->textlen = 0;
-	s->textptr = "Demo Board Connected Successfully!\r\n";//回应消息
+	s->textptr = "Demo Board Connected Successfully!\r\n";//The reply
 	s->textlen = strlen((char *)s->textptr);	  
 }
 
@@ -100,15 +100,15 @@ void tcp_client_acked(void)
 {											    
 	struct tcp_demo_appstate *s = (struct tcp_demo_appstate *)&uip_conn->appstate;
 	s->textlen = 0;								//Clear the send flag
-//	uip_log("tcp_client acked!\r\n");			//表示成功发送		 
+//	uip_log("tcp_client acked!\r\n");			//means it was sent successfully		 
 }
 
-//发送数据给服务端
+//Send data to the server
 void tcp_client_senddata(void)
 {
 	struct tcp_demo_appstate *s = (struct tcp_demo_appstate *)&uip_conn->appstate;
-	//s->textptr:发送的数据包缓冲区指针
-	//s->textlen:数据包的大小（单位字节）		   
+	//s->textptr: pointer to the buffer being sent
+	//s->textlen: the size of the packet in bytes		   
 	if(s->textlen > 0)
 		uip_send(s->textptr, s->textlen);//Send a TCP packet	 
 }

@@ -7,18 +7,18 @@
 #define NULL					0
 #endif
 
-#define SRAMIN					0	//内部内存池
-#define SRAMEX					1	//外部内存池
+#define SRAMIN					0	//Internal pool
+#define SRAMEX					1	//External pool
 
 
-//mem1内存参数设定.mem1完全处于内部SRAM里面
+//mem1 parameters; mem1 lives entirely in internal SRAM
 #define MEM1_BLOCK_SIZE			32  	  						//The memory block size is 32 bytes
-#define MEM1_MAX_SIZE			1*1024  						//最大管理内存20K
+#define MEM1_MAX_SIZE			1*1024  						//Manages at most 20K
 #define MEM1_ALLOC_TABLE_SIZE	MEM1_MAX_SIZE/MEM1_BLOCK_SIZE 	//Memory table size
 
-//mem2内存参数设定.mem2的内存池处于外部SRAM里面,其他的处于内部SRAM里面
+//mem2 parameters; the mem2 pool lives in external SRAM and the rest in internal SRAM
 #define MEM2_BLOCK_SIZE			32  	  						//The memory block size is 32 bytes
-#define MEM2_MAX_SIZE			1*1024  						//最大管理内存200K
+#define MEM2_MAX_SIZE			1*1024  						//Manages at most 200K
 #define MEM2_ALLOC_TABLE_SIZE	MEM2_MAX_SIZE/MEM2_BLOCK_SIZE 	//Memory table size
 		 
 		 
@@ -27,22 +27,22 @@ struct _m_mallco_dev
 {
 	void (*init)(u8);						//Initialise
 	u8 (*perused)(u8);		  	    		//Memory usage
-	u8 *membase[2];							//内存池 管理2个区域的内存
+	u8 *membase[2];							//The pool manages two regions of memory
 	u16 *memmap[2]; 						//Memory management state table
-	u8 memrdy[2]; 							//内存管理是否就绪
+	u8 memrdy[2]; 							//Whether memory management is ready
 };
-extern struct _m_mallco_dev mallco_dev;	 	//在mallco.c里面定义
+extern struct _m_mallco_dev mallco_dev;	 	//Defined in malloc.c
 
 void mymemset(void *s, u8 c, u32 count);	 //Set memory
 void mymemcpy(void *des, void *src, u32 n);	//Copy memory     
-void mem_init(u8 memx);					 	//内存管理初始化函数(外/内部调用)
+void mem_init(u8 memx);					 	//Initialise memory management (internal or external)
 u32 mem_malloc(u8 memx, u32 size);		 	//Allocate memory (internal)
-u8 mem_free(u8 memx, u32 offset);		 	//内存释放(内部调用)
-u8 mem_perused(u8 memx);				 	//获得内存使用率(外/内部调用) 
+u8 mem_free(u8 memx, u32 offset);		 	//Free memory (internal)
+u8 mem_perused(u8 memx);				 	//Get the memory usage (internal or external) 
 ////////////////////////////////////////////////////////////////////////////////
-//用户调用函数
-void myfree(u8 memx, void *ptr);  				//内存释放(外部调用)
-void *mymalloc(u8 memx, u32 size);				//内存分配(外部调用)
+//Functions the user calls
+void myfree(u8 memx, void *ptr);  				//Free memory (external)
+void *mymalloc(u8 memx, u32 size);				//Allocate memory (external)
 void *myrealloc(u8 memx, void *ptr, u32 size);	//Reallocate memory (external)
 
 #endif

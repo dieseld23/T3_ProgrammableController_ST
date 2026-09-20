@@ -143,7 +143,7 @@ Str_Extio_point far extio_points[MAX_EXTIO];
 //Str_in_point far inputs[MAX_INS];// _at_ 0x20000;
 //Str_out_point far	outputs[MAX_OUTS];//_at_ 0x22000;
 U8_T far month_length[12];// = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-//U8_T far table_week[12];// = {0, 3, 3, 6, 1, 4, 6, 2, 5, 0, 3, 5};	//月修正数据表	  
+//U8_T far table_week[12];// = {0, 3, 3, 6, 1, 4, 6, 2, 5, 0, 3, 5};	//month correction table	  
 
 Info_Table			far						 info[18];// _at_ 0x41000;
 S8_T  far var_unit[MAX_VAR_UNIT][VAR_UNIT_SIZE];
@@ -460,10 +460,10 @@ void init_panel(void)
 #if ARM_TSTAT_WIFI
 //		if(i == 8)
 //		{
-//			ptr.pin->digital_analog = 1;   //TSTAT10 最顶端的温度显示;
+//			ptr.pin->digital_analog = 1;   //the temperature shown at the top of the TSTAT10;
 //			ptr.pin->range = R10K_40_120DegC;
 //		}
-    //TSTAT 10 初始化 多态 用于TSTAT10 界面的默认显示;
+    //TSTAT10 multi-state initialisation, used for the default TSTAT10 display;
 		memset(msv_data,0,MAX_MSV * STR_MSV_MULTIPLE_COUNT * sizeof(multiple_struct));
 		msv_data[1][0].status = 1;
 		msv_data[1][0].msv_value = 0;
@@ -1075,7 +1075,7 @@ void Sync_Panel_Info(void)
 //	Setting_Info.reg.network_ID[2] = Modbus.network_ID[2];
 	
 	Setting_Info.reg.zigbee_module_id = Modbus.zigbee_module_id;
-#if( ARM_MINI || ARM_TSTAT_WIFI)   //Tstat10 也需要此项
+#if( ARM_MINI || ARM_TSTAT_WIFI)   //The Tstat10 needs this too
 	Setting_Info.reg.MAX_MASTER = MAX_MASTER;
 #endif
 	Setting_Info.reg.webview_json_flash = webview_json_flash;
@@ -1183,7 +1183,7 @@ U32_T get_current_time(void)
 {
 #if (ASIX_MINI || ASIX_CM5)
 	if(Daylight_Saving_Time)  // timezone : +8 ---> 800
-	{	// 每年的四月中旬到9月中旬
+	{	// from the middle of April to the middle of September each year
 		if((Rtc.Clk.day_of_year >= start_day) && (Rtc.Clk.day_of_year <= end_day))
 		{
 			return time_since_1970 + timestart - (S16_T)timezone * 36 - 3600;

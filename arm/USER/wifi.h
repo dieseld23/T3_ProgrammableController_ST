@@ -1,12 +1,12 @@
 #include "types.h"
 
-#define USART_REC_LEN  			512  	//定义最大接收字节数 200
+#define USART_REC_LEN  			512  	//The maximum receive length is 200 bytes
 #define USART_SEND_LEN			512
 
 
 typedef struct
 {
-	uint8 MANUEL_EN;	// 0 - smartconfig 		1 - t3000方式 		2 - disable wifi
+	uint8 MANUEL_EN;	// 0 - smartconfig 		1 - t3000 method 		2 - disable wifi
 	uint8 IP_Auto_Manual; //  0 Auto DHCP   1 static IP
 	uint8 IP_Wifi_Status;  // 0 no-Wifi  
 	uint16 modbus_port;

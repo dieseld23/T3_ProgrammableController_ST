@@ -1,11 +1,11 @@
 USMART V3.1
-   USMART是由ALIENTEK开发的一个灵巧的串口调试互交组件,通过 它,你可以通过串口助手调用程
-序里面的任何函数,并执行.因此,你可以随意更改函数的输入参数(支持数字(10/16进制)、字符串、
-函数入口地址等作为参数),单个函数最多支持10个输入参数,并支持函数返 回值显示.V2.1新增 
-hex和dec两个指令.他们可以用于设置函数参数的显示格式.也可以用于数据的进制转换.
-例如:
-输入"hex 100"  会在串口调试助手上看到 HEX 0X64.
-输入"dec 0X64" 会在串口调试助手上看到 DEC 100.
+   USMART is a neat serial debugging component from ALIENTEK. Through it you can call any
+function in your program from a serial terminal and run it, so you can change a function's inputs
+freely (numbers in decimal or hex, strings and function entry addresses are all accepted). Up to 10 
+arguments are supported and the return value is shown. V2.1 adds the hex and dec commands, which set the argument display format and convert between bases.
+For example:
+typing "hex 100" shows HEX 0X64 in the serial terminal.
+typing "dec 0X64" shows DEC 100 in the serial terminal.
 
 Change log
 V1.4
@@ -53,11 +53,11 @@ V3.1 20131120
 Usage:
 Send "runtime 1" to turn function timing on
 Send "runtime 0" to turn function timing off
-runtime统计功能,必须设置:USMART_ENTIMX_SCAN 为1,才可以使用!!
+The runtime timing feature needs USMART_ENTIMX_SCAN set to 1!!
 
 
 
-							正点原子@ALIENTEK
-							技术论坛:www.openedv.com
-							修改日期:2013/11/20
+							ALIENTEK
+							Support forum: www.openedv.com
+							Modified: 2013/11/20
 							Copyright(C) ALIENTEK 2011-2021

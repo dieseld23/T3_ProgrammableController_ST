@@ -41,7 +41,7 @@
 #include <stdint.h>
 #include "stm32f10x.h"
 
-u8 tapdev_init(void);		//修改为带返回值的函数	 
+u8 tapdev_init(void);		//Changed to a function that returns a value	 
 uint16_t tapdev_read(void);
 u8 tapdev_send(void);
 

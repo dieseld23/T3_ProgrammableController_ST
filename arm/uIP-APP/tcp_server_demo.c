@@ -15,9 +15,9 @@ u8 tcp_server_sta;				//Server state
 //[5]: 0 = no data; 1 = data waiting to be sent
 
  	   
-//这是一个TCP 服务器应用回调函数。
-//该函数通过UIP_APPCALL(tcp_demo_appcall)调用,实现Web Server的功能.
-//当uip事件发生时，UIP_APPCALL函数会被调用,根据所属端口(1200),确定是否执行该函数。
+//This is the TCP server application callback.
+//It is reached through UIP_APPCALL (tcp_demo_appcall) and provides the web server.
+//When a uIP event happens UIP_APPCALL is called, and the port (1200) decides whether this runs.
 //For example: a TCP connection is created, new data arrives, data has been acknowledged, data needs resending, and so on
 void tcp_server_demo_appcall(void)
 {
@@ -28,7 +28,7 @@ void tcp_server_demo_appcall(void)
  	if(uip_connected())tcp_server_connected();	//Connected	    
 	if(uip_acked())tcp_server_acked();			//The data was delivered successfully 
 	//A new TCP packet has arrived 
-	if(uip_newdata())//收到客户端发过来的数据
+	if(uip_newdata())//Data arrived from the client
 	{
 		if((tcp_server_sta & (1 << 6)) == 0)	//No data received yet
 		{
@@ -42,7 +42,7 @@ void tcp_server_demo_appcall(void)
 			tcp_server_sta |= 1 << 6;			//Means data was received from the client
 			
 			sprintf((char*)tcp_server_databuf, "TCP Server OK.............\r\n");	 
-			tcp_server_sta |= 1 << 5;			//标记有数据需要发送
+			tcp_server_sta |= 1 << 5;			//Flag that there is data to send
 		}
 	}
 	
@@ -85,14 +85,14 @@ void tcp_server_closed(void)
 void tcp_server_connected(void)
 {								  
 	struct tcp_demo_appstate *s = (struct tcp_demo_appstate *)&uip_conn->appstate;
-	//uip_conn结构体有一个"appstate"字段指向应用程序自定义的结构体。
-	//声明一个s指针，是为了便于使用。
- 	//不需要再单独为每个uip_conn分配内存，这个已经在uip中分配好了。
-	//在uip.c 中 的相关代码如下：
+	//struct uip_conn has an "appstate" field pointing at the application's own structure.
+	//The s pointer is declared purely for convenience.
+ 	//There is no need to allocate memory per uip_conn; uIP has already done it.
+	//The relevant code in uip.c is:
 	//		struct uip_conn *uip_conn;
-	//		struct uip_conn uip_conns[UIP_CONNS]; //UIP_CONNS缺省=10
-	//定义了1个连接的数组，支持同时创建几个连接。
-	//uip_conn是一个全局的指针，指向当前的tcp或udp连接。
+	//		struct uip_conn uip_conns[UIP_CONNS]; //UIP_CONNS defaults to 10
+	//That array of connections allows several to exist at once.
+	//uip_conn is a global pointer to the current TCP or UDP connection.
 	tcp_server_sta |= 1 << 7;					//Flag the connection as established
   	uip_log("tcp_server connected!\r\n");		//Print the log
 	s->state = STATE_CMD; 						//Command state
@@ -106,15 +106,15 @@ void tcp_server_acked(void)
 {						    	 
 	struct tcp_demo_appstate *s = (struct tcp_demo_appstate *)&uip_conn->appstate;
 	s->textlen = 0;								//Clear the send flag
-	uip_log("tcp_server acked!\r\n");			//表示成功发送		 
+	uip_log("tcp_server acked!\r\n");			//Means it was sent successfully		 
 }
 
-//发送数据给客户端
+//Send data to the client
 void tcp_server_senddata(void)
 {
 	struct tcp_demo_appstate *s = (struct tcp_demo_appstate *)&uip_conn->appstate;
-	//s->textptr : 发送的数据包缓冲区指针
-	//s->textlen ：数据包的大小（单位字节）		   
+	//s->textptr : pointer to the buffer being sent
+	//s->textlen : the size of the packet in bytes		   
 	if(s->textlen > 0)
 		uip_send(s->textptr, s->textlen);//Send a TCP packet	 
 }

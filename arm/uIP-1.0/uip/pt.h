@@ -112,7 +112,7 @@ struct pt {
  *
  * \hideinitializer
  */
-//这里加上PT_YIELD_FLAG = PT_YIELD_FLAG;语句用以消除因没有调用引起的编译器报警告
+//PT_YIELD_FLAG = PT_YIELD_FLAG; is here purely to silence the unused-variable warning
 #define PT_BEGIN(pt) {char PT_YIELD_FLAG = 1; PT_YIELD_FLAG = PT_YIELD_FLAG; LC_RESUME((pt)->lc)
 
 /**

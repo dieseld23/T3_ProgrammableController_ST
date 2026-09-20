@@ -749,7 +749,7 @@ void Bacnet_Control(void) reentrant
 				inputs[COMMON_CHANNEL + 2].range = 0;
 			}
 		}
-		check_trendlog_1s(2); // T3 里面该函数因为一些特殊放在outputtask
+		check_trendlog_1s(2); // in T3 this function sits in outputtask for particular reasons
 #endif
 		if(Modbus.mini_type == MINI_NANO )
 			check_trendlog_1s(2);
@@ -1112,8 +1112,8 @@ void check_output_priority_HOA(U8_T i)
 }*/
 
 // CHECK A/M
-// HOA: 1 -> 改变HOA后调用level7值不变
-//			0 -> modbus或者bancent软件直接改变 leve7 值改变
+// HOA: 1 -> after HOA changes, the level7 value stays the same
+//			0 -> Modbus or BACnet software changes it directly and level7 changes
 void check_output_priority_array(U8_T i,U8_T HOA)
 {	
 	if(i >= max_dos + max_aos)
