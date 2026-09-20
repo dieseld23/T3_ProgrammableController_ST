@@ -134,3 +134,30 @@ explicit casts). `ER_IROM1` is `0x47b98` of `0x60000`, leaving about 97 KB free.
   would cost about 24 KB across the four tables, against roughly 97 KB free. The
   whole surface is three near-identical inner loops in
   `ER-TFT024-3_4-Wire_SPI.c` (`disp_ch`, `disp_ch_16_24`, `disp_ch_12_24`).
+
+- **A possible move to the GD32F103** for more memory and speed. Recorded as an
+  option, with the figures it should be weighed against.
+
+  GigaDevice's part is pin and largely register compatible with the STM32F103
+  and clocks to 108 MHz against 72, so the speed argument is real. It would not
+  do much for the screen, though: the drawing loops are bound by `Write_Data()`
+  and the SPI clock rather than by the core.
+
+  Memory is not the binding constraint today. The scatter file claims `0x60000`
+  at `0x08008000`, while the device holds `0x80000` from `0x08000000` — so on
+  top of the ~97 KB free inside the region there is another 96 KB of flash that
+  is not allocated at all, out of the 480 KB the bootloader leaves. RW and ZI
+  land in the 8 MB external SRAM at `0x60000000` (`RW_RAM1`, which precedes
+  `RW_IRAM1` in the scatter), and that is where the ~488 KB of ZI data sits; the
+  internal 64 KB is barely touched.
+
+  Worth fixing whatever is decided: `RW_IRAM1` is declared as `0x80000` in the
+  scatter, but the device only has `0x10000` of internal SRAM. Nothing lands
+  there today because `RW_RAM1` is matched first, so the error is latent — but
+  anyone reasoning about memory from that file will be misled by it.
+
+  The real obstacle is the bootloader. It is not in this repository, it is
+  flashed below `0x08008000`, and changing silicon needs one that runs on the
+  new part. Flash wait states and the clock tree in
+  `arm/USER/system_stm32f10x.c` would need review too. T3000's reported MCU type
+  (`T3_chip_type`) is display only and gates nothing, so it is not a concern.
