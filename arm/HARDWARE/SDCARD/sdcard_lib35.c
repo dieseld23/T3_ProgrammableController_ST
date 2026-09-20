@@ -4,16 +4,16 @@
 #define SDIO_CLKEN_SW(X)	(BIT_ADDR(SDIO->CLKCR, 8) = X)
 
 
-static u8 CardType = SDIO_STD_CAPACITY_SD_CARD_V1_1;		//SD卡类型（默认为1.x卡）
-static u32 CSD_Tab[4], CID_Tab[4], RCA=0;					//SD卡CSD,CID以及相对地址(RCA)数据
-static u8 DeviceMode = SD_DMA_MODE;		   					//工作模式,注意,工作模式必须通过SD_SetDeviceMode,后才算数.这里只是定义一个默认的模式(SD_DMA_MODE)
-static u8 StopCondition = 0; 								//是否发送停止传输标志位,DMA多块读写的时候用到  
-volatile SD_Error TransferError = SD_OK;					//数据传输错误标志,DMA读写时使用	    
-volatile u8 TransferEnd = 0;								//传输结束标志,DMA读写时使用
-SD_CardInfo SDCardInfo;										//SD卡信息
+static u8 CardType = SDIO_STD_CAPACITY_SD_CARD_V1_1;		//SD card type (a 1.x card by default)
+static u32 CSD_Tab[4], CID_Tab[4], RCA=0;					//SD card CSD, CID and relative address (RCA) data
+static u8 DeviceMode = SD_DMA_MODE;		   					//Operating mode. Note it only takes effect through SD_SetDeviceMode; this is just a default (SD_DMA_MODE)
+static u8 StopCondition = 0; 								//Whether to send the stop-transfer command; used for multi-block DMA reads and writes  
+volatile SD_Error TransferError = SD_OK;					//Data transfer error flag, used for DMA reads and writes	    
+volatile u8 TransferEnd = 0;								//Transfer complete flag, used for DMA reads and writes
+SD_CardInfo SDCardInfo;										//SD card details
 
-//SD_ReadDisk/SD_WriteDisk函数专用buf,当这两个函数的数据缓存区地址不是4字节对齐的时候,
-//需要用到该数组,确保数据缓存区地址是4字节对齐的.
+//A buffer just for SD_ReadDisk and SD_WriteDisk, used when the caller's buffer address is not 4-byte aligned,
+//so that the data buffer address is guaranteed to be 4-byte aligned.
 __align(4) u8 SDIO_DATA_BUFFER[512];
 
 
@@ -42,7 +42,7 @@ void Sdio_GPIO_Init(void)
 	GPIO_Init(GPIOD, &GPIO_InitStructure);
 	GPIO_SetBits(GPIOD, GPIO_Pin_2);
 
-//	RCC->AHBENR |= (1 << 1) | (1 << 10);    //使能DMA2和SDIO时钟
+//	RCC->AHBENR |= (1 << 1) | (1 << 10);    //enable the DMA2 and SDIO clocks
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA2 | RCC_AHBPeriph_SDIO, ENABLE);
 }
 
@@ -61,68 +61,68 @@ void Sdio_GPIO_Init(void)
 //	MY_NVIC_Init(0, 0, SDIO_IRQn, 2);
 //}
 
-//SDIO时钟初始化设置
-//clkdiv:时钟分频系数
-//CK时钟=SDIOCLK/[clkdiv+2];(SDIOCLK时钟直接就是AHB时钟,一般为72Mhz)
+//SDIO clock initialisation
+//clkdiv: the clock divider
+//CK = SDIOCLK/[clkdiv+2]; (SDIOCLK is the AHB clock, normally 72MHz)
 void SDIO_Clock_Set(u8 clkdiv)
 {
   	SDIO->CLKCR &= 0XFFFFFF00;
  	SDIO->CLKCR |= clkdiv; 
 } 
 
-//SDIO发送命令函数
-//cmdindex:命令索引,低六位有效
-//waitrsp:期待的相应.00/10,无响应;01,短响应;11,长响应
-//arg:参数
+//SDIO command send function
+//cmdindex: the command index; the low six bits are used
+//waitrsp: the expected response. 00/10 = none; 01 = short; 11 = long
+//arg: the argument
 void SDIO_Send_Cmd(u8 cmdindex, u8 waitrsp, u32 arg)
 {						    
 	SDIO->ARG = arg;
-	SDIO->CMD &= 0XFFFFF800;		//清除index和waitrsp
-	SDIO->CMD |= cmdindex & 0X3F;	//设置新的index			 
-	SDIO->CMD |= waitrsp << 6;		//设置新的wait rsp 
-	SDIO->CMD |= 0 << 8;			//无等待
-  	SDIO->CMD |= 1 << 10;			//命令通道状态机使能
+	SDIO->CMD &= 0XFFFFF800;		//Clear index and waitrsp
+	SDIO->CMD |= cmdindex & 0X3F;	//Set the new index			 
+	SDIO->CMD |= waitrsp << 6;		//Set the new wait rsp 
+	SDIO->CMD |= 0 << 8;			//No waiting
+  	SDIO->CMD |= 1 << 10;			//Enable the command path state machine
 }
 
-//SDIO发送数据配置函数
-//datatimeout:超时时间设置
-//datalen:传输数据长度,低25位有效,必须为块大小的整数倍
-//blksize:块大小.实际大小为:2^blksize字节
-//dir:数据传输方向:0,控制器到卡;1,卡到控制器;
+//SDIO data transfer configuration
+//datatimeout: the timeout value
+//datalen: the transfer length; the low 25 bits are used and it must be a whole number of blocks
+//blksize: the block size; the real size is 2^blksize bytes
+//dir: transfer direction; 0 = controller to card; 1 = card to controller;
 void SDIO_Send_Data_Cfg(u32 datatimeout, u32 datalen, u8 blksize, u8 dir)
 {
 	SDIO->DTIMER = datatimeout;
-  	SDIO->DLEN = datalen & 0X1FFFFFF;	//低25位有效
-	SDIO->DCTRL &= 0xFFFFFF08;			//清除之前的设置.
-	SDIO->DCTRL |= blksize << 4;		//设置块大小
-	SDIO->DCTRL |= 0 << 2;				//块数据传输
-	SDIO->DCTRL |= (dir & 0X01) << 1;	//方向控制
-	SDIO->DCTRL |= 1 << 0;				//数据传输使能,DPSM状态机
+  	SDIO->DLEN = datalen & 0X1FFFFFF;	//The low 25 bits are used
+	SDIO->DCTRL &= 0xFFFFFF08;			//Clear the previous settings.
+	SDIO->DCTRL |= blksize << 4;		//Set the block size
+	SDIO->DCTRL |= 0 << 2;				//Block data transfer
+	SDIO->DCTRL |= (dir & 0X01) << 1;	//Direction control
+	SDIO->DCTRL |= 1 << 0;				//Enable the data transfer, DPSM state machine
 }  
 
-//配置SDIO DMA  
-//mbuf:存储器地址
-//bufsize:传输数据量
-//dir:方向;1,存储器-->SDIO(写数据);0,SDIO-->存储器(读数据);
+//Configure the SDIO DMA  
+//mbuf: the memory address
+//bufsize: the transfer size
+//dir: direction; 1 = memory-->SDIO (write); 0 = SDIO-->memory (read);
 void SD_DMA_Config(u32*mbuf, u32 bufsize, u8 dir)
 {				  
- 	DMA2->IFCR |= (0XF << 12);				//清除DMA2通道4的各种标记
- 	DMA2_Channel4->CCR &= ~(1 << 0);		//关闭DMA 通道4
-  	DMA2_Channel4->CCR &= ~(0X7FF << 4);	//清除之前的设置,DIR,CIRC,PINC,MINC,PSIZE,MSIZE,PL,MEM2MEM
+ 	DMA2->IFCR |= (0XF << 12);				//Clear the DMA2 channel 4 flags
+ 	DMA2_Channel4->CCR &= ~(1 << 0);		//Disable DMA channel 4
+  	DMA2_Channel4->CCR &= ~(0X7FF << 4);	//Clear the previous settings: DIR, CIRC, PINC, MINC, PSIZE, MSIZE, PL, MEM2MEM
  	DMA2_Channel4->CCR |= dir << 4;  		//Read from memory   
 	DMA2_Channel4->CCR |= 0 << 5;  			//Normal mode
 	DMA2_Channel4->CCR |= 0 << 6; 			//Peripheral address, no increment
 	DMA2_Channel4->CCR |= 1 << 7;  			//Memory increment mode
-	DMA2_Channel4->CCR |= 2 << 8;  			//外设数据宽度为32位
-	DMA2_Channel4->CCR |= 2 << 10; 			//存储器数据宽度32位
-	DMA2_Channel4->CCR |= 2 << 12; 			//高优先级	  
-  	DMA2_Channel4->CNDTR = bufsize / 4;   	//DMA2,传输数据量	  
- 	DMA2_Channel4->CPAR = (u32)&SDIO->FIFO;	//DMA2 外设地址 
-	DMA2_Channel4->CMAR = (u32)mbuf; 		//DMA2,存储器地址
- 	DMA2_Channel4->CCR |= 1 << 0; 			//开启DMA通道		
+	DMA2_Channel4->CCR |= 2 << 8;  			//Peripheral data width 32 bits
+	DMA2_Channel4->CCR |= 2 << 10; 			//Memory data width 32 bits
+	DMA2_Channel4->CCR |= 2 << 12; 			//High priority	  
+  	DMA2_Channel4->CNDTR = bufsize / 4;   	//DMA2, transfer count	  
+ 	DMA2_Channel4->CPAR = (u32)&SDIO->FIFO;	//DMA2 peripheral address 
+	DMA2_Channel4->CMAR = (u32)mbuf; 		//DMA2, memory address
+ 	DMA2_Channel4->CCR |= 1 << 0; 			//Enable the DMA channel		
 }
 
-//检查CMD0的执行状态
+//Check the result of CMD0
 //Return: SD card error code
 SD_Error CmdError(void)
 {
@@ -131,7 +131,7 @@ SD_Error CmdError(void)
 	
 	while(timeout--)
 	{
-		if(SDIO->STA & (1 << 7)) break;	//命令已发送(无需响应)	 
+		if(SDIO->STA & (1 << 7)) break;	//Command sent (no response needed)	 
 	}
 	
 	if(timeout == 0)
@@ -140,7 +140,7 @@ SD_Error CmdError(void)
 	SDIO->ICR = 0X5FF;					//Clear the flag
 	return errorstatus;
 }	 
-//检查R7响应的错误状态
+//Check the R7 response for errors
 //Return: SD card error code
 SD_Error CmdResp7Error(void)
 {
@@ -155,20 +155,20 @@ SD_Error CmdResp7Error(void)
 	
  	if((timeout == 0) || (status & (1 << 2)))					//Response timeout
 	{																				    
-		errorstatus = SD_CMD_RSP_TIMEOUT;						//当前卡不是2.0兼容卡,或者不支持设定的电压范围
+		errorstatus = SD_CMD_RSP_TIMEOUT;						//This card is not 2.0 compatible, or does not support the voltage range given
 		SDIO->ICR |= 1 << 2;									//Clear the command response timeout flag
 		return errorstatus;
 	}
 	
-	if(status & (1 << 6))										//成功接收到响应
+	if(status & (1 << 6))										//Response received
 	{								   
 		errorstatus = SD_OK;
 		SDIO->ICR |= 1 << 6;									//Clear the response flags
  	}
 	return errorstatus;
 }	   
-//检查R1响应的错误状态
-//cmd:当前命令
+//Check the R1 response for errors
+//cmd: the current command
 //Return: SD card error code
 SD_Error CmdResp1Error(u8 cmd)
 {	  
@@ -187,17 +187,17 @@ SD_Error CmdResp1Error(u8 cmd)
 	
  	if(status & (1 << 0))					//CRC error
 	{																				    
- 		SDIO->ICR = 1<<0;					//清除标志
+ 		SDIO->ICR = 1<<0;					//Clear the flags
 		return SD_CMD_CRC_FAIL;
 	}
 	
 	if(SDIO->RESPCMD != cmd)
-		return SD_ILLEGAL_CMD;				//命令不匹配 
+		return SD_ILLEGAL_CMD;				//Command mismatch 
 	
   	SDIO->ICR = 0X5FF;	 					//Clear the flag
-	return (SD_Error)(SDIO->RESP1 & SD_OCR_ERRORBITS);//返回卡响应
+	return (SD_Error)(SDIO->RESP1 & SD_OCR_ERRORBITS);//Return the card response
 }
-//检查R3响应的错误状态
+//Check the R3 response for errors
 //Return: error status
 SD_Error CmdResp3Error(void)
 {
@@ -217,7 +217,7 @@ SD_Error CmdResp3Error(void)
    	SDIO->ICR = 0X5FF;	 				//Clear the flag
  	return SD_OK;								  
 }
-//检查R2响应的错误状态
+//Check the R2 response for errors
 //Return: error status
 SD_Error CmdResp2Error(void)
 {
@@ -246,9 +246,9 @@ SD_Error CmdResp2Error(void)
 	SDIO->ICR = 0X5FF;	 				//Clear the flag
  	return errorstatus;								    		 
 } 
-//检查R6响应的错误状态
-//cmd:之前发送的命令
-//prca:卡返回的RCA地址
+//Check the R6 response for errors
+//cmd: the command that was sent
+//prca: the RCA address returned by the card
 //Return: error status
 SD_Error CmdResp6Error(u8 cmd, u16*prca)
 {
@@ -273,7 +273,7 @@ SD_Error CmdResp6Error(u8 cmd, u16*prca)
  		return SD_CMD_CRC_FAIL;
 	}
 	
-	if(SDIO->RESPCMD != cmd)				//判断是否响应cmd命令
+	if(SDIO->RESPCMD != cmd)				//Check whether the command was answered
 	{
  		return SD_ILLEGAL_CMD; 		
 	}
@@ -282,7 +282,7 @@ SD_Error CmdResp6Error(u8 cmd, u16*prca)
 	rspr1 = SDIO->RESP1;				//Response received 	 
 	if(SD_ALLZERO == (rspr1 & (SD_R6_GENERAL_UNKNOWN_ERROR | SD_R6_ILLEGAL_CMD | SD_R6_COM_CRC_FAILED)))
 	{
-		*prca = (u16)(rspr1 >> 16);			//右移16位得到,rca
+		*prca = (u16)(rspr1 >> 16);			//Shift right 16 bits to get the RCA
 		return errorstatus;
 	}
 	
@@ -298,8 +298,8 @@ SD_Error CmdResp6Error(u8 cmd, u16*prca)
 	return errorstatus;
 }
 
-//卡上电
-//查询所有SDIO接口上的卡设备,并查询其电压和配置时钟
+//Power up the card
+//Find every card on the SDIO interface, query its voltage and set up the clock
 //Return: error code (0 = no error)
 SD_Error SD_PowerON(void)
 {
@@ -308,16 +308,16 @@ SD_Error SD_PowerON(void)
 	u32 response = 0, count = 0, validvoltage = 0;
 	u32 SDType = SD_STD_CAPACITY;
 	
-	// 配置CLKCR寄存器 
-	SDIO->CLKCR = 0;					//清空CLKCR之前的设置
-	SDIO->CLKCR |= 0 << 9;				//非省电模式
-	SDIO->CLKCR |= 0 << 10;				//关闭旁路,CK根据分频设置输出
-	SDIO->CLKCR |= 0 << 11;				//1位数据宽度
-	SDIO->CLKCR |= 0 << 13;				//SDIOCLK上升沿产生SDIOCK
-	SDIO->CLKCR |= 0 << 14;				//关闭硬件流控制    
-	SDIO_Clock_Set(SDIO_INIT_CLK_DIV);	//设置时钟频率(初始化的时候,不能超过400Khz)			 
- 	SDIO->POWER = 0X03;					//上电状态,开启卡时钟    
- 	SDIO->CLKCR |= 1 << 8;				//SDIOCK使能
+	// configure the CLKCR register 
+	SDIO->CLKCR = 0;					//Clear the previous CLKCR settings
+	SDIO->CLKCR |= 0 << 9;				//Not power-save mode
+	SDIO->CLKCR |= 0 << 10;				//Bypass off, so CK comes from the divider
+	SDIO->CLKCR |= 0 << 11;				//1-bit data width
+	SDIO->CLKCR |= 0 << 13;				//SDIOCK is generated on the rising edge of SDIOCLK
+	SDIO->CLKCR |= 0 << 14;				//Hardware flow control off    
+	SDIO_Clock_Set(SDIO_INIT_CLK_DIV);	//Set the clock frequency (during init it must not exceed 400kHz)			 
+ 	SDIO->POWER = 0X03;					//Powered up, so start the card clock    
+ 	SDIO->CLKCR |= 1 << 8;				//Enable SDIOCK
 //	SDIO_InitStructure.SDIO_ClockDiv = SDIO_INIT_CLK_DIV;
 //	SDIO_InitStructure.SDIO_ClockEdge = SDIO_ClockEdge_Rising;
 //	SDIO_InitStructure.SDIO_ClockBypass = SDIO_ClockBypass_Disable;
@@ -334,7 +334,7 @@ SD_Error SD_PowerON(void)
 		
 	for(i = 0; i < 74; i++)
 	{
-		SDIO_Send_Cmd(SD_CMD_GO_IDLE_STATE, 0, 0);	//发送CMD0进入IDLE STAGE模式命令.												  
+		SDIO_Send_Cmd(SD_CMD_GO_IDLE_STATE, 0, 0);	//Send CMD0 to enter the IDLE STAGE.												  
 //		SDIO_CmdInitStructure.SDIO_Argument = 0x00;
 //		SDIO_CmdInitStructure.SDIO_CmdIndex = SD_CMD_GO_IDLE_STATE;
 //		SDIO_CmdInitStructure.SDIO_Response = SDIO_Response_No;
@@ -346,22 +346,22 @@ SD_Error SD_PowerON(void)
 			break;
 	}
 	if(errorstatus != SD_OK)
-		return errorstatus;//返回错误状态
+		return errorstatus;//Return the error status
 	
-	SDIO_Send_Cmd(SDIO_SEND_IF_COND, 1, SD_CHECK_PATTERN);	//发送CMD8,短响应,检查SD卡接口特性.
-															//arg[11:8]:01,支持电压范围,2.7~3.6V
-															//arg[7:0]:默认0XAA
-															//返回响应7
+	SDIO_Send_Cmd(SDIO_SEND_IF_COND, 1, SD_CHECK_PATTERN);	//Send CMD8, short response, to check the SD card interface conditions.
+															//arg[11:8]: 01, supported voltage range, 2.7~3.6V
+															//arg[7:0]: 0xAA by default
+															//Returns response 7
 //	SDIO_CmdInitStructure.SDIO_Argument = SD_CHECK_PATTERN;
 //	SDIO_CmdInitStructure.SDIO_CmdIndex = SDIO_SEND_IF_COND;
 //	SDIO_CmdInitStructure.SDIO_Response = SDIO_Response_Short;
 //	SDIO_CmdInitStructure.SDIO_Wait = SDIO_Wait_No;
 //	SDIO_CmdInitStructure.SDIO_CPSM = SDIO_CPSM_Enable;
 //	SDIO_SendCommand(&SDIO_CmdInitStructure);
-  	errorstatus = CmdResp7Error();							//等待R7响应
- 	if(errorstatus == SD_OK) 								//R7响应正常
+  	errorstatus = CmdResp7Error();							//Wait for an R7 response
+ 	if(errorstatus == SD_OK) 								//R7 response ok
 	{
-		CardType = SDIO_STD_CAPACITY_SD_CARD_V2_0;			//SD 2.0卡
+		CardType = SDIO_STD_CAPACITY_SD_CARD_V2_0;			//SD 2.0 card
 		SDType = SD_HIGH_CAPACITY;			   				//High capacity card
 	}
 

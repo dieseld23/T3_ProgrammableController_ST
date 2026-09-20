@@ -1283,17 +1283,17 @@ void LCDInit()
 
 	 delay_ms(100); //????
 
-	 LCD_WRITE_CMD(0xe2);//软件复位
-	 LCD_WRITE_CMD(0xaf);//显示开
-	 LCD_WRITE_CMD(0x40);//显示RAM行地址  0x40为第0行
-	 LCD_WRITE_CMD(0xa0);//LCD正向显示
-	 LCD_WRITE_CMD(0xa6);//正常显示
+	 LCD_WRITE_CMD(0xe2);//Software reset
+	 LCD_WRITE_CMD(0xaf);//Display on
+	 LCD_WRITE_CMD(0x40);//Display RAM row address; 0x40 is row 0
+	 LCD_WRITE_CMD(0xa0);//LCD normal orientation
+	 LCD_WRITE_CMD(0xa6);//Normal display
 	 LCD_WRITE_CMD(0xa5);//display all off
-	 LCD_WRITE_CMD(0xa2);//偏压比设定
-	 LCD_WRITE_CMD(0xc8);//0xc8第一行在屏幕上方
-	 LCD_WRITE_CMD(0x2f);//开关内部电源
-	 LCD_WRITE_CMD(0x24);//对比度设置
-	 LCD_WRITE_CMD(0x81);//进入细调设命令
+	 LCD_WRITE_CMD(0xa2);//Bias ratio setting
+	 LCD_WRITE_CMD(0xc8);//0xc8 puts the first row at the top of the screen
+	 LCD_WRITE_CMD(0x2f);//Switch the internal supply
+	 LCD_WRITE_CMD(0x24);//Contrast setting
+	 LCD_WRITE_CMD(0x81);//Enter the fine adjustment command
 	 LCD_WRITE_CMD(0x24);
 	 
 	 delay_ms(1000);

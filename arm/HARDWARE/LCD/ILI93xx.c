@@ -2335,7 +2335,7 @@ void LCD_DrawRectangle(u16 x1, u16 y1, u16 x2, u16 y2)
 
 //Draw a circle of a given size at a given position
 //(x,y): the centre point
-//r    :半径
+//r    : radius
 void Draw_Circle(u16 x0, u16 y0, u8 r)
 {
 	int a, b;
@@ -2343,7 +2343,7 @@ void Draw_Circle(u16 x0, u16 y0, u8 r)
 
 	a = 0;
 	b = r;	  
-	di = 3 - (r << 1);             			//判断下个点位置的标志
+	di = 3 - (r << 1);             			//Flag used to decide where the next point goes
 	while(a <= b)
 	{
 		LCD_DrawPoint(x0 + a, y0 - b);             //5
@@ -2356,7 +2356,7 @@ void Draw_Circle(u16 x0, u16 y0, u8 r)
   		LCD_DrawPoint(x0 - b, y0 - a);             //7     	         
 		a++;
 
-		//使用Bresenham算法画圆     
+		//Draw the circle with Bresenham's algorithm     
 		if(di < 0)
 		{
 			di += 4 * a + 6;
@@ -2369,19 +2369,19 @@ void Draw_Circle(u16 x0, u16 y0, u8 r)
 	}
 }
  									  
-//在指定位置显示一个字符
-//x,y:起始坐标
-//num:要显示的字符:" "--->"~"
-//size:字体大小 12/16
-//mode:叠加方式(1)还是非叠加方式(0)
+//Show one character at the given position
+//x,y: start coordinates
+//num: the character to show, " "--->"~"
+//size: font size, 12 or 16
+//mode: overlay (1) or replace (0)
 void LCD_ShowChar(u16 x, u16 y, u8 num, u8 size, u8 mode)
 {  							  
     u8 temp, t1, t;
 	u16 y0 = y;
 	u16 colortemp = POINT_COLOR;      			     
 	//Set the window		   
-	num = num - ' ';//得到偏移后的值
-	if(!mode) //非叠加方式
+	num = num - ' ';//Get the offset value
+	if(!mode) //Replace mode
 	{
 	    for(t = 0; t < size; t++)
 	    {   
@@ -2421,7 +2421,7 @@ void LCD_ShowChar(u16 x, u16 y, u8 num, u8 size, u8 mode)
 			}  	 
 	    }    
 	}
-	else	//叠加方式
+	else	//Overlay mode
 	{
 	    for(t = 0; t < size; t++)
 	    {   
@@ -2464,7 +2464,7 @@ void LCD_ShowChar(u16 x, u16 y, u8 num, u8 size, u8 mode)
 }
    
 //m raised to the power n
-//返回值:m^n次方.
+//Return: m raised to the power n.
 u32 LCD_Pow(u8 m, u8 n)
 {
 	u32 result = 1;	 
@@ -2473,12 +2473,12 @@ u32 LCD_Pow(u8 m, u8 n)
 	return result;
 }
 			 
-//显示数字,高位为0,则不显示
-//x,y :起点坐标	 
-//len :数字的位数
+//Show a number, suppressing leading zeros
+//x,y : start coordinates	 
+//len : number of digits
 //size: font size
 //color: colour 
-//num:数值(0~4294967295);	 
+//num: the value (0~4294967295);	 
 void LCD_ShowNum(u16 x, u16 y, u32 num, u8 len, u8 size)
 {         	
 	u8 t, temp;
@@ -2504,15 +2504,15 @@ void LCD_ShowNum(u16 x, u16 y, u32 num, u8 len, u8 size)
 	}
 }
 
-//显示数字,高位为0,还是显示
+//Show a number, keeping leading zeros
 //x,y: start coordinates
-//num:数值(0~999999999);	 
-//len:长度(即要显示的位数)
+//num: the value (0~999999999);	 
+//len: length, i.e. how many digits to show
 //size: font size
 //mode:
-//[7]:0,不填充;1,填充0.
-//[6:1]:保留
-//[0]:0,非叠加显示;1,叠加显示.
+//[7]: 0 = no padding; 1 = pad with zeros.
+//[6:1]: reserved
+//[0]: 0 = replace; 1 = overlay.
 void LCD_ShowxNum(u16 x, u16 y, u32 num, u8 len, u8 size, u8 mode)
 {  
 	u8 t, temp;
@@ -2541,17 +2541,17 @@ void LCD_ShowxNum(u16 x, u16 y, u32 num, u8 len, u8 size, u8 mode)
 	}
 }
 
-//显示字符串
+//Show a string
 //x,y: start coordinates
-//width,height:区域大小  
+//width,height: the size of the area  
 //size: font size
-//*p:字符串起始地址		  
+//*p: start of the string		  
 void LCD_ShowString(u16 x, u16 y, u16 width, u16 height, u8 size, char *p)
 {         
 	u8 x0 = x;
 	width += x;
 	height += y;
-    while((*p <= '~') && (*p >= ' '))	//判断是不是非法字符!
+    while((*p <= '~') && (*p >= ' '))	//Check for an invalid character!
     {       
         if(x >= width)
 		{
@@ -2560,7 +2560,7 @@ void LCD_ShowString(u16 x, u16 y, u16 width, u16 height, u8 size, char *p)
 		}
 
         if(y >= height)
-			break;						//退出
+			break;						//Exit
 
         LCD_ShowChar(x, y, *p, size, 0);
         x += size / 2;

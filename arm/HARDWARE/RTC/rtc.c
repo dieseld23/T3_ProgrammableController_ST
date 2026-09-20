@@ -16,36 +16,36 @@ extern BACNET_TIME Local_Time;
 //			vu8 is_dst;        /* daylight saving time on / off */
 
 extern U16_T Test[50];
-UN_Time Rtc;//时钟结构体 
+UN_Time Rtc;//Clock structure 
 /*
 void set_clock(u16 divx)
 {
- 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);	//使能PWR和BKP外设时钟  
-	PWR_BackupAccessCmd(ENABLE);	//使能RTC和后备寄存器访问 
+ 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);	//enable the PWR and BKP peripheral clocks  
+	PWR_BackupAccessCmd(ENABLE);	//allow access to the RTC and backup registers 
 
-	RTC_EnterConfigMode();/// 允许配置	
+	RTC_EnterConfigMode();/// allow configuration	
  
-	RTC_SetPrescaler(divx); //设置RTC预分频的值          									 
-	RTC_ExitConfigMode();//退出配置模式  				   		 									  
-	RTC_WaitForLastTask();	//等待最近一次对RTC寄存器的写操作完成		 									  
+	RTC_SetPrescaler(divx); //set the RTC prescaler          									 
+	RTC_ExitConfigMode();//leave configuration mode  				   		 									  
+	RTC_WaitForLastTask();	//wait for the last write to the RTC registers to finish		 									  
 }	   
 */
 
 static void RTC_NVIC_Config(void)
 {	
 //	NVIC_InitTypeDef NVIC_InitStructure;
-//	NVIC_InitStructure.NVIC_IRQChannel = RTC_IRQn;				//RTC全局中断
-//	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;	//先占优先级1位,从优先级3位
-//	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;			//先占优先级0位,从优先级4位
-//	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;				//使能该通道中断
-//	NVIC_Init(&NVIC_InitStructure);								//根据NVIC_InitStruct中指定的参数初始化外设NVIC寄存器
+//	NVIC_InitStructure.NVIC_IRQChannel = RTC_IRQn;				//RTC global interrupt
+//	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;	//1 bit of pre-emption priority, 3 bits of sub-priority
+//	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;			//0 bits of pre-emption priority, 4 bits of sub-priority
+//	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;				//enable this interrupt channel
+//	NVIC_Init(&NVIC_InitStructure);								//initialise the NVIC registers from NVIC_InitStruct
 }
 
-//实时时钟配置
-//初始化RTC时钟,同时检测时钟是否工作正常
-//BKP->DR1用于保存是否第一次配置的设置
-//返回0:正常
-//其他:错误代码
+//Real time clock configuration
+//Initialise the RTC and check that it is running properly
+//BKP->DR1 records whether this is the first time it has been configured
+//Returns 0: ok
+//Other: error code
 //void watchdog(void);
 //void RTC_Check_Initial(void)
 //{
@@ -78,73 +78,73 @@ static void RTC_NVIC_Config(void)
 
 u8 RTC_Init(void)
 {
-	//检查是不是第一次配置时钟
+	//Check whether the clock is being configured for the first time
 	u8 temp = 0;	
-	if(BKP_ReadBackupRegister(BKP_DR1) != 0x5050)	//从指定的后备寄存器中读出数据:读出了与写入的指定数据不相乎
+	if(BKP_ReadBackupRegister(BKP_DR1) != 0x5050)	//Read the backup register: what was read back does not match what was written
 	{	 
 		RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);	//Enable the PWR and BKP peripheral clocks   
-		PWR_BackupAccessCmd(ENABLE);												//使能后备寄存器访问 
-		BKP_DeInit();				//复位备份区域 	
-		RCC_LSEConfig(RCC_LSE_ON);	//设置外部低速晶振(LSE),使用外设低速晶振
-		while(RCC_GetFlagStatus(RCC_FLAG_LSERDY) == RESET)	//检查指定的RCC标志位设置与否,等待低速晶振就绪
+		PWR_BackupAccessCmd(ENABLE);												//Allow access to the backup registers 
+		BKP_DeInit();				//Reset the backup domain 	
+		RCC_LSEConfig(RCC_LSE_ON);	//Select the external low speed oscillator (LSE)
+		while(RCC_GetFlagStatus(RCC_FLAG_LSERDY) == RESET)	//Check the RCC flag and wait for the low speed oscillator to be ready
 		{
 			temp++;
 			delay_ms(10);
 			if(temp >= 250)
-				return 0;	//初始化时钟失败,晶振有问题
+				return 0;	//Clock initialisation failed; the crystal has a problem
 		}
 		
-		RCC_RTCCLKConfig(RCC_RTCCLKSource_LSE);	//设置RTC时钟(RTCCLK),选择LSE作为RTC时钟    
-		RCC_RTCCLKCmd(ENABLE);					//使能RTC时钟  
+		RCC_RTCCLKConfig(RCC_RTCCLKSource_LSE);	//Set the RTC clock (RTCCLK), choosing LSE as its source    
+		RCC_RTCCLKCmd(ENABLE);					//Enable the RTC clock  
 		RTC_WaitForLastTask();					//Wait for the last write to the RTC registers to finish
-		RTC_WaitForSynchro();					//等待RTC寄存器同步  
+		RTC_WaitForSynchro();					//Wait for the RTC registers to synchronise  
 		RTC_ITConfig(RTC_IT_SEC, ENABLE);		//Enable the RTC second interrupt
 		RTC_WaitForLastTask();					//Wait for the last write to the RTC registers to finish
-		RTC_EnterConfigMode();					//允许配置	
-		RTC_SetPrescaler(32767);				//设置RTC预分频的值
+		RTC_EnterConfigMode();					//Allow configuration	
+		RTC_SetPrescaler(32767);				//Set the RTC prescaler
 		RTC_WaitForLastTask();					//Wait for the last write to the RTC registers to finish
 		Rtc_Set(16, 8, 27, 15, 42, 55,0);		//Set the time	
 		RTC_ExitConfigMode(); 
-		//退出配置模式  
-		BKP_WriteBackupRegister(BKP_DR1, 0X5050);//向指定的后备寄存器中写入用户程序数据
+		//Leave configuration mode  
+		BKP_WriteBackupRegister(BKP_DR1, 0X5050);//Write user data into the backup register
 	}
-	else//系统继续计时
+	else//The system carries on keeping time
 	{
 		RTC_WaitForSynchro();					//Wait for the last write to the RTC registers to finish
 		RTC_ITConfig(RTC_IT_SEC, ENABLE);		//Enable the RTC second interrupt
 		RTC_WaitForLastTask();					//Wait for the last write to the RTC registers to finish
 	}
 	
-	RTC_NVIC_Config();							//RCT中断分组设置		    				     
+	RTC_NVIC_Config();							//RTC interrupt grouping		    				     
 	RTC_Get();									//Update the time	
 	return 1;
 }
 
-//RTC时钟中断
-//每秒触发一次  
+//RTC clock interrupt
+//Fires once a second  
 //extern u16 tcnt; 
 //void RTC_IRQHandler(void)
 //{		 
-//	if(RTC_GetITStatus(RTC_IT_SEC) != RESET)	//秒钟中断
+//	if(RTC_GetITStatus(RTC_IT_SEC) != RESET)	//second interrupt
 //	{							
-//		RTC_Get();//更新时间   
+//		RTC_Get();//update the time   
 // 	}
 //	
-//	if(RTC_GetITStatus(RTC_IT_ALR)!= RESET)		//闹钟中断
+//	if(RTC_GetITStatus(RTC_IT_ALR)!= RESET)		//alarm interrupt
 //	{
-//		RTC_ClearITPendingBit(RTC_IT_ALR);		//清闹钟中断	  	   
+//		RTC_ClearITPendingBit(RTC_IT_ALR);		//clear the alarm interrupt	  	   
 //  	}
 //	
-//	RTC_ClearITPendingBit(RTC_IT_SEC|RTC_IT_OW);//清闹钟中断
+//	RTC_ClearITPendingBit(RTC_IT_SEC|RTC_IT_OW);//clear the alarm interrupt
 //	RTC_WaitForLastTask();	  	    						 	   	 
 //}
 
-//判断是否是闰年函数
-//月份   1  2  3  4  5  6  7  8  9  10 11 12
-//闰年   31 29 31 30 31 30 31 31 30 31 30 31
-//非闰年 31 28 31 30 31 30 31 31 30 31 30 31
-//输入:年份
-//输出:该年份是不是闰年.1,是.0,不是
+//Leap year test
+//Month  1  2  3  4  5  6  7  8  9  10 11 12
+//Leap   31 29 31 30 31 30 31 31 30 31 30 31
+//Common 31 28 31 30 31 30 31 31 30 31 30 31
+//Input: the year
+//Output: whether it is a leap year. 1 = yes, 0 = no
 u8 Is_Leap_Year(u16 year)
 {			  
 	if(year % 4 == 0)				//Must be divisible by 4
@@ -167,14 +167,14 @@ u8 Is_Leap_Year(u16 year)
 	}		
 }
 
-//设置时钟
-//把输入的时钟转换为秒钟
-//以1970年1月1日为基准
-//1970~2099年为合法年份
+//Set the clock
+//Convert the given time into seconds
+//Measured from 1 January 1970
+//Years 1970~2099 are valid
 //Return: 0 = success; other = error code.
-//月份数据表											 
-u8 const table_week[12] = {0, 3, 3, 6, 1, 4, 6, 2, 5, 0, 3, 5};	//月修正数据表	  
-//平年的月份日期表
+//Month data table											 
+u8 const table_week[12] = {0, 3, 3, 6, 1, 4, 6, 2, 5, 0, 3, 5};	//Month correction table	  
+//Days per month in a common year
 
 const u8 mon_table[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 u32 Rtc_Set(u16 syear, u8 smon, u8 sday, u8 hour, u8 min, u8 sec, u8 flag)
@@ -184,29 +184,29 @@ u32 Rtc_Set(u16 syear, u8 smon, u8 sday, u8 hour, u8 min, u8 sec, u8 flag)
 	if(2000 + syear < 1970 || 2000 + syear > 2099)	
 		return 1;
 	
-	for(t = 1970; t < 2000 + syear; t++)				//把所有年份的秒钟相加
+	for(t = 1970; t < 2000 + syear; t++)				//Add up the seconds for all the whole years
 	{
 		if(Is_Leap_Year(t))
 			seccount += 31622400;				//Number of seconds in a leap year
 		else 
-			seccount += 31536000;				//平年的秒钟数
+			seccount += 31536000;				//Seconds in a common year
 	}
 	
 	smon -= 1;
-	for(t = 0; t < smon; t++)					//把前面月份的秒钟数相加
+	for(t = 0; t < smon; t++)					//Add up the seconds for the preceding months
 	{
-		seccount += (u32)mon_table[t] * 86400;	//月份秒钟数相加
+		seccount += (u32)mon_table[t] * 86400;	//Add the seconds for the months
 		if(Is_Leap_Year(2000 + syear) && t == 1)
-			seccount += 86400;					//闰年2月份增加一天的秒钟数	   
+			seccount += 86400;					//In a leap year February gains a day's worth of seconds	   
 	}
-	seccount += (u32)(sday - 1) * 86400;		//把前面日期的秒钟数相加 
-	seccount += (u32)hour * 3600;					//小时秒钟数
-  seccount += (u32)min * 60;					//分钟秒钟数
-	seccount += sec;							//最后的秒钟加上去
+	seccount += (u32)(sday - 1) * 86400;		//Add up the seconds for the preceding days 
+	seccount += (u32)hour * 3600;					//Seconds from the hours
+  seccount += (u32)min * 60;					//Seconds from the minutes
+	seccount += sec;							//Finally add the seconds
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);//Enable the PWR and BKP peripheral clocks  
-	PWR_BackupAccessCmd(ENABLE);	//使能RTC和后备寄存器访问 
-	if(flag == 0) {	RTC_SetCounter(seccount);	}	//设置RTC计数器的值
+	PWR_BackupAccessCmd(ENABLE);	//Allow access to the RTC and backup registers 
+	if(flag == 0) {	RTC_SetCounter(seccount);	}	//Set the RTC counter
 	
 	RTC_WaitForLastTask();			//Wait for the last write to the RTC registers to finish  	
 	return seccount;	    
@@ -221,18 +221,18 @@ void Get_Time_by_sec(u32 sec_time,UN_Time * rtc, uint8_t flag)
 	u16 temp1 = 0;
 	
 	
- 	temp = sec_time / 86400;		//得到天数(秒钟数对应的)
+ 	temp = sec_time / 86400;		//Work out the number of days from the seconds
 	if(flag == 0)
 	{
 		daycnt = 0;
 	}
-	if(daycnt != temp)				//超过一天了
+	if(daycnt != temp)				//More than a day
 	{	  
 		daycnt = temp;
-		temp1 = 1970;				//从1970年开始
+		temp1 = 1970;				//Starting from 1970
 		while(temp >= 365)
 		{				 
-			if(Is_Leap_Year(temp1))	//是闰年
+			if(Is_Leap_Year(temp1))	//Leap year
 			{
 				if(temp >= 366)
 				{
@@ -240,7 +240,7 @@ void Get_Time_by_sec(u32 sec_time,UN_Time * rtc, uint8_t flag)
 				}
 				else 
 				{//??????????????????????
-					// 闰年的最后一天出错
+					// the last day of a leap year comes out wrong
 					//temp1++;
 					break;
 				}  
@@ -251,12 +251,12 @@ void Get_Time_by_sec(u32 sec_time,UN_Time * rtc, uint8_t flag)
 			}			
 			temp1++;  
 		}   
-		rtc->Clk.year = temp1 - 2000;	//得到年份
+		rtc->Clk.year = temp1 - 2000;	//Work out the year
 		rtc->Clk.day_of_year = temp + 1;  // get day of year, added by chelsea
 		temp1 = 0;
-		while(temp >= 28)			//超过了一个月
+		while(temp >= 28)			//More than a month
 		{
-			if(Is_Leap_Year(rtc->Clk.year) && temp1 == 1)	//当年是不是闰年/2月份
+			if(Is_Leap_Year(rtc->Clk.year) && temp1 == 1)	//Whether this year is a leap year, and February
 			{
 				if(temp >= 29)
 					temp -=	29;		//Number of seconds in a leap year
@@ -272,14 +272,14 @@ void Get_Time_by_sec(u32 sec_time,UN_Time * rtc, uint8_t flag)
 			}
 			temp1++;  
 		}
-		rtc->Clk.mon = temp1 + 1;	//得到月份
-		rtc->Clk.day = temp + 1;  	//得到日期 
+		rtc->Clk.mon = temp1 + 1;	//Work out the month
+		rtc->Clk.day = temp + 1;  	//Work out the day 
 	}
-	temp = sec_time % 86400;     		//得到秒钟数   	   
-	rtc->Clk.hour = temp / 3600;     	//小时
-	rtc->Clk.min = (temp % 3600) / 60; 	//分钟	
-	rtc->Clk.sec = (temp % 3600) % 60; 	//秒钟
-	rtc->Clk.week = RTC_Get_Week(2000 + rtc->Clk.year, rtc->Clk.mon,rtc->Clk.day);	//获取星期   
+	temp = sec_time % 86400;     		//Work out the seconds   	   
+	rtc->Clk.hour = temp / 3600;     	//Hours
+	rtc->Clk.min = (temp % 3600) / 60; 	//Minutes	
+	rtc->Clk.sec = (temp % 3600) % 60; 	//Seconds
+	rtc->Clk.week = RTC_Get_Week(2000 + rtc->Clk.year, rtc->Clk.mon,rtc->Clk.day);	//Get the weekday   
 	
 	if(flag == 1)
 	{
@@ -296,7 +296,7 @@ void Get_Time_by_sec(u32 sec_time,UN_Time * rtc, uint8_t flag)
 
 
 
-//得到当前的时间
+//Get the current time
 //Return: 0 = success; other = error code.
 u8 RTC_Get(void)
 {
@@ -304,10 +304,10 @@ u8 RTC_Get(void)
 	return 0;
 }
 
-//获得现在是星期几
-//功能描述:输入公历日期得到星期(只允许1901-2099年)
-//输入参数：公历年月日 
-//返回值：星期号																						 
+//Work out what day of the week it is
+//Description: given a Gregorian date, return the weekday (1901-2099 only)
+//Input: Gregorian year, month and day 
+//Return: the weekday number																						 
 u8 RTC_Get_Week(u16 year, u8 month, u8 day)
 {	
 	u16 temp2;
@@ -316,10 +316,10 @@ u8 RTC_Get_Week(u16 year, u8 month, u8 day)
 	yearH = year / 100;
 	yearL = year % 100;
 	  
-	if(yearH > 19)	// 如果为21世纪,年份数加100
+	if(yearH > 19)	// for the 21st century, add 100 to the year
 		yearL += 100;
 	
-	// 所过闰年数只算1900年之后的  
+	// only leap years after 1900 are counted  
 	temp2 = yearL + yearL / 4;
 	temp2 = temp2 % 7; 
 	temp2 = temp2 + day + table_week[month - 1];

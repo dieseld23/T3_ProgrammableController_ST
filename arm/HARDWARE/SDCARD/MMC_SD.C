@@ -9,8 +9,8 @@ u8 SD_Type = 0;	//SD card type
 #if (SD_BUS == SPI_BUS_TYPE)
 					   					   
 
-////////////////////////////////////移植修改区///////////////////////////////////
-//移植时候的接口
+////////////////////////////////////porting section///////////////////////////////////
+//The interface to change when porting
 //data: the data to write
 //Return: the data read
 u8 SD_SPI_ReadWriteByte(u8 dat)
@@ -22,7 +22,7 @@ u8 SD_SPI_ReadWriteByte(u8 dat)
 		return SPI1_ReadWriteByte(dat);
 }
 
-//SD卡初始化的时候,需要低速
+//The SD card has to be initialised at low speed
 void SD_SPI_SpeedLow(void)
 {
 	if((Modbus.mini_type == MINI_BIG) || (Modbus.mini_type == MINI_BIG_ARM) 
@@ -32,7 +32,7 @@ void SD_SPI_SpeedLow(void)
 		SPI1_SetSpeed(SPI_BaudRatePrescaler_256);//Switch to low-speed mode
 }
 
-//SD卡正常工作的时候,可以高速了
+//Once the SD card is running normally it can go fast
 void SD_SPI_SpeedHigh(void)
 {
 	if((Modbus.mini_type == MINI_BIG) || (Modbus.mini_type == MINI_BIG_ARM) 
@@ -42,25 +42,25 @@ void SD_SPI_SpeedHigh(void)
 		SPI1_SetSpeed(SPI_BaudRatePrescaler_16);//Switch to high-speed mode	
 }
 
-////SPI硬件层初始化
+////SPI hardware layer initialisation
 //void SD_SPI_Init(void)
 //{
 //  GPIO_InitTypeDef GPIO_InitStructure;
 
-// 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);	 //使能PB端口时钟
+// 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);	 //enable the PB port clock
 
-//	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;				 //PB12推挽 
-// 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 		 //推挽输出
+//	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;				 //PB12 push-pull 
+// 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 		 //push-pull output
 // 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 // 	GPIO_Init(GPIOB, &GPIO_InitStructure);
-// 	GPIO_SetBits(GPIOA,GPIO_Pin_4);						 //PB12上拉
+// 	GPIO_SetBits(GPIOA,GPIO_Pin_4);						 //PB12 pull-up
 //	
 //	SD_CS = 1;
 //	
 //}
 
 ////////////////////////////////////////////////////////////////////////////
-//取消选择,释放SPI总线
+//Deselect and release the SPI bus
 void SD_DisSelect(void)
 {
 	if((Modbus.mini_type == MINI_BIG) || (Modbus.mini_type == MINI_BIG_ARM)) // PB3 PB4 PB5	
@@ -72,11 +72,11 @@ void SD_DisSelect(void)
 	else if((Modbus.mini_type == MINI_TSTAT10) || (Modbus.mini_type == MINI_T10P))
 		SD_CS_TSTAT10 = 1;
 
- 	SD_SPI_ReadWriteByte(0xff);//提供额外的8个时钟
+ 	SD_SPI_ReadWriteByte(0xff);//Give it another 8 clocks
 }
 
-//选择sd卡,并且等待卡准备OK
-//返回值:0,成功;1,失败;
+//Select the SD card and wait for it to be ready
+//Return: 0 = success; 1 = failure;
 u8 SD_Select(void)
 {
 	if((Modbus.mini_type == MINI_BIG) || (Modbus.mini_type == MINI_BIG_ARM)) // PB3 PB4 PB5	
@@ -93,18 +93,18 @@ u8 SD_Select(void)
 //	printf("wait sd\r\n");
 //#endif
 	if(SD_WaitReady() == 0)
-		return 0;//等待成功
+		return 0;//Wait succeeded
 //#if ARM_UART_DEBUG
 //	uart1_init(115200);
 //	DEBUG_EN = 1;
 //	printf("wait sd fail\r\n");
 //#endif
 	SD_DisSelect();
-	return 1;//等待失败
+	return 1;//Wait failed
 }
 
-//等待卡准备好
-//返回值:0,准备好了;其他,错误代码
+//Wait for the card to be ready
+//Return: 0 = ready; other = error code
 u8 SD_WaitReady(void)
 {
 	u32 t = 0;
@@ -115,84 +115,84 @@ u8 SD_WaitReady(void)
 		t++;	
 		//add watchdog
 		IWDG_ReloadCounter(); 
-	}while(t < 0X1FFF/*FF*/);//等待 
+	}while(t < 0X1FFF/*FF*/);//Wait 
 	return 1;
 }
 
-//等待SD卡回应
-//Response:要得到的回应值
-//返回值:0,成功得到了该回应值
-//    其他,得到回应值失败
+//Wait for the SD card to respond
+//Response: the response value expected
+//Return: 0 = that response was received
+//    other = the response was not received
 u8 SD_GetResponse(u8 Response)
 {
-	u16 Count = 0xFFFF;//等待次数	   						  
-	while ((SD_SPI_ReadWriteByte(0XFF) != Response) && Count)Count--;//等待得到准确的回应 
+	u16 Count = 0xFFFF;//Number of attempts	   						  
+	while ((SD_SPI_ReadWriteByte(0XFF) != Response) && Count)Count--;//Wait for exactly the right response 
 	
 	if(Count == 0)
-		return MSD_RESPONSE_FAILURE;	//得到回应失败   
+		return MSD_RESPONSE_FAILURE;	//No response   
 	else 
-		return MSD_RESPONSE_NO_ERROR;	//正确回应
+		return MSD_RESPONSE_NO_ERROR;	//Correct response
 }
 
-//从sd卡读取一个数据包的内容
+//Read one data packet from the SD card
 //buf: data buffer
-//len:要读取的数据长度.
+//len: number of bytes to read.
 //Return: 0 = success; other = failure;	
 u8 SD_RecvData(u8*buf, u16 len)
 {			  	  
-	if(SD_GetResponse(0xFE))return 1;//等待SD卡发回数据起始令牌0xFE
+	if(SD_GetResponse(0xFE))return 1;//Wait for the SD card to send the 0xFE data start token
 	
-    while(len--)//开始接收数据
+    while(len--)//Start receiving data
     {
         *buf = SD_SPI_ReadWriteByte(0xFF);//SPI1_ReadWriteByte(0xFF);
         buf++;
     }
-    //下面是2个伪CRC（dummy CRC）
+    //Two dummy CRC bytes follow
     SD_SPI_ReadWriteByte(0xFF);
     SD_SPI_ReadWriteByte(0xFF);									  					    
-    return 0;//读取成功
+    return 0;//Read succeeded
 }
 
-//向sd卡写入一个数据包的内容 512字节
+//Write one 512-byte data packet to the SD card
 //buf: data buffer
-//cmd:指令
+//cmd: the command
 //Return: 0 = success; other = failure;	
 u8 SD_SendBlock(u8*buf, u8 cmd)
 {	
 	u16 t;		  	  
-	if(SD_WaitReady())return 1;//等待准备失效
+	if(SD_WaitReady())return 1;//Wait for ready to drop
 	SD_SPI_ReadWriteByte(cmd);
-	if(cmd != 0XFD)//不是结束指令
+	if(cmd != 0XFD)//Not the stop command
 	{
 		for(t = 0; t < 512; t++)  
-			SD_SPI_ReadWriteByte(buf[t]);//SPI1_ReadWriteByte(buf[t]);//提高速度,减少函数传参时间
-	    SD_SPI_ReadWriteByte(0xFF);//忽略crc
+			SD_SPI_ReadWriteByte(buf[t]);//SPI1_ReadWriteByte(buf[t]);//faster, with less time spent passing arguments
+	    SD_SPI_ReadWriteByte(0xFF);//Ignore the CRC
 	    SD_SPI_ReadWriteByte(0xFF);
-		t=SD_SPI_ReadWriteByte(0xFF);//接收响应
+		t=SD_SPI_ReadWriteByte(0xFF);//Receive the response
 		if((t & 0x1F) != 0x05)return 2;//Response error									  					    
 	}						 									  					    
-    return 0;//写入成功
+    return 0;//Write succeeded
 }
 
-//向SD卡发送一个命令
-//输入: u8 cmd   命令 
-//      u32 arg  命令参数
-//      u8 crc   crc校验值	   
-//返回值:SD卡返回的响应		
+//Send a command to the SD card
+//Input: u8 cmd   the command 
+//      u32 arg  the command argument
+//      u8 crc   the CRC value	   
+//Return: the response from the SD card		
 extern U16_T far Test[50];
 u8 SD_SendCmd(u8 cmd, u32 arg, u8 crc)
 {
     u8 r1;	
 	u8 Retry = 0; 
-	SD_DisSelect();//取消上次片选
-	if(SD_Select())	return 0XFF;//片选失效 
-	//发送
+	SD_DisSelect();//Drop the previous chip select
+	if(SD_Select())	return 0XFF;//Chip select inactive 
+	//Send
 //#if ARM_UART_DEBUG
 //	uart1_init(115200);
 //	DEBUG_EN = 1;
 //	printf("sd select ok\r\n");
 //#endif
-	SD_SPI_ReadWriteByte(cmd | 0x40);//分别写入命令
+	SD_SPI_ReadWriteByte(cmd | 0x40);//Write the command bytes one by one
 	SD_SPI_ReadWriteByte(arg >> 24);
 	SD_SPI_ReadWriteByte(arg >> 16);
 	SD_SPI_ReadWriteByte(arg >> 8);
@@ -201,24 +201,24 @@ u8 SD_SendCmd(u8 cmd, u32 arg, u8 crc)
 	
 	if(cmd == CMD12)
 		SD_SPI_ReadWriteByte(0xff);//Skip a stuff byte when stop reading
-    //等待响应，或超时退出
+    //Wait for a response, or give up on timeout
 	Retry = 0X1F;
 	do
 	{
 		r1 = SD_SPI_ReadWriteByte(0xFF);
 	}while((r1 & 0X80) && Retry--);	 
-	//返回状态值
+	//Return the status
     return r1;
 }
 
-//获取SD卡的CID信息，包括制造商信息
-//输入: u8 *cid_data(存放CID的内存，至少16Byte）	  
+//Read the SD card CID, which includes the manufacturer details
+//Input: u8 *cid_data (memory for the CID, at least 16 bytes)	  
 //Return: 0 = NO_ERR
 //		 1 = error														   
 u8 SD_GetCID(u8 *cid_data)
 {
     u8 r1;	   
-    //发CMD10命令，读CID
+    //Send CMD10 to read the CID
     r1 = SD_SendCmd(CMD10, 0, 0x01);
     if(r1 == 0x00)
 	{
@@ -231,14 +231,14 @@ u8 SD_GetCID(u8 *cid_data)
 		return 0;
 }
 
-//获取SD卡的CSD信息，包括容量和速度信息
-//输入:u8 *cid_data(存放CID的内存，至少16Byte）	    
+//Read the SD card CSD, which includes the capacity and speed
+//Input: u8 *cid_data (memory for the CID, at least 16 bytes)	    
 //Return: 0 = NO_ERR
 //		 1 = error														   
 u8 SD_GetCSD(u8 *csd_data)
 {
     u8 r1;	 
-    r1 = SD_SendCmd(CMD9, 0, 0x01);//发CMD9命令，读CSD
+    r1 = SD_SendCmd(CMD9, 0, 0x01);//Send CMD9 to read the CSD
     if(r1 == 0)
 	{
     	r1 = SD_RecvData(csd_data, 16);//Receive 16 bytes of data 
@@ -250,25 +250,25 @@ u8 SD_GetCSD(u8 *csd_data)
 		return 0;
 }
 
-//获取SD卡的总扇区数（扇区数）   
-//返回值:0： 取容量出错 
-//       其他:SD卡的容量(扇区数/512字节)
-//每扇区的字节数必为512，因为如果不是512，则初始化不能通过.														  
+//Get the total number of sectors on the SD card   
+//Return: 0 = could not read the capacity 
+//       other = the card capacity in 512-byte sectors
+//The sector size must be 512; anything else fails initialisation.														  
 u32 SD_GetSectorCount(void)
 {
     u8 csd[16];
     u32 Capacity;  
     u8 n;
 	u16 csize;  					    
-	//取CSD信息，如果期间出错，返回0
+	//Read the CSD, returning 0 on any error
     if(SD_GetCSD(csd) != 0) return 0;	    
-    //如果为SDHC卡，按照下面方式计算
-    if((csd[0] & 0xC0) == 0x40)	 //V2.00的卡
+    //For an SDHC card, work it out as below
+    if((csd[0] & 0xC0) == 0x40)	 //A V2.00 card
     {	
 		csize = csd[9] + ((u16)csd[8] << 8) + 1;
 		Capacity = (u32)csize << 10;//Get the sector count	 		   
     }
-	else//V1.XX的卡
+	else//A V1.XX card
     {	
 		n = (csd[5] & 15) + ((csd[10] & 128) >> 7) + ((csd[9] & 3) << 1) + 2;
 		csize = (csd[8] >> 6) + ((u16)csd[7] << 2) + ((u16)(csd[6] & 3) << 10) + 1;
@@ -281,8 +281,8 @@ u32 SD_GetSectorCount(void)
 extern u16 Test[50];
 u8 SD_Initialize(void)
 {
-	u8 r1;      // 存放SD卡的返回值
-	u16 retry;  // 用来进行超时计数
+	u8 r1;      // holds the value returned by the SD card
+	u16 retry;  // used to count towards the timeout
 	u8 buf[4];  
 	u16 i;
 	if((Modbus.mini_type == MINI_BIG) || (Modbus.mini_type == MINI_BIG_ARM) 
@@ -295,7 +295,7 @@ u8 SD_Initialize(void)
 	}
 	
 #if (ASIX_MINI || ASIX_CM5)
-	SD_SPI_Init();		//初始化IO
+	SD_SPI_Init();		//Initialise the IO
 #endif
 	
 	
@@ -303,22 +303,22 @@ u8 SD_Initialize(void)
 
 	
  	for(i = 0; i < 10; i++)	
-		SD_SPI_ReadWriteByte(0XFF);//发送最少74个脉冲
+		SD_SPI_ReadWriteByte(0XFF);//Send at least 74 clock pulses
 	
 	retry = 2;
 	do
 	{
-		r1 = SD_SendCmd(CMD0, 0, 0x95);//进入IDLE状态
+		r1 = SD_SendCmd(CMD0, 0, 0x95);//Enter the IDLE state
 		
 	}while((r1 != 0X01) && retry--);
 
- 	SD_Type = 0;//默认无卡
+ 	SD_Type = 0;//No card by default
 	if(r1 == 0X01)
 	{
 		if(SD_SendCmd(CMD8, 0x1AA, 0x87) == 1)//SD V2.0
 		{
 			for(i = 0; i < 4; i++)buf[i] = SD_SPI_ReadWriteByte(0XFF);	//Get trailing return value of R7 resp
-			if(buf[2] == 0X01 && buf[3] == 0XAA)//卡是否支持2.7~3.6V
+			if(buf[2] == 0X01 && buf[3] == 0XAA)//Whether the card supports 2.7~3.6V
 			{
 				retry = 0XFFFE;
 				do
@@ -327,11 +327,11 @@ u8 SD_Initialize(void)
 					r1=SD_SendCmd(CMD41, 0x40000000, 0X01);//Send CMD41
 				}while(r1 && retry--);
 				
-				if(retry && SD_SendCmd(CMD58, 0, 0X01) == 0)//鉴别SD2.0卡版本开始
+				if(retry && SD_SendCmd(CMD58, 0, 0X01) == 0)//Start identifying the SD 2.0 card version
 				{
-					for(i = 0; i < 4; i++)buf[i] = SD_SPI_ReadWriteByte(0XFF);//得到OCR值
+					for(i = 0; i < 4; i++)buf[i] = SD_SPI_ReadWriteByte(0XFF);//Read the OCR
 					if(buf[0] & 0x40)
-						SD_Type = SD_TYPE_V2HC;    //检查CCS
+						SD_Type = SD_TYPE_V2HC;    //Check CCS
 					else 
 						SD_Type = SD_TYPE_V2;   
 				}
@@ -357,15 +357,15 @@ u8 SD_Initialize(void)
 				retry = 0XFFFE;
 				do //Wait for the card to leave IDLE mode
 				{											    
-					r1 = SD_SendCmd(CMD1, 0, 0X01);//发送CMD1
+					r1 = SD_SendCmd(CMD1, 0, 0X01);//Send CMD1
 				}while(r1 && retry--);  
 			}
 			if(retry == 0 || SD_SendCmd(CMD16, 512, 0X01) != 0)
-				SD_Type = SD_TYPE_ERR;//错误的卡
+				SD_Type = SD_TYPE_ERR;//Wrong card
 		}
 	}
 	SD_DisSelect();//Deselect the chip
-	SD_SPI_SpeedHigh();//高速
+	SD_SPI_SpeedHigh();//High speed
 //#if (ASIX_MINI || ASIX_CM5)_UART_DEBUG
 //	uart1_init(115200);
 //	DEBUG_EN = 1;
@@ -379,12 +379,12 @@ u8 SD_Initialize(void)
 	{
 		return r1;
 	}
-	return 0xaa;//其他错误
+	return 0xaa;//Other error
 }
 
 //Read the SD card
 //buf: data buffer
-//sector:扇区
+//sector: the sector
 //cnt: sector count
 //Return: 0 = ok; other = failure.
 u8 SD_ReadDisk(u8*buf, u32 sector, u8 cnt)
@@ -408,7 +408,7 @@ u8 SD_ReadDisk(u8*buf, u32 sector, u8 cnt)
 			buf += 512;  
 		}while(--cnt && r1 == 0);
 		
-		SD_SendCmd(CMD12, 0, 0X01);	//发送停止命令
+		SD_SendCmd(CMD12, 0, 0X01);	//Send the stop command
 	}   
 	SD_DisSelect();//Deselect the chip
 	return r1;//
@@ -416,7 +416,7 @@ u8 SD_ReadDisk(u8*buf, u32 sector, u8 cnt)
 
 //Write the SD card
 //buf: data buffer
-//sector:起始扇区
+//sector: the first sector
 //cnt: sector count
 //Return: 0 = ok; other = failure.
 u8 SD_WriteDisk(u8*buf, u32 sector, u8 cnt)
@@ -428,14 +428,14 @@ u8 SD_WriteDisk(u8*buf, u32 sector, u8 cnt)
 		r1 = SD_SendCmd(CMD24, sector, 0X01);//Read command
 		if(r1 == 0)//Command sent successfully
 		{
-			r1 = SD_SendBlock(buf, 0xFE);//写512个字节	   
+			r1 = SD_SendBlock(buf, 0xFE);//Write 512 bytes	   
 		}
 	}else
 	{
 		if(SD_Type != SD_TYPE_MMC)
 		{
 			SD_SendCmd(CMD55, 0, 0X01);	
-			SD_SendCmd(CMD23, cnt, 0X01);//发送指令	
+			SD_SendCmd(CMD23, cnt, 0X01);//Send the command	
 		}
  		r1 = SD_SendCmd(CMD25, sector, 0X01);//Multiple-block read command
 		if(r1 == 0)

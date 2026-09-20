@@ -47,42 +47,42 @@
 
  
   
-//LCD重要参数集
+//The key LCD parameters
 typedef struct  
 {										    
-	u16 width;			//LCD 宽度
-	u16 height;			//LCD 高度
+	u16 width;			//LCD width
+	u16 height;			//LCD height
 	u16 id;				//LCD ID
-	u8  dir;			//横屏还是竖屏控制：0，竖屏；1，横屏。	
-	u8	wramcmd;		//开始写gram指令
-	u8  setxcmd;		//设置x坐标指令
-	u8  setycmd;		//设置y坐标指令	 
+	u8  dir;			//Landscape or portrait: 0 = portrait; 1 = landscape.	
+	u8	wramcmd;		//Start-write-GRAM command
+	u8  setxcmd;		//Set-x-coordinate command
+	u8  setycmd;		//Set-y-coordinate command	 
 }_lcd_dev; 	  
 
-//LCD参数
+//LCD parameters
 extern _lcd_dev lcddev;	//Holds the key LCD parameters
 //LCD pen colour and background colour	   
-extern u16  POINT_COLOR;//默认红色    
-extern u16  BACK_COLOR; //背景颜色.默认为白色
+extern u16  POINT_COLOR;//Red by default    
+extern u16  BACK_COLOR; //Background colour, white by default
 
 
 //////////////////////////////////////////////////////////////////////////////////	 
-//-----------------LCD端口定义---------------- 
-#define	LCD_LED PDout(13) //LCD背光    		 PD13
-#define LCD_RST	PEout(1)  //LCD复位			 PE1 	    
-//LCD地址结构体
+//-----------------LCD pin definitions---------------- 
+#define	LCD_LED PDout(13) //LCD backlight    		 PD13
+#define LCD_RST	PEout(1)  //LCD reset			 PE1 	    
+//LCD address structure
 typedef struct
 {
 	u16 LCD_REG;
 	u16 LCD_RAM;
 } LCD_TypeDef;
-//使用NOR/SRAM的 Bank1.sector4,地址位HADDR[27,26]=11 A10作为数据命令区分线 
-//注意设置时STM32内部会右移一位对其! 111110=0X3E			    
+//Uses NOR/SRAM Bank1 sector4; address bits HADDR[27,26]=11 with A10 selecting data or command 
+//Note the STM32 shifts this right by one internally when setting it! 111110=0X3E			    
 #define LCD_BASE        ((u32)(0x60000000 | 0x0001FFFE))
 #define LCD             ((LCD_TypeDef *) LCD_BASE)
 //////////////////////////////////////////////////////////////////////////////////
 	 
-//扫描方向定义
+//Scan direction definitions
 #define L2R_U2D  0 //Left to right, top to bottom
 #define L2R_D2U  1 //Left to right, bottom to top
 #define R2L_U2D  2 //Right to left, top to bottom
@@ -93,9 +93,9 @@ typedef struct
 #define D2U_L2R  6 //Bottom to top, left to right
 #define D2U_R2L  7 //Bottom to top, right to left	 
 
-#define DFT_SCAN_DIR  L2R_U2D  //默认的扫描方向
+#define DFT_SCAN_DIR  L2R_U2D  //Default scan direction
 
-//画笔颜色
+//Pen colour
 #define WHITE         	 0xFFFF
 #define BLACK         	 0x0000	  
 #define BLUE         	 0x001F  
@@ -107,51 +107,51 @@ typedef struct
 #define GREEN         	 0x07E0
 #define CYAN          	 0x7FFF
 #define YELLOW        	 0xFFE0
-#define BROWN 			 0XBC40 //棕色
-#define BRRED 			 0XFC07 //棕红色
+#define BROWN 			 0XBC40 //Brown
+#define BRRED 			 0XFC07 //Maroon
 #define GRAY  			 0X8430 //Grey
-//GUI颜色
+//GUI colours
 
-#define DARKBLUE      	 0X01CF	//深蓝色
-#define LIGHTBLUE      	 0X7D7C	//浅蓝色  
-#define GRAYBLUE       	 0X5458 //灰蓝色
-//以上三色为PANEL的颜色 
+#define DARKBLUE      	 0X01CF	//Dark blue
+#define LIGHTBLUE      	 0X7D7C	//Light blue  
+#define GRAYBLUE       	 0X5458 //Grey blue
+//The three colours above are the PANEL colours 
  
-#define LIGHTGREEN     	 0X841F //浅绿色
-//#define LIGHTGRAY        0XEF5B //浅灰色(PANNEL)
-#define LGRAY 			 0XC618 //浅灰色(PANNEL),窗体背景色
+#define LIGHTGREEN     	 0X841F //Light green
+//#define LIGHTGRAY        0XEF5B //light grey (PANEL)
+#define LGRAY 			 0XC618 //Light grey (PANEL), the window background colour
 
-#define LGRAYBLUE        0XA651 //浅灰蓝色(中间层颜色)
-#define LBBLUE           0X2B12 //浅棕蓝色(选择条目的反色)
+#define LGRAYBLUE        0XA651 //Pale grey blue (middle layer colour)
+#define LBBLUE           0X2B12 //Pale brown blue (inverse colour for a selected item)
 	    															  
 void LCD_Init(void);													   	//Initialise
-void LCD_DisplayOn(void);													//开显示
-void LCD_DisplayOff(void);													//关显示
+void LCD_DisplayOn(void);													//Display on
+void LCD_DisplayOff(void);													//Display off
 void LCD_Clear(u16 Color);	 												//Clear the screen
-void LCD_SetCursor(u16 Xpos, u16 Ypos);										//设置光标
+void LCD_SetCursor(u16 Xpos, u16 Ypos);										//Set the cursor
 void LCD_DrawPoint(u16 x, u16 y);											//Draw a point
 void LCD_Fast_DrawPoint(u16 x, u16 y, u16 color);							//Fast point draw
-u16  LCD_ReadPoint(u16 x, u16 y); 											//读点 
-void Draw_Circle(u16 x0, u16 y0, u8 r);										//画圆
+u16  LCD_ReadPoint(u16 x, u16 y); 											//Read a point 
+void Draw_Circle(u16 x0, u16 y0, u8 r);										//Draw a circle
 void LCD_DrawLine(u16 x1, u16 y1, u16 x2, u16 y2);							//Draw a line
 void LCD_DrawRectangle(u16 x1, u16 y1, u16 x2, u16 y2);		   				//Draw a rectangle
-void LCD_Fill(u16 sx, u16 sy, u16 ex, u16 ey, u16 color);		   			//填充单色
-void LCD_Color_Fill(u16 sx, u16 sy, u16 ex, u16 ey, u16 *color);			//填充指定颜色
-void LCD_ShowChar(u16 x, u16 y, u8 num, u8 size, u8 mode);					//显示一个字符
-void LCD_ShowNum(u16 x, u16 y, u32 num, u8 len, u8 size);  					//显示一个数字
-void LCD_ShowxNum(u16 x, u16 y, u32 num, u8 len, u8 size, u8 mode);			//显示 数字
-void LCD_ShowString(u16 x, u16 y, u16 width, u16 height, u8 size, char *p);	//显示一个字符串,12/16字体
+void LCD_Fill(u16 sx, u16 sy, u16 ex, u16 ey, u16 color);		   			//Fill with one colour
+void LCD_Color_Fill(u16 sx, u16 sy, u16 ex, u16 ey, u16 *color);			//Fill with the given colour
+void LCD_ShowChar(u16 x, u16 y, u8 num, u8 size, u8 mode);					//Show one character
+void LCD_ShowNum(u16 x, u16 y, u32 num, u8 len, u8 size);  					//Show one number
+void LCD_ShowxNum(u16 x, u16 y, u32 num, u8 len, u8 size, u8 mode);			//Show a number
+void LCD_ShowString(u16 x, u16 y, u16 width, u16 height, u8 size, char *p);	//Show a string in the 12 or 16 font
 
 void LCD_WriteReg(u8 LCD_Reg, u16 LCD_RegValue);
 u16 LCD_ReadReg(u8 LCD_Reg);
 void LCD_WriteRAM_Prepare(void);
 void LCD_WriteRAM(u16 RGB_Code);		  
-void LCD_Scan_Dir(u8 dir);													//设置屏扫描方向
-void LCD_Display_Dir(u8 dir);												//设置屏幕显示方向
+void LCD_Scan_Dir(u8 dir);													//Set the screen scan direction
+void LCD_Display_Dir(u8 dir);												//Set the screen orientation
 void LCD_Set_Window(u16 sx, u16 sy, u16 width, u16 height);					//Set the window
 
 					   																			 
-//9320/9325 LCD寄存器  
+//9320/9325 LCD registers  
 #define R0             0x00
 #define R1             0x01
 #define R2             0x02
