@@ -103,9 +103,13 @@ receive arrows stacked underneath them, so everything about the link is in one
 corner. Both sit left of `FIRST_CH_POS`, which is x=39, so the column is clear
 of the big number for its whole height.
 
-The unit moved from the foot of the number to its cap line. The digits are drawn
-from the top of a 96 dot cell but their ink only starts nine rows in, so
-`UNIT_YPOS` is `THERM_METER_POS + CHLIB_CAP_TOP` rather than `THERM_METER_POS`.
+The unit moved from the foot of the number to its cap line. That needs two
+constants, not one, because both faces ink below the top of their cell by
+different amounts. `UNIT_YPOS` is the digits' cap line, nine rows into their 96
+dot cell; the degree ring is a raw 14x14 bitmap with no padding, so it is drawn
+straight at that line, while the letter beside it is a 24x36 cell that inks four
+rows in and so starts at `UNIT_TEXT_YPOS`, four rows above. All three ink tops
+then land on the same row.
 
 The value text drops two dots (`VALUE_YOFF`) so that its ink centres in the box:
 `draw_tangle()` runs the box from y-3 to y+40 and the 15x30 face inks rows 4 to

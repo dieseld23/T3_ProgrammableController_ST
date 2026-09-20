@@ -1933,7 +1933,7 @@ void Top_area_display(uint8 item, int16 value, uint8 unit)
 				display_dec(0);
 			else
 				display_dec(0);
-				disp_str(FORM15X30, UNIT_POS,UNIT_YPOS,"C",TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
+				disp_str(FORM15X30, UNIT_POS,UNIT_TEXT_YPOS,"C",TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
 		}
     else if(unit == TOP_AREA_DISP_UNIT_F)
 		{	
@@ -1943,35 +1943,35 @@ void Top_area_display(uint8 item, int16 value, uint8 unit)
 				display_dec(0);
 			else
 				display_dec(0);
-        disp_str(FORM15X30, UNIT_POS, UNIT_YPOS, "F", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+        disp_str(FORM15X30, UNIT_POS, UNIT_TEXT_YPOS, "F", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		else if(unit == TOP_AREA_DISP_UNIT_RH)
 		{
 			display_dec(0);
-      disp_str(FORM15X30, UNIT_POS - 23, UNIT_YPOS, "%R", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+      disp_str(FORM15X30, UNIT_POS - 23, UNIT_TEXT_YPOS, "%R", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		else if(unit == TOP_AREA_DISP_UNIT_PPM)
 		{display_dec(0);
-        disp_str(FORM15X30, UNIT_POS - 23, UNIT_YPOS, "pp", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+        disp_str(FORM15X30, UNIT_POS - 23, UNIT_TEXT_YPOS, "pp", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		else if(unit == TOP_AREA_DISP_UNIT_PERCENT)
 		{display_dec(0);
-        disp_str(FORM15X30, UNIT_POS, UNIT_YPOS, "%", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+        disp_str(FORM15X30, UNIT_POS, UNIT_TEXT_YPOS, "%", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		else if(unit == TOP_AREA_DISP_UNIT_kPa)
 		{display_dec(0);
-        disp_str(FORM15X30, UNIT_POS - 23, UNIT_YPOS, "kP", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+        disp_str(FORM15X30, UNIT_POS - 23, UNIT_TEXT_YPOS, "kP", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		else if(unit == TOP_AREA_DISP_UNIT_Pa)
 		{display_dec(0);
-        disp_str(FORM15X30, UNIT_POS - 23, UNIT_YPOS, "Pa", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+        disp_str(FORM15X30, UNIT_POS - 23, UNIT_TEXT_YPOS, "Pa", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 		}		
 		else //if(unit == TOP_AREA_DISP_UNIT_NONE)
 		{display_dec(0);
-        disp_str(FORM15X30, UNIT_POS - 16, UNIT_YPOS, "  ", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+        disp_str(FORM15X30, UNIT_POS - 16, UNIT_TEXT_YPOS, "  ", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 		}
 //		else
-//			disp_str(FORM15X30, UNIT_POS,UNIT_YPOS,"F",TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
+//			disp_str(FORM15X30, UNIT_POS,UNIT_TEXT_YPOS,"F",TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
 //		icon.unit = 0;
 //	}
 }

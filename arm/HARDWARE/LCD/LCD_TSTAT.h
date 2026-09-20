@@ -61,12 +61,17 @@
 #define LINK_RX_XPOS					(LINK_TX_XPOS + LINK_XDOTS)
 #define LINK_YPOS						(WIFI_YPOS + WIFI_YDOTS + 2)
 
-/* The unit sits at the top of the number rather than at its foot.  The big
- * digits are drawn from the top of a 96 dot cell but their ink only starts at
- * the cap line, so top aligning the unit means starting at that line, not at
- * THERM_METER_POS. */
+/* The unit sits at the top of the number rather than at its foot.  Both faces
+ * ink below the top of their cell, by different amounts, so two constants are
+ * needed to put one ink line through all three.  UNIT_YPOS is the cap line of
+ * the big digits, nine rows into their 96 dot cell; the degree ring is a raw
+ * 14x14 bitmap with no padding so it is drawn straight at that line, while the
+ * letter beside it is a 24x36 cell that inks four rows in and so starts four
+ * rows above it. */
 #define CHLIB_CAP_TOP					9
+#define CHSMALL_CAP_TOP					4
 #define UNIT_YPOS						(THERM_METER_POS + CHLIB_CAP_TOP)
+#define UNIT_TEXT_YPOS					(UNIT_YPOS - CHSMALL_CAP_TOP)
 
 /* The value text sits two dots below the cell top so that its ink centres in
  * the box draw_tangle() puts round it: the box runs y-3 to y+40 and the 15x30

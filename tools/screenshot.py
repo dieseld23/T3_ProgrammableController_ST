@@ -185,7 +185,7 @@ def render(s, labels, values, top, unit, page, pages, clock, selected, icons, rh
     # the degree ring is its own icon, with the letter beside it, both top
     # aligned with the cap line of the digits rather than sitting at their foot
     s.icon(14, 14, 'degree_o', k['UNIT_POS'] - 14, k['UNIT_YPOS'])
-    s.text(1, k['UNIT_POS'], k['UNIT_YPOS'], unit[:1], CH, BG)
+    s.text(1, k['UNIT_POS'], k['UNIT_TEXT_YPOS'], unit[:1], CH, BG)
 
     rows = (k['SETPOINT_POS'], k['FAN_MODE_POS'], k['SYS_MODE_POS'])
     for y in rows:
