@@ -136,18 +136,20 @@
 /* Page indicator. The three value rows run to x=222 and the frame drawn round
  * them by draw_tangle() ends at x=224, which leaves the strip from x=227 to the
  * right edge free the whole height of the rows. One mark per page goes there. */
-/* The corner humidity readout: the value and its percent sign on two 12 dot
- * lines under the RS485 arrows, in the strip left of the big number.  Thirty
- * dots is two cells, so three characters cannot go across and the sign sits on
- * its own line.  TOP_RH_VAR follows the three icon VARs, and like them carries
- * whole units in value/1000.  Page 1 only; the other pages blank the strip. */
+/* The corner humidity readout: "RH" over the value and its percent sign, in
+ * the strip left of the big number and under the RS485 arrows.  Three ten dot
+ * cells span exactly the thirty dots available, and the two character label
+ * centres over them.  TOP_RH_VAR follows the three icon VARs and carries
+ * whole units in value/1000 like they do.  Page 1 only; the other pages blank
+ * the strip. */
 #define TOP_RH_VAR						27
-#define RH_XPOS							3
-#define RH_YPOS							58
-#define RH_UNIT_XPOS					9
-#define RH_UNIT_YPOS					(RH_YPOS + LABEL_CH_YDOTS)
-#define RH_XDOTS						30
-#define RH_YDOTS						(RH_UNIT_YPOS + LABEL_CH_YDOTS - RH_YPOS)
+#define RH_CHARS						3
+#define RH_LABEL_XPOS					5
+#define RH_LABEL_YPOS					56
+#define RH_XPOS							0
+#define RH_YPOS							(RH_LABEL_YPOS + CORNER_CH_YDOTS + 2)
+#define RH_XDOTS						(RH_CHARS * CORNER_CH_XDOTS)
+#define RH_YDOTS						(RH_YPOS + CORNER_CH_YDOTS - RH_LABEL_YPOS)
 
 /* The page indicator: a column of marks in the top right corner, one per page.
  * It runs from PAGE_MARK_YPOS down, and the strip has to clear both the unit,
@@ -219,6 +221,15 @@
 #define LABEL_CH_XDOTS			12
 #define LABEL_CH_YDOTS			24
 #define LABEL_CH_BYTES			(LABEL_CH_XDOTS * LABEL_CH_YDOTS * LABEL_CH_BPP / 8)
+
+/* The corner readout needs three characters across a thirty dot strip, which
+ * the twelve dot face cannot do: the third cell would start at x=36 and the
+ * first digit cell repaints from x=30 on every refresh, erasing it.  Ten dots
+ * makes three cells land exactly on 0..29. */
+#define CORNER_CH_BPP			2
+#define CORNER_CH_XDOTS			10
+#define CORNER_CH_YDOTS			24
+#define CORNER_CH_BYTES			(CORNER_CH_XDOTS * CORNER_CH_YDOTS * CORNER_CH_BPP / 8)
 #define LABEL_YOFF				6
 
 #define PAGE_MARK_DIM_COLOR			0x29c9	/* #2E3A48 a page you are not on */
@@ -374,6 +385,7 @@ extern uint8 const chlib[];
 extern uint8 const chlibsmall[];
 extern uint8 const char_16_24[];
 extern uint8 const char_12_24[];
+extern uint8 const char_10_24[];
 extern uint16 const athome[];
 extern uint16 const offhome[];
 extern uint16 const sunicon[];
@@ -430,6 +442,8 @@ void display_screen_value(uint8 type);
 void display_screen_value_var(uint8 type, uint8 var_index);
 void display_page_marks(uint8 current, uint8 count);
 void display_clock(void);
+void disp_ch_10_24(uint16 x, uint16 y, uint8 value, uint16 dcolor, uint16 bgcolor);
+void disp_str_10_24(uint16 x, uint16 y, uint8 *str, uint16 dcolor, uint16 bgcolor);
 void display_top_rh(uint8 page);
 void display_fanspeed(int16 speed);
 void display_mode(uint8 heat_cool_user);

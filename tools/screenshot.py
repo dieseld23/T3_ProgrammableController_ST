@@ -23,8 +23,9 @@ W, H = 240, 320
 # disagreement between the two shows up as a mangled render instead of being
 # silently shared.
 DIMS = {'chlibsmall': (24, 36), 'chlib': (48, 96),
-        'char_16_24': (16, 24), 'char_12_24': (12, 24)}
-BPP = {'chlibsmall': 2, 'chlib': 4, 'char_16_24': 2, 'char_12_24': 2}
+        'char_16_24': (16, 24), 'char_12_24': (12, 24), 'char_10_24': (10, 24)}
+BPP = {'chlibsmall': 2, 'chlib': 4, 'char_16_24': 2, 'char_12_24': 2,
+       'char_10_24': 2}
 
 
 def glyph_bytes(name):
@@ -108,7 +109,7 @@ class Screen:
             _, pal = L.array(self.src, 'pal_' + name, 'uint16', self.k)
             self.icon4s[name] = (bits, pal)
         self.fonts = {}
-        for name in ('chlibsmall', 'chlib', 'char_16_24', 'char_12_24'):
+        for name in ('chlibsmall', 'chlib', 'char_16_24', 'char_12_24', 'char_10_24'):
             _, vals = L.array(self.src, name, 'uint8', self.k)
             self.fonts[name] = vals
 
@@ -185,6 +186,15 @@ class Screen:
             if v < 32 or v > 126:               # disp_ch_12_24 clamps the same way
                 v = 32
             self._glyph('char_12_24', v - 32, x + n * adv, y, fg, bg)
+
+    def corner(self, x, y, s, fg, bg):
+        """The ten dot face, clamped the way disp_ch_10_24() clamps."""
+        adv = DIMS['char_10_24'][0]
+        for n, c in enumerate(s):
+            v = ord(c)
+            if v < 32 or v > 126:
+                v = 32
+            self._glyph('char_10_24', v - 32, x + n * adv, y, fg, bg)
 
     def text_16_24(self, x, y, s, fg, bg):
         for n, c in enumerate(s):
@@ -283,11 +293,14 @@ def render(s, labels, values, top, unit, page, pages, clock, selected, icons, rh
         s.text(1, k['VALUE_XPOS'], y + k['VALUE_YOFF'], justify_value(shown, v), SCHC, M2)
     s.page_marks(page, pages)
 
-    # the corner humidity readout, page 1 only, value over percent sign
+    # the corner humidity readout, page 1 only: "RH" over the value and its
+    # percent sign, all three characters of it on one line in the ten dot face
+    s.null_icon(k['RH_XDOTS'], k['RH_YDOTS'], k['RH_XPOS'], k['RH_LABEL_YPOS'], BG)
     if page == 0 and rh is not None:
-        r = max(0, min(99, int(rh)))
-        s.label(k['RH_XPOS'], k['RH_YPOS'], '%2d' % r, SCHC, BG)
-        s.label(k['RH_UNIT_XPOS'], k['RH_UNIT_YPOS'], '%', SCHC, BG)
+        r = int(rh)
+        shown = ('%2d%%' % r) if 0 <= r <= 99 else '   '
+        s.corner(k['RH_LABEL_XPOS'], k['RH_LABEL_YPOS'], 'RH', SCHC, BG)
+        s.corner(k['RH_XPOS'], k['RH_YPOS'], shown, SCHC, BG)
 
     s.null_icon(240, 36, 0, k['TIME_POS'], M2)
     s.label(k['CLOCK_XPOS'], k['TIME_POS'] + k['CLOCK_YOFF'],

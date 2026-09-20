@@ -126,9 +126,13 @@ before shifting.
 
 The big number moved left to x=30, which centres a two digit reading on the
 screen and opens a 30 dot strip down the left edge. The strip carries the wifi
-bars, the RS485 arrows under them, and a humidity readout under those. Three
-characters will not fit across 30 dots, so the percent sign sits on its own line
-under the value.
+bars, the RS485 arrows under them, and a humidity readout under those, labelled
+`RH` with the value and its percent sign together on one line.
+
+Three characters do not fit across 30 dots in the 12 dot face: the third cell
+would start at x=36 and the first digit cell repaints from x=30 on every refresh,
+erasing it. `char_10_24` is the same face at 10 dots, where three cells land
+exactly on 0..29.
 
 Moving the number also moved the minus sign. It used to be drawn on its own at
 x=6, which is now underneath the RS485 arrows, so it rides in the cell left of
@@ -139,6 +143,15 @@ digits when the value is negative.
 Humidity comes from `TOP_RH_VAR` (VAR28), following the three icon VARs and
 carrying whole percent in `value/1000`, the same convention. A value outside
 0..99 draws blank rather than a wrong number.
+
+Two things in `fontgen.py` came out of fitting that face. A table can now name
+the characters that set its condense factor, because squeezing a 10 dot cell to
+hold `@` and `W` clipped the ink off `%`, which is the one glyph the readout
+exists to draw. And the ink is centred inside the columns that are kept, 1 to
+`ink_w`, rather than inside the whole cell — column 0 is always cleared, so the
+two only agree when `w - ink_w` is even, and at 10 dots it hung half a column off
+each end. That change is a no-op for the four older tables, which was checked by
+regenerating them against the committed arrays.
 
 ### Three things the layout work uncovered
 
@@ -214,7 +227,7 @@ root and need Python 3 with Pillow.
 | Script | What it does |
 | --- | --- |
 | `lcddata.py` | Shared reader for the arrays and `#define`s. Not run directly. |
-| `fontgen.py` | Regenerates the four bitmap font tables from a TrueType face. |
+| `fontgen.py` | Regenerates the five bitmap font tables from a TrueType face. |
 | `icongen.py` | Generates the ten state icons and their palettes. |
 | `recolour_icons.py` | Recomposites the legacy RGB565 icon bitmaps for a new screen background. |
 | `screenshot.py` | Renders the idle screen to a PNG from the real arrays. |
