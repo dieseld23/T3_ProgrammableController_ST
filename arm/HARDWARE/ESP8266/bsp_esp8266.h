@@ -22,7 +22,7 @@ typedef struct
 }STR_SEND_BUF;
 #endif 
 
-/******************************* ESP8266 Êý¾ÝÀàÐÍ¶¨Òå ***************************/
+/******************************* ESP8266 type definitions ***************************/
 typedef enum{
 	STA,
   AP,
@@ -56,10 +56,10 @@ typedef enum{
 
 
 
-/******************************* ESP8266 Íâ²¿È«¾Ö±äÁ¿ÉùÃ÷ ***************************/
-#define RX_BUF_MAX_LEN     1024                                     //×î´ó½ÓÊÕ»º´æ×Ö½ÚÊý
+/******************************* ESP8266 external global declarations ***************************/
+#define RX_BUF_MAX_LEN     1024                                     //Maximum receive buffer size in bytes
 
-extern struct  STRUCT_USARTx_Fram                                  //´®¿ÚÊý¾ÝÖ¡µÄ´¦Àí½á¹¹Ìå
+extern struct  STRUCT_USARTx_Fram                                  //Structure used to handle a serial data frame
 {
 	uint8_t  Data_RX_BUF [ RX_BUF_MAX_LEN ];
 	
@@ -75,7 +75,7 @@ extern struct  STRUCT_USARTx_Fram                                  //´®¿ÚÊý¾ÝÖ¡µ
 
 
 
-/******************************** ESP8266 Á¬½ÓÒý½Å¶¨Òå ***********************************/
+/******************************** ESP8266 pin definitions ***********************************/
 // always enable it
 //#define      macESP8266_CH_PD_APBxClock_FUN                   RCC_APB2PeriphClockCmd
 //#define      macESP8266_CH_PD_CLK                             RCC_APB2Periph_GPIOG  
@@ -119,7 +119,7 @@ extern struct  STRUCT_USARTx_Fram                                  //´®¿ÚÊý¾ÝÖ¡µ
 
 
 
-/*********************************************** ESP8266 º¯Êýºê¶¨Òå *******************************************/
+/*********************************************** ESP8266 function macros *******************************************/
 #define     macESP8266_Usart( fmt, ... )           USART_printf ( macESP8266_USARTx, fmt, ##__VA_ARGS__ ) 
 #define     macPC_Usart( fmt, ... )                printf ( fmt, ##__VA_ARGS__ )
 //#define     macPC_Usart( fmt, ... )                
@@ -136,7 +136,7 @@ extern struct  STRUCT_USARTx_Fram                                  //´®¿ÚÊý¾ÝÖ¡µ
 #define     macESP8266_RST_HIGH_LEVEL_BB()            GPIO_SetBits ( macESP8266_RST_PORT_BB, macESP8266_RST_PIN_BB )
 #define     macESP8266_RST_LOW_LEVEL_BB()             GPIO_ResetBits ( macESP8266_RST_PORT_BB, macESP8266_RST_PIN_BB )
 
-/****************************************** ESP8266 º¯ÊýÉùÃ÷ ***********************************************/
+/****************************************** ESP8266 function declarations ***********************************************/
 void                     ESP8266_Init                        ( void );
 void                     ESP8266_Rst                         ( void );
 bool                     ESP8266_Cmd                         ( char * cmd, char * reply1, char * reply2, u32 waittime );

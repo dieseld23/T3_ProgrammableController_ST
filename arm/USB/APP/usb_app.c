@@ -32,7 +32,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 *******************************************************************************/
 void USBWakeUp_IRQHandler(void)
 {
-	EXTI->PR |= 1 << 18;	//清除USB唤醒中断挂起位
+	EXTI->PR |= 1 << 18;	//Clear the USB wake-up interrupt pending bit
 }
 
 // void USB_GPIO_Init(void)

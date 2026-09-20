@@ -47,18 +47,18 @@ U8_T I2C_RdmRead(U8_T cmd,U8_T *ptPktTemp,U16_T readLen)
 	u8 i;
 	IIC_Start();  
 
-	IIC_Send_Byte(0xc0);	//发送器件地址0Xc0,写数据 	   
+	IIC_Send_Byte(0xc0);	//Send device address 0xC0, write data 	   
 	if(IIC_Wait_Ack())
 	{
 //		IIC_Stop(); 
 //		return 0;
 	}
 	
-  IIC_Send_Byte(cmd);		//发送低地址
+  IIC_Send_Byte(cmd);		//Send the low address byte
 	IIC_Wait_Ack1();
 
 	IIC_Start();  	 	   
-	IIC_Send_Byte(0xc1);				//进入接收模式	
+	IIC_Send_Byte(0xc1);				//Enter receive mode	
 	if(IIC_Wait_Ack1())
 	{		
 //		IIC_Stop(); 
@@ -73,22 +73,22 @@ U8_T I2C_RdmRead(U8_T cmd,U8_T *ptPktTemp,U16_T readLen)
 	
 	*ptPktTemp++ = IIC_Read_Byte(0);
 			 
-	IIC_Stop();							//产生一个停止条件	    
+	IIC_Stop();							//Generate a STOP condition	    
 	return TRUE;
 }
 
 U8_T I2C_ByteWrite(U16_T cmd, U16_T byteData)
 {
 	IIC_Start(); 
-	IIC_Send_Byte(0xc0);	//发送器件地址0Xc0,写数据 	 
+	IIC_Send_Byte(0xc0);	//Send device address 0xC0, write data 	 
 
 
 	IIC_Wait_Ack1();	   
-	IIC_Send_Byte(cmd);		//发送低地址
+	IIC_Send_Byte(cmd);		//Send the low address byte
 	IIC_Wait_Ack1(); 	 										  		   
-	IIC_Send_Byte(byteData);			//发送字节							   
+	IIC_Send_Byte(byteData);			//Send a byte							   
 	IIC_Wait_Ack1();	  		    	   
-	IIC_Stop();							//产生一个停止条件 
+	IIC_Stop();							//Generate a STOP condition 
 
 	delay_ms(3);
 		

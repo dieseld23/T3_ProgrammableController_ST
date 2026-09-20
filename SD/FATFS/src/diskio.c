@@ -11,18 +11,18 @@
 //#include "usart.h"		 		   
 
  
-#define SD_CARD		0	//SD卡,卷标为0
-//#define EX_FLASH	1	//外部flash,卷标为1
+#define SD_CARD		0	//SD card, volume 0
+//#define EX_FLASH	1	//external flash, volume 1
 
 #define FLASH_SECTOR_SIZE 	512			  
-//对于W25Q64 
-//前6M字节给fatfs用,6M字节后~6M+500K给用户用,6M+500K以后,用于存放字库,字库占用1.5M.		 			    
-u16	    FLASH_SECTOR_COUNT = 2048*6;	//6M字节,默认为W25Q64
-#define FLASH_BLOCK_SIZE  	8     		//每个BLOCK有8个扇区
+//For the W25Q64 
+//The first 6M bytes are for FatFs, 6M to 6M+500K is for the user, and everything past 6M+500K holds the font library, which takes 1.5M.		 			    
+u16	    FLASH_SECTOR_COUNT = 2048*6;	//6M bytes, the default for the W25Q64
+#define FLASH_BLOCK_SIZE  	8     		//Each block has 8 sectors
 
 extern U16_T far Test[50];
 
-//初始化磁盘
+//Initialise the disk
 DSTATUS disk_initialize (
 	BYTE drv				/* Physical drive nmuber (0..) */
 )
@@ -30,15 +30,15 @@ DSTATUS disk_initialize (
 	u8 res = 0;	    
 	switch(drv)
 	{
-		case SD_CARD:	//SD卡
+		case SD_CARD:	//SD card
 			res = SD_Initialize();//SD_Init(); 	
  			break;
-//		case EX_FLASH:	//外部flash
+//		case EX_FLASH:	//external flash
 //			SPI_Flash_Init();
 //			if(SPI_FLASH_TYPE == W25Q64)
 //				FLASH_SECTOR_COUNT = 2048 * 6;		//W25Q64
 //			else
-//				FLASH_SECTOR_COUNT = 2048 * 2;		//其他
+//				FLASH_SECTOR_COUNT = 2048 * 2;		//other
 // 			break;
 		default:
 			res = 1;
@@ -53,10 +53,10 @@ DSTATUS disk_initialize (
 		return  STA_NOINIT;
 #endif
 	else
-		return 0;									//初始化成功
+		return 0;									//Initialisation succeeded
 }
 
-//获得磁盘状态
+//Get the disk status
 DSTATUS disk_status (
 	BYTE drv		/* Physical drive nmuber (0..) */
 )
@@ -64,11 +64,11 @@ DSTATUS disk_status (
     return 0;
 }
 
- //读扇区
- //drv:磁盘编号0~9
- //*buff:数据接收缓冲首地址
- //sector:扇区地址
- //count:需要读取的扇区数
+ //Read sectors
+ //drv: drive number 0~9
+ //*buff: start of the receive buffer
+ //sector: sector address
+ //count: number of sectors to read
 DRESULT disk_read (
 	BYTE drv,		/* Physical drive nmuber (0..) */
 	BYTE *buff,		/* Data buffer to store read data */
@@ -79,15 +79,15 @@ DRESULT disk_read (
 	u8 res = 1; 
     
 	if (!count)
-		return RES_PARERR;				//count不能等于0，否则返回参数错误
+		return RES_PARERR;				//count must not be 0, otherwise a parameter error is returned
 
 	switch(drv)
 	{
-		case SD_CARD://SD卡			
+		case SD_CARD://SD card			
 			res = SD_ReadDisk(buff, sector, count);
 			break;
 		
-//		case EX_FLASH://外部flash
+//		case EX_FLASH://external flash
 //			for(; count > 0; count--)
 //			{
 //				SPI_Flash_Read(buff, sector * FLASH_SECTOR_SIZE, FLASH_SECTOR_SIZE);
@@ -102,7 +102,7 @@ DRESULT disk_read (
 			break;
 	}
 	
-   //处理返回值，将SPI_SD_driver.c的返回值转成ff.c的返回值
+   //Translate the return value from SPI_SD_driver.c into an ff.c return value
 //	Test[25] = res;
     if(res == 0x00)
 			return RES_OK;	 
@@ -110,11 +110,11 @@ DRESULT disk_read (
 			return RES_ERROR;	   
 } 
 
- //写扇区
- //drv:磁盘编号0~9
- //*buff:发送数据首地址
- //sector:扇区地址
- //count:需要写入的扇区数	    
+ //Write sectors
+ //drv: drive number 0~9
+ //*buff: start of the data to send
+ //sector: sector address
+ //count: number of sectors to write	    
 #if _READONLY == 0
 DRESULT disk_write (
 	BYTE drv,			/* Physical drive nmuber (0..) */
@@ -124,13 +124,13 @@ DRESULT disk_write (
 )
 {
 	u8 res = 0;  
-	u8 retry = 0X1F;		//写入失败的时候,重试次数
+	u8 retry = 0X1F;		//Number of retries when a write fails
     if(!count)
-		return RES_PARERR;	//count不能等于0，否则返回参数错误		 	 
+		return RES_PARERR;	//count must not be 0, otherwise a parameter error is returned		 	 
 	
 	switch(drv)
 	{
-		case SD_CARD://SD卡
+		case SD_CARD://SD card
 			while(retry)
 			{
 				res = SD_WriteDisk((u8*)buff, sector, count);
@@ -140,7 +140,7 @@ DRESULT disk_write (
 			}
 			break;
 			
-//		case EX_FLASH://外部flash
+//		case EX_FLASH://external flash
 //			for(; count > 0; count--)
 //			{										    
 //				SPI_Flash_Write((u8*)buff, sector * FLASH_SECTOR_SIZE, FLASH_SECTOR_SIZE);
@@ -155,7 +155,7 @@ DRESULT disk_write (
 			break;
 	}
 	
-    //处理返回值，将SPI_SD_driver.c的返回值转成ff.c的返回值
+    //Translate the return value from SPI_SD_driver.c into an ff.c return value
     if(res == 0x00)
 		return RES_OK;	 
     else
@@ -163,10 +163,10 @@ DRESULT disk_write (
 }
 #endif /* _READONLY */
 
-//其他表参数的获得
- //drv:磁盘编号0~9
- //ctrl:控制代码
- //*buff:发送/接收缓冲区指针
+//Fetch other parameters
+ //drv: drive number 0~9
+ //ctrl: control code
+ //*buff: pointer to the send/receive buffer
 DRESULT disk_ioctl (
 	BYTE drv,		/* Physical drive nmuber (0..) */
 	BYTE ctrl,		/* Control code */
@@ -174,7 +174,7 @@ DRESULT disk_ioctl (
 )
 {	
 	DRESULT res;						  			     
-	if(drv == SD_CARD)//SD卡
+	if(drv == SD_CARD)//SD card
 	{
 	    switch(ctrl)
 	    {
@@ -197,7 +197,7 @@ DRESULT disk_ioctl (
 		        break;
 	    }
 	}
-//	else if(drv == EX_FLASH)	//外部FLASH  
+//	else if(drv == EX_FLASH)	//external FLASH  
 //	{
 //	    switch(ctrl)
 //	    {
@@ -223,13 +223,13 @@ DRESULT disk_ioctl (
 //	}
 	else
 	{
-		res = RES_ERROR;		//其他的不支持
+		res = RES_ERROR;		//Anything else is unsupported
 	}
 	
     return res;
 }
 
-//获得时间
+//Get the time
 //User defined function to give a current time to fatfs module      */
 //31-25: Year(0-127 org.1980), 24-21: Month(1-12), 20-16: Day(1-31) */                                                                                                                                                                                                                                          
 //15-11: Hour(0-23), 10-5: Minute(0-59), 4-0: Second(0-29 *2) */                                                                                                                                                                                                                                                
@@ -238,13 +238,13 @@ DWORD get_fattime (void)
 	return 0;
 }
 
-//动态分配内存
+//Dynamically allocate memory
 void *ff_memalloc (UINT size)			
 {
 	return (void*)malloc(size);
 }
 
-//释放内存
+//Free memory
 void ff_memfree (void* mf)		 
 {
 	free(mf);

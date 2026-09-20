@@ -1693,7 +1693,7 @@ void write_annual_date(uint8_t index,BACNET_DATE date)
 U16_T Get_Vendor_ID(void)
 {
 	switch(Bacnet_Vendor_ID)
-	{// 保留0 1 2 255 65535 这几个特殊id，兼容老的做法
+	{// ids 0, 1, 2, 255 and 65535 are reserved, to stay compatible with the old scheme
 		case 1: //netixcontrols
 		case BACNET_VENDOR_ID_NETIX:
 			memcpy(bacnet_vendor_name,BACNET_VENDOR_NETIX,20);
@@ -1747,7 +1747,7 @@ const char*  Get_Vendor_Product(void)
 	return bacnet_vendor_product;
 }
 
-// T3-IO里面有加下面的函数，让客户自己编辑，T3-Controller还没有加
+// T3-IO has the function below so customers can edit it themselves; T3-Controller does not yet
 void Set_Vendor_Name(char* name)
 {
 #if ARM_MINI	
@@ -2619,7 +2619,7 @@ void Store_MASTER_To_Eeprom(uint8_t master)
 }
 
 #if ARM_CM5
-// 2021/02/23 CM5 编译不能通过，不得不添加ruxia函数
+// 2021/02/23 the CM5 would not compile, so the ruxia function had to be added
 uint32_t get_rpm(uint8_t point)
 {
 	return 0;

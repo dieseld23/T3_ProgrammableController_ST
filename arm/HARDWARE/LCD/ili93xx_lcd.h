@@ -5,97 +5,97 @@
 #include "stdlib.h"
 
 
-//V1.2修改说明
-//支持了SPFD5408的驱动,另外把液晶ID直接打印成HEX格式.方便查看LCD驱动IC.
+//V1.2 change log
+//Added the SPFD5408 driver, and the LCD ID is now printed in hex so the driver IC is easy to read off.
 //V1.3
-//加入了快速IO的支持
-//修改了背光控制的极性（适用于V1.8及以后的开发板版本）
-//对于1.8版本之前(不包括1.8)的液晶模块,请修改LCD_Init函数的LCD_LED=1;为LCD_LED=1;
+//Added fast IO support
+//Changed the backlight control polarity (for board revision V1.8 and later)
+//For LCD modules before version 1.8 (not including 1.8), change LCD_LED=1; in LCD_Init to LCD_LED=1;
 //V1.4
-//修改了LCD_ShowChar函数，使用画点功能画字符。
-//加入了横竖屏显示的支持
+//Changed LCD_ShowChar to draw characters with the point-drawing function.
+//Added landscape and portrait display support
 //V1.5 20110730
-//1,修改了B505液晶读颜色有误的bug.
-//2,修改了快速IO及横竖屏的设置方式.
+//1, Fixed the wrong colour readback on the B505 LCD.
+//2, Changed how fast IO and landscape/portrait are configured.
 //V1.6 20111116
-//1,加入对LGDP4535液晶的驱动支持
+//1, Added driver support for the LGDP4535 LCD
 //V1.7 20120713
-//1,增加LCD_RD_DATA函数
-//2,增加对ILI9341的支持
-//3,增加ILI9325的独立驱动代码
-//4,增加LCD_Scan_Dir函数(慎重使用)	  
-//6,另外修改了部分原来的函数,以适应9341的操作
+//1, Added the LCD_RD_DATA function
+//2, Added ILI9341 support
+//3, Added standalone driver code for the ILI9325
+//4, Added the LCD_Scan_Dir function (use with care)	  
+//6, Also changed some existing functions to suit the 9341
 //V1.8 20120905
-//1,加入LCD重要参数设置结构体lcddev
-//2,加入LCD_Display_Dir函数,支持在线横竖屏切换
+//1, Added the lcddev structure holding the key LCD parameters
+//2, Added LCD_Display_Dir, which switches between landscape and portrait at run time
 //V1.9 20120911
-//1,新增RM68042驱动（ID:6804），但是6804不支持横屏显示！！原因：改变扫描方式，
-//导致6804坐标设置失效，试过很多方法都不行，暂时无解。
+//1, Added the RM68042 driver (ID:6804), but the 6804 does not support landscape!! Reason: changing the scan direction
+//breaks coordinate setting on the 6804. Several approaches were tried and none worked, so there is no fix for now.
 //V2.0 20120924
-//在不硬件复位的情况下,ILI9341的ID读取会被误读成9300,修改LCD_Init,将无法识别
-//的情况（读到ID为9300/非法ID）,强制指定驱动IC为ILI9341，执行9341的初始化。
+//Without a hardware reset the ILI9341 ID reads back as 9300. LCD_Init was changed so that an
+//unrecognised case (ID 9300 or an invalid ID) forces the driver IC to ILI9341 and runs the 9341 init.
 //V2.1 20120930
-//修正ILI9325读颜色的bug。
+//Fixed the ILI9325 colour readback bug.
 //V2.2 20121007
-//修正LCD_Scan_Dir的bug。
+//Fixed a bug in LCD_Scan_Dir.
 //V2.3 20130120
-//新增6804支持横屏显示
+//Added landscape support for the 6804
 //V2.4 20131120
-//1,新增NT35310（ID:5310）驱动器的支持
-//2,新增LCD_Set_Window函数,用于设置窗口,对快速填充,比较有用,但是该函数在横屏时,不支持6804.
+//1, Added support for the NT35310 (ID:5310) controller
+//2, Added LCD_Set_Window for setting a window, which helps with fast fills, but it does not support the 6804 in landscape.
 //////////////////////////////////////////////////////////////////////////////////	 
 
  
   
-//LCD重要参数集
+//The key LCD parameters
 typedef struct  
 {										    
-	u16 width;			//LCD 宽度
-	u16 height;			//LCD 高度
+	u16 width;			//LCD width
+	u16 height;			//LCD height
 	u16 id;				//LCD ID
-	u8  dir;			//横屏还是竖屏控制：0，竖屏；1，横屏。	
-	u8	wramcmd;		//开始写gram指令
-	u8  setxcmd;		//设置x坐标指令
-	u8  setycmd;		//设置y坐标指令	 
+	u8  dir;			//Landscape or portrait: 0 = portrait; 1 = landscape.	
+	u8	wramcmd;		//Start-write-GRAM command
+	u8  setxcmd;		//Set-x-coordinate command
+	u8  setycmd;		//Set-y-coordinate command	 
 }_lcd_dev; 	  
 
-//LCD参数
-extern _lcd_dev lcddev;	//管理LCD重要参数
-//LCD的画笔颜色和背景色	   
-extern u16  POINT_COLOR;//默认红色    
-extern u16  BACK_COLOR; //背景颜色.默认为白色
+//LCD parameters
+extern _lcd_dev lcddev;	//Holds the key LCD parameters
+//LCD pen colour and background colour	   
+extern u16  POINT_COLOR;//Red by default    
+extern u16  BACK_COLOR; //Background colour, white by default
 
 
 //////////////////////////////////////////////////////////////////////////////////	 
-//-----------------LCD端口定义---------------- 
-#define	LCD_LED PDout(13) //LCD背光    		 PD13
-#define LCD_RST	PEout(1)  //LCD复位			 PE1 	    
-//LCD地址结构体
+//-----------------LCD pin definitions---------------- 
+#define	LCD_LED PDout(13) //LCD backlight    		 PD13
+#define LCD_RST	PEout(1)  //LCD reset			 PE1 	    
+//LCD address structure
 typedef struct
 {
 	u16 LCD_REG;
 	u16 LCD_RAM;
 } LCD_TypeDef;
-//使用NOR/SRAM的 Bank1.sector4,地址位HADDR[27,26]=11 A10作为数据命令区分线 
-//注意设置时STM32内部会右移一位对其! 111110=0X3E			    
+//Uses NOR/SRAM Bank1 sector4; address bits HADDR[27,26]=11 with A10 selecting data or command 
+//Note the STM32 shifts this right by one internally when setting it! 111110=0X3E			    
 #define LCD_BASE        ((u32)(0x60000000 | 0x0001FFFE))
 #define LCD             ((LCD_TypeDef *) LCD_BASE)
 //////////////////////////////////////////////////////////////////////////////////
 	 
-//扫描方向定义
-#define L2R_U2D  0 //从左到右,从上到下
-#define L2R_D2U  1 //从左到右,从下到上
-#define R2L_U2D  2 //从右到左,从上到下
-#define R2L_D2U  3 //从右到左,从下到上
+//Scan direction definitions
+#define L2R_U2D  0 //Left to right, top to bottom
+#define L2R_D2U  1 //Left to right, bottom to top
+#define R2L_U2D  2 //Right to left, top to bottom
+#define R2L_D2U  3 //Right to left, bottom to top
 
-#define U2D_L2R  4 //从上到下,从左到右
-#define U2D_R2L  5 //从上到下,从右到左
-#define D2U_L2R  6 //从下到上,从左到右
-#define D2U_R2L  7 //从下到上,从右到左	 
+#define U2D_L2R  4 //Top to bottom, left to right
+#define U2D_R2L  5 //Top to bottom, right to left
+#define D2U_L2R  6 //Bottom to top, left to right
+#define D2U_R2L  7 //Bottom to top, right to left	 
 
-#define DFT_SCAN_DIR  L2R_U2D  //默认的扫描方向
+#define DFT_SCAN_DIR  L2R_U2D  //Default scan direction
 
-//画笔颜色
+//Pen colour
 #define WHITE         	 0xFFFF
 #define BLACK         	 0x0000	  
 #define BLUE         	 0x001F  
@@ -107,51 +107,51 @@ typedef struct
 #define GREEN         	 0x07E0
 #define CYAN          	 0x7FFF
 #define YELLOW        	 0xFFE0
-#define BROWN 			 0XBC40 //棕色
-#define BRRED 			 0XFC07 //棕红色
-#define GRAY  			 0X8430 //灰色
-//GUI颜色
+#define BROWN 			 0XBC40 //Brown
+#define BRRED 			 0XFC07 //Maroon
+#define GRAY  			 0X8430 //Grey
+//GUI colours
 
-#define DARKBLUE      	 0X01CF	//深蓝色
-#define LIGHTBLUE      	 0X7D7C	//浅蓝色  
-#define GRAYBLUE       	 0X5458 //灰蓝色
-//以上三色为PANEL的颜色 
+#define DARKBLUE      	 0X01CF	//Dark blue
+#define LIGHTBLUE      	 0X7D7C	//Light blue  
+#define GRAYBLUE       	 0X5458 //Grey blue
+//The three colours above are the PANEL colours 
  
-#define LIGHTGREEN     	 0X841F //浅绿色
-//#define LIGHTGRAY        0XEF5B //浅灰色(PANNEL)
-#define LGRAY 			 0XC618 //浅灰色(PANNEL),窗体背景色
+#define LIGHTGREEN     	 0X841F //Light green
+//#define LIGHTGRAY        0XEF5B //light grey (PANEL)
+#define LGRAY 			 0XC618 //Light grey (PANEL), the window background colour
 
-#define LGRAYBLUE        0XA651 //浅灰蓝色(中间层颜色)
-#define LBBLUE           0X2B12 //浅棕蓝色(选择条目的反色)
+#define LGRAYBLUE        0XA651 //Pale grey blue (middle layer colour)
+#define LBBLUE           0X2B12 //Pale brown blue (inverse colour for a selected item)
 	    															  
-void LCD_Init(void);													   	//初始化
-void LCD_DisplayOn(void);													//开显示
-void LCD_DisplayOff(void);													//关显示
-void LCD_Clear(u16 Color);	 												//清屏
-void LCD_SetCursor(u16 Xpos, u16 Ypos);										//设置光标
-void LCD_DrawPoint(u16 x, u16 y);											//画点
-void LCD_Fast_DrawPoint(u16 x, u16 y, u16 color);							//快速画点
-u16  LCD_ReadPoint(u16 x, u16 y); 											//读点 
-void Draw_Circle(u16 x0, u16 y0, u8 r);										//画圆
-void LCD_DrawLine(u16 x1, u16 y1, u16 x2, u16 y2);							//画线
-void LCD_DrawRectangle(u16 x1, u16 y1, u16 x2, u16 y2);		   				//画矩形
-void LCD_Fill(u16 sx, u16 sy, u16 ex, u16 ey, u16 color);		   			//填充单色
-void LCD_Color_Fill(u16 sx, u16 sy, u16 ex, u16 ey, u16 *color);			//填充指定颜色
-void LCD_ShowChar(u16 x, u16 y, u8 num, u8 size, u8 mode);					//显示一个字符
-void LCD_ShowNum(u16 x, u16 y, u32 num, u8 len, u8 size);  					//显示一个数字
-void LCD_ShowxNum(u16 x, u16 y, u32 num, u8 len, u8 size, u8 mode);			//显示 数字
-void LCD_ShowString(u16 x, u16 y, u16 width, u16 height, u8 size, char *p);	//显示一个字符串,12/16字体
+void LCD_Init(void);													   	//Initialise
+void LCD_DisplayOn(void);													//Display on
+void LCD_DisplayOff(void);													//Display off
+void LCD_Clear(u16 Color);	 												//Clear the screen
+void LCD_SetCursor(u16 Xpos, u16 Ypos);										//Set the cursor
+void LCD_DrawPoint(u16 x, u16 y);											//Draw a point
+void LCD_Fast_DrawPoint(u16 x, u16 y, u16 color);							//Fast point draw
+u16  LCD_ReadPoint(u16 x, u16 y); 											//Read a point 
+void Draw_Circle(u16 x0, u16 y0, u8 r);										//Draw a circle
+void LCD_DrawLine(u16 x1, u16 y1, u16 x2, u16 y2);							//Draw a line
+void LCD_DrawRectangle(u16 x1, u16 y1, u16 x2, u16 y2);		   				//Draw a rectangle
+void LCD_Fill(u16 sx, u16 sy, u16 ex, u16 ey, u16 color);		   			//Fill with one colour
+void LCD_Color_Fill(u16 sx, u16 sy, u16 ex, u16 ey, u16 *color);			//Fill with the given colour
+void LCD_ShowChar(u16 x, u16 y, u8 num, u8 size, u8 mode);					//Show one character
+void LCD_ShowNum(u16 x, u16 y, u32 num, u8 len, u8 size);  					//Show one number
+void LCD_ShowxNum(u16 x, u16 y, u32 num, u8 len, u8 size, u8 mode);			//Show a number
+void LCD_ShowString(u16 x, u16 y, u16 width, u16 height, u8 size, char *p);	//Show a string in the 12 or 16 font
 
 void LCD_WriteReg(u8 LCD_Reg, u16 LCD_RegValue);
 u16 LCD_ReadReg(u8 LCD_Reg);
 void LCD_WriteRAM_Prepare(void);
 void LCD_WriteRAM(u16 RGB_Code);		  
-void LCD_Scan_Dir(u8 dir);													//设置屏扫描方向
-void LCD_Display_Dir(u8 dir);												//设置屏幕显示方向
-void LCD_Set_Window(u16 sx, u16 sy, u16 width, u16 height);					//设置窗口
+void LCD_Scan_Dir(u8 dir);													//Set the screen scan direction
+void LCD_Display_Dir(u8 dir);												//Set the screen orientation
+void LCD_Set_Window(u16 sx, u16 sy, u16 width, u16 height);					//Set the window
 
 					   																			 
-//9320/9325 LCD寄存器  
+//9320/9325 LCD registers  
 #define R0             0x00
 #define R1             0x01
 #define R2             0x02

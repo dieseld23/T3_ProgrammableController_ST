@@ -501,8 +501,8 @@ U8_T DynDNS_GetState(void)
 	return dyndns_State;
 }
 
-u8 tcp_client_databuf[500];   	//发送数据缓存	  
-//u8 tcp_client_sta;				//客户端状态
+u8 tcp_client_databuf[500];   	//Transmit buffer	  
+//u8 tcp_client_sta;				//client state
 // tcp client
 
 void DynDNS_appcall(void)
@@ -521,10 +521,10 @@ void DynDNS_appcall(void)
 		}
 	}
 	
-//	if(uip_aborted()) 	tcp_client_aborted();		//连接终止	   
-//	if(uip_timedout())  tcp_client_timedout();	//连接超时   
-//	if(uip_closed())  	tcp_client_closed();		//连接关闭	
- 	if(uip_connected()) //连接成功	
+//	if(uip_aborted()) 	tcp_client_aborted();		//connection aborted	   
+//	if(uip_timedout())  tcp_client_timedout();	//connection timed out   
+//	if(uip_closed())  	tcp_client_closed();		//connection closed	
+ 	if(uip_connected()) //Connected	
 	{
 		dyndns_State = DYNDNS_STATE_SEND_COMMAND;
 //#if ARM_UART_DEBUG
@@ -536,7 +536,7 @@ void DynDNS_appcall(void)
 	}   
 
 		
- 	//接收到一个新的TCP数据包 
+ 	//A new TCP packet has arrived 
 	if(uip_newdata())
 	{
 		if(dyndns_State == DYNDNS_STATE_WAIT_RESPONSE)
@@ -549,14 +549,14 @@ void DynDNS_appcall(void)
 			dyndns_State = DYNDNS_STATE_UPDATE_OK;  // added by chelsea
 		} 
 	}
-//	else if(tcp_client_sta & (1 << 5))			//有数据需要发送
+//	else if(tcp_client_sta & (1 << 5))			//there is data waiting to be sent
 //	{
 //		s->textptr = tcp_client_databuf;
 //		s->textlen = strlen((const char*)tcp_client_databuf);
-//		tcp_client_sta &= ~(1 << 5);			//清除标记
+//		tcp_client_sta &= ~(1 << 5);			//clear the flag
 //	}
 //	
-//	//当需要重发、新数据到达、数据包送达、连接建立时，通知uip发送数据 
+//	//tell uIP to send on a resend, new data, a delivered packet, or a new connection 
 //	if(uip_rexmit() || uip_newdata() || uip_acked() || uip_connected() || uip_poll())
 //	{
 //		//tcp_client_senddata();
@@ -572,60 +572,60 @@ void tcp_client_reconnect(void)
 //	xTimeOutType x_timeout;
 //	portTickType openTimeout;
 //	uip_ipaddr_t *ipaddr;
-//	uip_ipaddr(ipaddr, 192, 168, 0, 124);		//设置IP为192.168.1.103
+//	uip_ipaddr(ipaddr, 192, 168, 0, 124);		//set the IP to 192.168.1.103
 
 //	server_conn = uip_connect(ipaddr,HTONS(10005));
 
 }
 
-//终止连接				    
+//Abort the connection				    
 //void tcp_client_aborted(void)
 //{
-//	tcp_client_sta &= ~(1 << 7);				//标志没有连接
-////	tcp_client_reconnect();						//尝试重新连接
-////	uip_log("tcp_client aborted!\r\n");			//打印log
+//	tcp_client_sta &= ~(1 << 7);				//flag: not connected
+////	tcp_client_reconnect();						//try to reconnect
+////	uip_log("tcp_client aborted!\r\n");			//print the log
 //}
 
-//////连接超时
+//////connection timed out
 //void tcp_client_timedout(void)
 //{
-//	tcp_client_sta &= ~(1 << 7);				//标志没有连接	   
-////	uip_log("tcp_client timeout!\r\n");			//打印log
+//	tcp_client_sta &= ~(1 << 7);				//flag: not connected	   
+////	uip_log("tcp_client timeout!\r\n");			//print the log
 //}
 
-//////连接关闭
+//////connection closed
 //void tcp_client_closed(void)
 //{
-//	tcp_client_sta &= ~(1 << 7);				//标志没有连接
+//	tcp_client_sta &= ~(1 << 7);				//flag: not connected
 //}
 
-////连接建立
+////connection established
 //void tcp_client_connected(void)
 //{ 
 ////struct tcp_demo_appstate *s = (struct tcp_demo_appstate *)&uip_conn->appstate;
-//tcp_client_sta |= 1 << 7;					//标志连接成功
-////// 	uip_log("tcp_client connected!\r\n");		//打印log
-////s->state = STATE_CMD;				 		//指令状态
+//tcp_client_sta |= 1 << 7;					//flag the connection as established
+////// 	uip_log("tcp_client connected!\r\n");		//print the log
+////s->state = STATE_CMD;				 		//command state
 ////s->textlen = 0;
-////s->textptr = "Demo Board Connected Successfully!\r\n";//回应消息
+////s->textptr = "Demo Board Connected Successfully!\r\n";//the reply
 ////s->textlen = strlen((char *)s->textptr);	  
 //}
 
-////发送的数据成功送达
+////the data was delivered
 //void tcp_client_acked(void)
 //{											    
 ////	struct tcp_demo_appstate *s = (struct tcp_demo_appstate *)&uip_conn->appstate;
-////	s->textlen = 0;								//发送清零
-//////	uip_log("tcp_client acked!\r\n");			//表示成功发送		 
+////	s->textlen = 0;								//clear the send length
+//////	uip_log("tcp_client acked!\r\n");			//means it was sent successfully		 
 //}
 
-////发送数据给服务端
+////send data to the server
 void tcp_client_senddata(void)
 {
 //	struct tcp_demo_appstate *s = (struct tcp_demo_appstate *)&uip_conn->appstate;
-//	//s->textptr:发送的数据包缓冲区指针
-//	//s->textlen:数据包的大小（单位字节）		   
+//	//s->textptr: pointer to the buffer being sent
+//	//s->textlen: the size of the packet in bytes		   
 //	if(s->textlen > 0)
-//		uip_send(s->textptr, s->textlen);//发送TCP数据包	 
+//		uip_send(s->textptr, s->textlen);//send the TCP packet	 
 }
 

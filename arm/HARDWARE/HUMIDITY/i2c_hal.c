@@ -6,7 +6,7 @@
 // Author    :  RFU
 // Date      :  16-Jun-2014
 // Controller:  STM32F100RB
-// IDE       :  礦ision V4.71.2.0
+// IDE       :  uVision V4.71.2.0
 // Compiler  :  Armcc
 // Brief     :  I2C hardware abstraction layer
 //==============================================================================
@@ -80,7 +80,7 @@ void I2c_StopCondition(void){
 //u8 IIC_Wait_Ack1(void)
 //{
 //	u8 ucErrTime = 0;
-//	SDA_IN();		//SDA设置为输入  
+//	SDA_IN();		//set SDA as an input  
 //	IIC_SDA = 1;
 //	delay_us(1);	   
 //	IIC_SCL = 1;
@@ -94,7 +94,7 @@ void I2c_StopCondition(void){
 //			return 1;
 //		}
 //	}
-//	IIC_SCL = 0;	//时钟输出0 	   
+//	IIC_SCL = 0;	//drive the clock low 	   
 //	return 0;  
 //}
 

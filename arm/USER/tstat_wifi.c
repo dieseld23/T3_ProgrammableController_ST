@@ -24,7 +24,7 @@ void signal_dealwith(u8 i);
 void SCD40_Initial(void);
 void Refresh_SCD40(void);
 /*
-从tstat10_rev4开始硬件引脚变动 */
+The hardware pinout changed from tstat10_rev4 onwards */
 #define PT1K_SET		PAout(5) 
 #define SEL1_IN   	PAout(6)	
 #define SEL2_IN   	PAout(7)	
@@ -46,7 +46,7 @@ void Refresh_SCD40(void);
 #define RANGE_SET0			PCout(3)
 #define RANGE_SET1			PCout(2)
 
-// Tstat10P 新增HSP count和 两路 AO
+// the Tstat10P adds an HSP count and two AO channels
 uint8 Check_sensor_exist(uint8 type);
  /*  PE11 - PG14
  PE11------------>	HSP_INPUT1
@@ -189,13 +189,13 @@ void EXTI15_10_IRQHandler(void)
 		{	
 		// PWM		
 		flag_pulse[0] = 0 ;
-		if(INPUT1) // 上升沿
+		if(INPUT1) // Rising edge
 		{
 			delay_us(DELAY_CHECK_PO);
 			if(INPUT1)
-				flag_pulse[0] =  PLUG_OUT;// 上升沿;
+				flag_pulse[0] =  PLUG_OUT;// Rising edge;
 		}
-		else  // 下降沿
+		else  // Falling edge
 		{Test[39]++;
 			delay_us(DELAY_CHECK_PI);
 			if(INPUT1 == 0)
@@ -229,13 +229,13 @@ void EXTI15_10_IRQHandler(void)
 		{			
 				// PWM		
 		flag_pulse[1] = 0 ;
-		if(INPUT2) // 上升沿
+		if(INPUT2) // Rising edge
 		{
 			delay_us(DELAY_CHECK_PO);
 			if(INPUT2)
-				flag_pulse[1] =  PLUG_OUT;// 上升沿;
+				flag_pulse[1] =  PLUG_OUT;// Rising edge;
 		}
-		else  // 下降沿
+		else  // Falling edge
 		{
 			delay_us(DELAY_CHECK_PI);
 			if(INPUT2 == 0)
@@ -266,13 +266,13 @@ void EXTI15_10_IRQHandler(void)
 		else
 		{				// PWM		
 			flag_pulse[2] = 0 ;
-			if(INPUT3) // 上升沿
+			if(INPUT3) // Rising edge
 			{
 				delay_us(DELAY_CHECK_PO);
 				if(INPUT3)
-					flag_pulse[2] =  PLUG_OUT;// 上升沿;
+					flag_pulse[2] =  PLUG_OUT;// Rising edge;
 			}
-			else  // 下降沿
+			else  // Falling edge
 			{
 				delay_us(DELAY_CHECK_PI);
 				if(INPUT3 == 0)
@@ -303,13 +303,13 @@ void EXTI15_10_IRQHandler(void)
 		else
 		{				// PWM		
 			flag_pulse[3] = 0 ;
-			if(INPUT4) // 上升沿
+			if(INPUT4) // Rising edge
 			{
 				delay_us(DELAY_CHECK_PO);
 				if(INPUT4)
-					flag_pulse[3] =  PLUG_OUT;// 上升沿;
+					flag_pulse[3] =  PLUG_OUT;// Rising edge;
 			}
-			else  // 下降沿
+			else  // Falling edge
 			{
 				delay_us(DELAY_CHECK_PI);
 				if(INPUT4 == 0)
@@ -974,8 +974,8 @@ u32 ADC_getChannal(ADC_TypeDef* ADCx, u8 channal,uint8 rank)
 	return tem;        
 }
 
-// 10ms 一次
-// 载波的高低电压0.6~0.8
+// once every 10ms
+// the carrier high and low voltages are 0.6~0.8
 #define MIC_CARRIER_HI 	1090
 #define MIC_CARRIER_LO	820
 uint16 voice_table[10][2] = 
@@ -1003,7 +1003,7 @@ u8 check_voice_table(uint16 adc)
 	return 0;
 }
 
-// 每秒钟执行一次
+// runs once a second
 void check_override_timer_1s(void)
 {
 	if(Check_sensor_exist(E_FLAG_OCC))
@@ -2156,7 +2156,7 @@ void check_signal(u8 channel)
 void signal_dealwith(u8 i)
 {
 	if((inputs[i].range == V0_5) || (inputs[i].range == V0_10_IN))//DC range. 0-5V or 0-10V
-	{	// 检查到上升沿或者下降沿，如果脉管少于10ms当做毛刺处理
+	{	// on a rising or falling edge, a pulse shorter than 10ms is treated as a glitch
 		if(flag_pulse[i] == PLUG_OUT)  
 		{
 			if(pulse_plug_in[i] > FILTER)
@@ -2171,7 +2171,7 @@ void signal_dealwith(u8 i)
 		else if(flag_pulse[i] == PLUG_IN)
 		{
 			if(pulse_plug_out[i] > FILTER)
-			{// 拔掉500ms后重新计数
+			{// start counting again 500ms after it is unplugged
 				Test[17]++;
 				if(pulse_plug_in[i] > 1000)
 				{Test[18]++;

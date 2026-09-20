@@ -249,11 +249,11 @@ void Get_RTC_by_timestamp(U32_T timestamp,TimeInfo *tt,UN_Time* rtc,U8_T source)
 #if ASIX_MINI
 u8 Is_Leap_Year(u16 year)
 {			  
-	if(year % 4 == 0)				//必须能被4整除
+	if(year % 4 == 0)				//Must be divisible by 4
 	{ 
 		if(year % 100 == 0) 
 		{ 
-			if(year % 400 == 0)		//如果以00结尾,还要能被400整除
+			if(year % 400 == 0)		//If it ends in 00 it must also be divisible by 400
 				return 1; 	   
 			else
 				return 0;   
@@ -275,7 +275,7 @@ u8 Is_Leap_Year(u16 year)
 
 void Calculate_DSL_Time(void)
 {
-		//计算夏令时的起始结束
+		//Work out the start and end of daylight saving time
 	char loop;
 	start_day = 0;
 	end_day = 0;

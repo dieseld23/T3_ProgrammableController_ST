@@ -3,55 +3,55 @@
 //#include "bitmap.h"
  
 
-//升级说明
+//Change log
 //V1.4
-//增加了对参数为string类型的函数的支持.适用范围大大提高.
-//优化了内存占用,静态内存占用为79个字节@10个参数.动态适应数字及字符串长度
+//Added support for functions taking string parameters, which widens the range of use considerably.
+//Reduced memory use: 79 bytes of static memory at 10 parameters, adapting dynamically to number and string lengths
 //V2.0 
-//1,修改了list指令,打印函数的完整表达式.
-//2,增加了id指令,打印每个函数的入口地址.
-//3,修改了参数匹配,支持函数参数的调用(输入入口地址).
-//4,增加了函数名长度宏定义.	
+//1, Changed the list command to print the full function expression.
+//2, Added the id command, which prints each function's entry address.
+//3, Changed parameter matching to support calling a function as a parameter (by entry address).
+//4, Added a macro for the function name length.	
 //V2.1 20110707		 
-//1,增加dec,hex两个指令,用于设置参数显示进制,及执行进制转换.
-//注:当dec,hex不带参数的时候,即设定显示参数进制.当后跟参数的时候,即执行进制转换.
-//如:"dec 0XFF" 则会将0XFF转为255,由串口返回.
-//如:"hex 100" 	则会将100转为0X64,由串口返回
-//2,新增usmart_get_cmdname函数,用于获取指令名字.
+//1, Added the dec and hex commands, which set the parameter display base and perform base conversion.
+//Note: with no argument, dec/hex set the display base; with an argument they perform a base conversion.
+//e.g. "dec 0XFF" converts 0XFF to 255 and returns it over the serial port.
+//e.g. "hex 100" 	converts 100 to 0X64 and returns it over the serial port
+//2, Added the usmart_get_cmdname function, which fetches a command name.
 //V2.2 20110726	
-//1,修正了void类型参数的参数统计错误.
-//2,修改数据显示格式默认为16进制.
+//1, Fixed the parameter count being wrong for void parameters.
+//2, Changed the default data display format to hexadecimal.
 //V2.3 20110815
-//1,去掉了函数名后必须跟"("的限制.
-//2,修正了字符串参数中不能有"("的bug.
-//3,修改了函数默认显示参数格式的修改方式. 
+//1, Removed the rule that a function name must be followed by "(".
+//2, Fixed the bug where a string parameter could not contain "(".
+//3, Changed how a function's default parameter display format is set. 
 //V2.4 20110905
-//1,修改了usmart_get_cmdname函数,增加最大参数长度限制.避免了输入错误参数时的死机现象.
-//2,增加USMART_ENTIM2_SCAN宏定义,用于配置是否使用TIM2定时执行scan函数.
+//1, Changed usmart_get_cmdname to cap the maximum parameter length, which stops the hang seen when a bad parameter is entered.
+//2, Added the USMART_ENTIM2_SCAN macro, which selects whether TIM2 is used to run the scan function periodically.
 //V2.5 20110930
-//1,修改usmart_init函数为void usmart_init(u8 sysclk),可以根据系统频率自动设定扫描时间.(固定100ms)
-//2,去掉了usmart_init函数中的uart_init函数,串口初始化必须在外部初始化,方便用户自行管理.
+//1, Changed usmart_init to void usmart_init(u8 sysclk) so the scan interval is set automatically from the system clock (fixed at 100ms).
+//2, Removed the uart_init call from usmart_init; the serial port must now be initialised externally so the user can manage it.
 //V2.6 20111009
-//1,增加了read_addr和write_addr两个函数.可以利用这两个函数读写内部任意地址(必须是有效地址).更加方便调试.
-//2,read_addr和write_addr两个函数可以通过设置USMART_USE_WRFUNS为来使能和关闭.
-//3,修改了usmart_strcmp,使其规范化.			  
+//1, Added the read_addr and write_addr functions, which read and write any internal address (it must be a valid one). Handy for debugging.
+//2, read_addr and write_addr can be enabled or disabled through USMART_USE_WRFUNS.
+//3, Tidied up usmart_strcmp.			  
 //V2.7 20111024
-//1,修正了返回值16进制显示时不换行的bug.
-//2,增加了函数是否有返回值的判断,如果没有返回值,则不会显示.有返回值时才显示其返回值.
+//1, Fixed the missing newline when a return value is shown in hexadecimal.
+//2, Added a check for whether a function has a return value; the value is only shown when there is one.
 //V2.8 20111116
-//1,修正了list等不带参数的指令发送后可能导致死机的bug.
+//1, Fixed the hang that could follow an argument-less command such as list.
 //V2.9 20120917
-//1,修改了形如：void*xxx(void)类型函数不能识别的bug。
+//1, Fixed the bug where functions of the form void*xxx(void) were not recognised.
 //V3.0 20130425
-//1,新增了字符串参数对转义符的支持。
+//1, Added escape-character support in string parameters.
 //V3.1 20131120
-//1,增加runtime系统指令,可以用于统计函数执行时间.
-//用法:
-//发送:runtime 1 ,则开启函数执行时间统计功能
-//发送:runtime 0 ,则关闭函数执行时间统计功能
-///runtime统计功能,必须设置:USMART_ENTIMX_SCAN 为1,才可以使用!!
+//1, Added the runtime system command, which measures function execution time.
+//Usage:
+//Send "runtime 1" to turn function timing on
+//Send "runtime 0" to turn function timing off
+///runtime timing feature: USMART_ENTIMX_SCAN must be 1 for this to work!!
 /////////////////////////////////////////////////////////////////////////////////////
-//系统命令
+//System commands
 u8 *sys_cmd_tab[]=
 {
 	"?",
@@ -63,21 +63,21 @@ u8 *sys_cmd_tab[]=
 	"runtime",	   
 };
 
-//处理系统指令
-//0,成功处理;其他,错误代码;
+//Handle a system command
+//0 = handled; other = error code;
 u8 usmart_sys_cmd_exe(u8 *str)
 {
 	u8 i;
-	u8 sfname[MAX_FNAME_LEN];	//存放本地函数名
+	u8 sfname[MAX_FNAME_LEN];	//Holds the local function name
 	u8 pnum;
 	u8 rval;
 	u32 res;  
-	res = usmart_get_cmdname(str, sfname, &i, MAX_FNAME_LEN);	//得到指令及指令长度
+	res = usmart_get_cmdname(str, sfname, &i, MAX_FNAME_LEN);	//Get the command and its length
 	if(res)
-		return USMART_FUNCERR;	//错误的指令 
+		return USMART_FUNCERR;	//Bad command 
 	
 	str += i;	 	 			    
-	for(i = 0; i < sizeof(sys_cmd_tab) / 4; i++)				//支持的系统指令
+	for(i = 0; i < sizeof(sys_cmd_tab) / 4; i++)				//The system commands that are supported
 	{
 		if(usmart_strcmp(sfname, sys_cmd_tab[i]) == 0)
 			break;
@@ -86,108 +86,108 @@ u8 usmart_sys_cmd_exe(u8 *str)
 	switch(i)
 	{					   
 		case 0:
-		case 1:	//帮助指令
+		case 1:	//help command
 			printf("\r\n");
 #if USMART_USE_HELP
 			printf("------------------------USMART V3.1------------------------ \r\n");
-			printf("    USMART是由ALIENTEK开发的一个灵巧的串口调试互交组件,通过 \r\n");
-			printf("它,你可以通过串口助手调用程序里面的任何函数,并执行.因此,你可\r\n");
-			printf("以随意更改函数的输入参数(支持数字(10/16进制)、字符串、函数入\r\n");	  
-			printf("口地址等作为参数),单个函数最多支持10个输入参数,并支持函数返 \r\n");
-			printf("回值显示.新增参数显示进制设置功能,新增进制转换功能.\r\n");
-			printf("技术支持:www.openedv.com\r\n");
-			printf("USMART有7个系统命令:\r\n");
-			printf("?:      获取帮助信息\r\n");
-			printf("help:   获取帮助信息\r\n");
-			printf("list:   可用的函数列表\r\n\n");
-			printf("id:     可用函数的ID列表\r\n\n");
-			printf("hex:    参数16进制显示,后跟空格+数字即执行进制转换\r\n\n");
-			printf("dec:    参数10进制显示,后跟空格+数字即执行进制转换\r\n\n");
-			printf("runtime:1,开启函数运行计时;0,关闭函数运行计时;\r\n\n");
-			printf("请按照程序编写格式输入函数名及参数并以回车键结束.\r\n");    
+			printf("    USMART is a neat serial debugging component from ALIENTEK. With \r\n");
+			printf("it you can call and run any function in your program from a serial \r\n");
+			printf("terminal, so you can freely change a function's inputs (numbers in \r\n");	  
+			printf("decimal or hex, strings and entry addresses), up to 10 per call, and \r\n");
+			printf("the return value is shown. Display base and base conversion are new.\r\n");
+			printf("Support: www.openedv.com\r\n");
+			printf("USMART has 7 system commands:\r\n");
+			printf("?:      show this help\r\n");
+			printf("help:   show this help\r\n");
+			printf("list:   list the available functions\r\n\n");
+			printf("id:     list the function IDs\r\n\n");
+			printf("hex:    show arguments in hex; follow with a space and a number to convert\r\n\n");
+			printf("dec:    show arguments in decimal; follow with a space and a number to convert\r\n\n");
+			printf("runtime:1 turns function timing on; 0 turns it off;\r\n\n");
+			printf("Type the function name and arguments as they are written in the code, then press Enter.\r\n");    
 			printf("--------------------------ALIENTEK------------------------- \r\n");
 #else
-			printf("指令失效\r\n");
+			printf("Command failed\r\n");
 #endif
 			break;
-		case 2:	//查询指令
+		case 2:	//list command
 			printf("\r\n");
-			printf("-------------------------函数清单--------------------------- \r\n");
+			printf("-------------------------function list--------------------------- \r\n");
 			for(i = 0; i < usmart_dev.fnum; i++)
 				printf("%s\r\n", usmart_dev.funs[i].name);
 			printf("\r\n");
 			break;	 
-		case 3:	//查询ID
+		case 3:	//query the ID
 			printf("\r\n");
-			printf("-------------------------函数 ID --------------------------- \r\n");
+			printf("-------------------------function ID --------------------------- \r\n");
 			for(i = 0; i < usmart_dev.fnum; i++)
 			{
-				usmart_get_fname((u8*)usmart_dev.funs[i].name, sfname, &pnum,&rval);	//得到本地函数名 
-				printf("%s id is:\r\n0X%08X\r\n", sfname, usmart_dev.funs[i].func); 	//显示ID
+				usmart_get_fname((u8*)usmart_dev.funs[i].name, sfname, &pnum,&rval);	//Get the local function name 
+				printf("%s id is:\r\n0X%08X\r\n", sfname, usmart_dev.funs[i].func); 	//Show the ID
 			}
 			printf("\r\n");
 			break;
-		case 4:	//hex指令
+		case 4:	//hex command
 			printf("\r\n");
 			usmart_get_aparm(str, sfname, &i);
-			if(i == 0)	//参数正常
+			if(i == 0)	//Parameters are valid
 			{
-				i = usmart_str2num(sfname, &res);	   	//记录该参数	
-				if(i == 0)							  	//进制转换功能
+				i = usmart_str2num(sfname, &res);	   	//Record this parameter	
+				if(i == 0)							  	//Base conversion
 				{
-					printf("HEX:0X%X\r\n", res);	   	//转为16进制
+					printf("HEX:0X%X\r\n", res);	   	//Convert to hexadecimal
 				}
 				else if(i != 4)
 				{
-					return USMART_PARMERR;				//参数错误.
+					return USMART_PARMERR;				//Parameter error.
 				}
-				else 				   					//参数显示设定功能
+				else 				   					//Parameter display setting
 				{
-					printf("16进制参数显示!\r\n");
+					printf("Arguments shown in hex!\r\n");
 					usmart_dev.sptype = SP_TYPE_HEX;  
 				}
 
 			}
 			else
-				return USMART_PARMERR;					//参数错误.
+				return USMART_PARMERR;					//Parameter error.
 			printf("\r\n"); 
 			break;
-		case 5:	//dec指令
+		case 5:	//dec command
 			printf("\r\n");
 			usmart_get_aparm(str, sfname, &i);
-			if(i == 0)	//参数正常
+			if(i == 0)	//Parameters are valid
 			{
-				i = usmart_str2num(sfname, &res);	   	//记录该参数	
-				if(i == 0)						   		//进制转换功能
+				i = usmart_str2num(sfname, &res);	   	//Record this parameter	
+				if(i == 0)						   		//Base conversion
 				{
-					printf("DEC:%lu\r\n", res);	   		//转为10进制
+					printf("DEC:%lu\r\n", res);	   		//Convert to decimal
 				}
 				else if(i != 4)
 				{
-					return USMART_PARMERR;				//参数错误.
+					return USMART_PARMERR;				//Parameter error.
 				}
-				else 				   					//参数显示设定功能
+				else 				   					//Parameter display setting
 				{
-					printf("10进制参数显示!\r\n");
+					printf("Arguments shown in decimal!\r\n");
 					usmart_dev.sptype = SP_TYPE_DEC;  
 				}
 
 			}
 			else
-				return USMART_PARMERR;			//参数错误. 
+				return USMART_PARMERR;			//Parameter error. 
 			printf("\r\n"); 
 			break;	 
-		case 6:	//runtime指令,设置是否显示函数执行时间
+		case 6:	//runtime command, which turns the function timing display on and off
 			printf("\r\n");
 			usmart_get_aparm(str, sfname, &i);
-			if(i == 0)	//参数正常
+			if(i == 0)	//Parameters are valid
 			{
-				i = usmart_str2num(sfname, &res);	   	//记录该参数	
-				if(i == 0)						   		//读取指定地址数据功能
+				i = usmart_str2num(sfname, &res);	   	//Record this parameter	
+				if(i == 0)						   		//Read the data at a given address
 				{
 					if(USMART_ENTIMX_SCAN == 0)
 					{
-						printf("\r\nError! \r\nTo EN RunTime function,Please set USMART_ENTIMX_SCAN = 1 first!\r\n");//报错
+						printf("\r\nError! \r\nTo EN RunTime function,Please set USMART_ENTIMX_SCAN = 1 first!\r\n");//Report the error
 					}
 					else
 					{
@@ -199,215 +199,215 @@ u8 usmart_sys_cmd_exe(u8 *str)
 					}
 				}
 				else
-					return USMART_PARMERR;   			//未带参数,或者参数错误	 
+					return USMART_PARMERR;   			//No argument, or a bad one	 
  			}
 			else 
-				return USMART_PARMERR;					//参数错误. 
+				return USMART_PARMERR;					//Parameter error. 
 			printf("\r\n"); 
 			break;	    
-		default:	//非法指令
+		default:	//Invalid command
 			return USMART_FUNCERR;
 	}
 	return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-//移植注意:本例是以stm32为例,如果要移植到其他mcu,请做相应修改.
-//usmart_reset_runtime,清除函数运行时间,连同定时器的计数寄存器以及标志位一起清零.并设置重装载值为最大,以最大限度的延长计时时间.
-//usmart_get_runtime,获取函数运行时间,通过读取CNT值获取,由于usmart是通过中断调用的函数,所以定时器中断不再有效,此时最大限度
-//只能统计2次CNT的值,也就是清零后+溢出一次,当溢出超过2次,没法处理,所以最大延时,控制在:2*计数器CNT*0.1ms.对STM32来说,是:13.1s左右
-//其他的:TIM2_IRQHandler和Timer2_Init,需要根据MCU特点自行修改.确保计数器计数频率为:10Khz即可.另外,定时器不要开启自动重装载功能!!
+//Porting note: this is written for the STM32; adapt it for another MCU.
+//usmart_reset_runtime clears the measured run time along with the timer count and flags, and sets the reload value to its maximum so the timing window is as long as possible.
+//usmart_get_runtime reads the run time from CNT. Because usmart calls the function from an interrupt, the timer interrupt is no longer served, so at most
+//two CNT spans can be counted, that is one clear plus one overflow. More than two overflows cannot be handled, so the longest measurable time is 2*CNT*0.1ms, about 13.1s on the STM32
+//TIM2_IRQHandler and Timer2_Init must be adapted to the MCU; just keep the counter running at 10kHz. Do not enable timer auto-reload!!
 
 #if USMART_ENTIMX_SCAN == 1
-//复位runtime
-//需要根据所移植到的MCU的定时器参数进行修改
+//Reset the run time
+//Must be adjusted to the timer parameters of whichever MCU this is ported to
 void usmart_reset_runtime(void)
 {
-	TIM2->SR &= ~(1 << 0);	//清除中断标志位 
-	TIM2->ARR = 0XFFFF;		//将重装载值设置到最大
-	TIM2->CNT = 0;			//清空定时器的CNT
+	TIM2->SR &= ~(1 << 0);	//Clear the interrupt flag 
+	TIM2->ARR = 0XFFFF;		//Set the reload value to its maximum
+	TIM2->CNT = 0;			//Clear the timer count
 	usmart_dev.runtime = 0;	
 }
 
-//获得runtime时间
-//返回值:执行时间,单位:0.1ms,最大延时时间为定时器CNT值的2倍*0.1ms
-//需要根据所移植到的MCU的定时器参数进行修改
+//Read the measured run time
+//Return: the run time in units of 0.1ms; the longest measurable time is 2*CNT*0.1ms
+//Must be adjusted to the timer parameters of whichever MCU this is ported to
 u32 usmart_get_runtime(void)
 {
-	if(TIM2->SR & 0X0001)	//在运行期间,产生了定时器溢出
+	if(TIM2->SR & 0X0001)	//The timer overflowed while it was running
 	{
 		usmart_dev.runtime += 0XFFFF;
 	}
 	usmart_dev.runtime += TIM2->CNT;
-	return usmart_dev.runtime;		//返回计数值
+	return usmart_dev.runtime;		//Return the count
 }
 
-//下面这两个函数,非USMART函数,放到这里,仅仅方便移植. 
-//定时器2中断服务程序	 
+//The two functions below are not part of USMART; they are here only to make porting easier. 
+//Timer 2 interrupt service routine	 
 void TIM2_IRQHandler(void)
 { 		    		  			    
-	if(TIM2->SR & 0X0001)	//溢出中断
+	if(TIM2->SR & 0X0001)	//Overflow interrupt
 	{ 
-		usmart_dev.scan();	//执行usmart扫描	
-		TIM2->CNT = 0;		//清空定时器的CNT
-		TIM2->ARR = 1000;	//恢复原来的设置
+		usmart_dev.scan();	//Run the usmart scan	
+		TIM2->CNT = 0;		//Clear the timer count
+		TIM2->ARR = 1000;	//Restore the original settings
 	}				   
-	TIM2->SR &= ~(1 << 0);	//清除中断标志位 	    
+	TIM2->SR &= ~(1 << 0);	//Clear the interrupt flag 	    
 }
 
-//使能定时器2,使能中断.
+//Enable timer 2 and its interrupt.
 void Timer2_Init(u16 arr, u16 psc)
 {
-	RCC->APB1ENR |= 1 << 0;	//TIM2时钟使能    
- 	TIM2->ARR = arr;  		//设定计数器自动重装值  
-	TIM2->PSC = psc;  		//预分频器7200,得到10Khz的计数时钟
-	//这两个东东要同时设置才可以使用中断
-	TIM2->DIER |= 1 << 0;   //允许更新中断				
-	TIM2->DIER |= 1 << 6;   //允许触发中断
+	RCC->APB1ENR |= 1 << 0;	//Enable the TIM2 clock    
+ 	TIM2->ARR = arr;  		//Set the auto-reload value  
+	TIM2->PSC = psc;  		//A prescaler of 7200 gives a 10kHz count clock
+	//Both of these have to be set before the interrupt works
+	TIM2->DIER |= 1 << 0;   //Allow the update interrupt				
+	TIM2->DIER |= 1 << 6;   //Allow the trigger interrupt
 		  							    
-	TIM2->CR1 |= 0x01;		//使能定时器2
-  	MY_NVIC_Init(3, 3, TIM2_IRQn, 2);//抢占3，子优先级3，组2(组2中优先级最低的)									 
+	TIM2->CR1 |= 0x01;		//Enable timer 2
+  	MY_NVIC_Init(3, 3, TIM2_IRQn, 2);//Pre-emption 3, sub-priority 3, group 2 (the lowest priority in group 2)									 
 }
 #endif
 ////////////////////////////////////////////////////////////////////////////////////////
-//初始化串口控制器
-//sysclk:系统时钟（Mhz）
+//Initialise the serial controller
+//sysclk: the system clock in MHz
 void usmart_init(u8 sysclk)
 {
 #if USMART_ENTIMX_SCAN==1
-	Timer2_Init(1000, (u32)sysclk * 100 - 1);	//分频,时钟为10K ,100ms中断一次,注意,计数频率必须为10Khz,以和runtime单位(0.1ms)同步.
+	Timer2_Init(1000, (u32)sysclk * 100 - 1);	//Divide down to 10kHz and interrupt every 100ms. The count frequency must be 10kHz so it matches the 0.1ms runtime unit.
 #endif
-	usmart_dev.sptype = 1;	//十六进制显示参数
+	usmart_dev.sptype = 1;	//Show arguments in hexadecimal
 }
 
-//从str中获取函数名,id,及参数信息
-//*str:字符串指针.
-//返回值:0,识别成功;其他,错误代码.
+//Pull the function name, id and arguments out of str
+//*str: pointer to the string.
+//Return: 0 = recognised; other = error code.
 u8 usmart_cmd_rec(u8 *str) 
 {
-	u8 sta, i, rval;//状态	 
+	u8 sta, i, rval;//State	 
 	u8 rpnum,spnum;
-	u8 rfname[MAX_FNAME_LEN];//暂存空间,用于存放接收到的函数名  
-	u8 sfname[MAX_FNAME_LEN];//存放本地函数名
-	sta=usmart_get_fname(str,rfname,&rpnum,&rval);//得到接收到的数据的函数名及参数个数	  
-	if(sta)return sta;//错误
+	u8 rfname[MAX_FNAME_LEN];//Scratch space for the function name received  
+	u8 sfname[MAX_FNAME_LEN];//Holds the local function name
+	sta=usmart_get_fname(str,rfname,&rpnum,&rval);//Get the function name and argument count from what was received	  
+	if(sta)return sta;//Error
 	for(i=0;i<usmart_dev.fnum;i++)
 	{
-		sta=usmart_get_fname((u8*)usmart_dev.funs[i].name,sfname,&spnum,&rval);//得到本地函数名及参数个数
-		if(sta)return sta;//本地解析有误	  
-		if(usmart_strcmp(sfname,rfname)==0)//相等
+		sta=usmart_get_fname((u8*)usmart_dev.funs[i].name,sfname,&spnum,&rval);//Get the local function name and argument count
+		if(sta)return sta;//The local parse failed	  
+		if(usmart_strcmp(sfname,rfname)==0)//Equal
 		{
-			if(spnum>rpnum)return USMART_PARMERR;//参数错误(输入参数比源函数参数少)
-			usmart_dev.id=i;//记录函数ID.
-			break;//跳出.
+			if(spnum>rpnum)return USMART_PARMERR;//Argument error (fewer arguments given than the function takes)
+			usmart_dev.id=i;//Record the function ID.
+			break;//Break out.
 		}	
 	}
-	if(i==usmart_dev.fnum)return USMART_NOFUNCFIND;	//未找到匹配的函数
- 	sta=usmart_get_fparam(str,&i);					//得到函数参数个数	
-	if(sta)return sta;								//返回错误
-	usmart_dev.pnum=i;								//参数个数记录
+	if(i==usmart_dev.fnum)return USMART_NOFUNCFIND;	//No matching function was found
+ 	sta=usmart_get_fparam(str,&i);					//Get the function's argument count	
+	if(sta)return sta;								//Return the error
+	usmart_dev.pnum=i;								//Record the argument count
     return USMART_OK;
 }
-//usamrt执行函数
-//该函数用于最终执行从串口收到的有效函数.
-//最多支持10个参数的函数,更多的参数支持也很容易实现.不过用的很少.一般5个左右的参数的函数已经很少见了.
-//该函数会在串口打印执行情况.以:"函数名(参数1，参数2...参数N)=返回值".的形式打印.
-//当所执行的函数没有返回值的时候,所打印的返回值是一个无意义的数据.
+//usmart function execution
+//This is what finally calls the function received over the serial port.
+//Up to 10 arguments are supported. More would be easy to add but are rarely needed; even five-argument functions are uncommon.
+//It prints the result to the serial port as "name(arg1, arg2...argN)=return value".
+//When the function has no return value, the value printed is meaningless.
 void usmart_exe(void)
 {
 	u8 id,i;
 	u32 res;		   
-	u32 temp[MAX_PARM];//参数转换,使之支持了字符串 
-	u8 sfname[MAX_FNAME_LEN];//存放本地函数名
+	u32 temp[MAX_PARM];//Argument conversion, which adds string support 
+	u8 sfname[MAX_FNAME_LEN];//Holds the local function name
 	u8 pnum,rval;
 	id=usmart_dev.id;
-	if(id>=usmart_dev.fnum)return;//不执行.
-	usmart_get_fname((u8*)usmart_dev.funs[id].name,sfname,&pnum,&rval);//得到本地函数名,及参数个数 
-	printf("\r\n%s(",sfname);//输出正要执行的函数名
-	for(i=0;i<pnum;i++)//输出参数
+	if(id>=usmart_dev.fnum)return;//Do not run it.
+	usmart_get_fname((u8*)usmart_dev.funs[id].name,sfname,&pnum,&rval);//Get the local function name and argument count 
+	printf("\r\n%s(",sfname);//Print the name of the function about to run
+	for(i=0;i<pnum;i++)//Print the arguments
 	{
-		if(usmart_dev.parmtype&(1<<i))//参数是字符串
+		if(usmart_dev.parmtype&(1<<i))//The argument is a string
 		{
 			printf("%c",'"');			 
 			printf("%s",usmart_dev.parm+usmart_get_parmpos(i));
 			printf("%c",'"');
 			temp[i]=(u32)&(usmart_dev.parm[usmart_get_parmpos(i)]);
-		}else						  //参数是数字
+		}else						  //The argument is a number
 		{
 			temp[i]=*(u32*)(usmart_dev.parm+usmart_get_parmpos(i));
-			if(usmart_dev.sptype==SP_TYPE_DEC)printf("%lu",temp[i]);//10进制参数显示
-			else printf("0X%X",temp[i]);//16进制参数显示 	   
+			if(usmart_dev.sptype==SP_TYPE_DEC)printf("%lu",temp[i]);//Show parameters in decimal
+			else printf("0X%X",temp[i]);//Show parameters in hexadecimal 	   
 		}
 		if(i!=pnum-1)printf(",");
 	}
 	printf(")");
-	usmart_reset_runtime();	//计时器清零,开始计时
+	usmart_reset_runtime();	//Clear the timer and start timing
 	switch(usmart_dev.pnum)
 	{
-		case 0://无参数(void类型)											  
+		case 0://No arguments (void)											  
 			res=(*(u32(*)())usmart_dev.funs[id].func)();
 			break;
-	    case 1://有1个参数
+	    case 1://1 argument
 			res=(*(u32(*)())usmart_dev.funs[id].func)(temp[0]);
 			break;
-	    case 2://有2个参数
+	    case 2://2 arguments
 			res=(*(u32(*)())usmart_dev.funs[id].func)(temp[0],temp[1]);
 			break;
-	    case 3://有3个参数
+	    case 3://3 arguments
 			res=(*(u32(*)())usmart_dev.funs[id].func)(temp[0],temp[1],temp[2]);
 			break;
-	    case 4://有4个参数
+	    case 4://4 arguments
 			res=(*(u32(*)())usmart_dev.funs[id].func)(temp[0],temp[1],temp[2],temp[3]);
 			break;
-	    case 5://有5个参数
+	    case 5://5 arguments
 			res=(*(u32(*)())usmart_dev.funs[id].func)(temp[0],temp[1],temp[2],temp[3],temp[4]);
 			break;
-	    case 6://有6个参数
+	    case 6://6 arguments
 			res=(*(u32(*)())usmart_dev.funs[id].func)(temp[0],temp[1],temp[2],temp[3],temp[4],\
 			temp[5]);
 			break;
-	    case 7://有7个参数
+	    case 7://7 arguments
 			res=(*(u32(*)())usmart_dev.funs[id].func)(temp[0],temp[1],temp[2],temp[3],temp[4],\
 			temp[5],temp[6]);
 			break;
-	    case 8://有8个参数
+	    case 8://8 arguments
 			res=(*(u32(*)())usmart_dev.funs[id].func)(temp[0],temp[1],temp[2],temp[3],temp[4],\
 			temp[5],temp[6],temp[7]);
 			break;
-	    case 9://有9个参数
+	    case 9://9 arguments
 			res=(*(u32(*)())usmart_dev.funs[id].func)(temp[0],temp[1],temp[2],temp[3],temp[4],\
 			temp[5],temp[6],temp[7],temp[8]);
 			break;
-	    case 10://有10个参数
+	    case 10://10 arguments
 			res=(*(u32(*)())usmart_dev.funs[id].func)(temp[0],temp[1],temp[2],temp[3],temp[4],\
 			temp[5],temp[6],temp[7],temp[8],temp[9]);
 			break;
 	}
-	usmart_get_runtime();//获取函数执行时间
-	if(rval==1)//需要返回值.
+	usmart_get_runtime();//Read the function's run time
+	if(rval==1)//A return value is wanted.
 	{
-		if(usmart_dev.sptype==SP_TYPE_DEC)printf("=%lu;\r\n",res);//输出执行结果(10进制参数显示)
-		else printf("=0X%X;\r\n",res);//输出执行结果(16进制参数显示)	   
-	}else printf(";\r\n");		//不需要返回值,直接输出结束
-	if(usmart_dev.runtimeflag)	//需要显示函数执行时间
+		if(usmart_dev.sptype==SP_TYPE_DEC)printf("=%lu;\r\n",res);//Print the result with arguments in decimal
+		else printf("=0X%X;\r\n",res);//Print the result with arguments in hexadecimal	   
+	}else printf(";\r\n");		//No return value wanted, so just finish the line
+	if(usmart_dev.runtimeflag)	//The run time is to be shown
 	{ 
-		printf("Function Run Time:%d.%1dms\r\n",usmart_dev.runtime/10,usmart_dev.runtime%10);//打印函数执行时间 
+		printf("Function Run Time:%d.%1dms\r\n",usmart_dev.runtime/10,usmart_dev.runtime%10);//Print the function's run time 
 	}	
 }
-//usmart扫描函数
-//通过调用该函数,实现usmart的各个控制.该函数需要每隔一定时间被调用一次
-//以及时执行从串口发过来的各个函数.
-//本函数可以在中断里面调用,从而实现自动管理.
-//如果非ALIENTEK用户,则USART_RX_STA和USART_RX_BUF[]需要用户自己实现
+//usmart scan function
+//Calling this drives everything usmart does. It must be called periodically
+//so that functions sent over the serial port run promptly.
+//It can be called from an interrupt so it looks after itself.
+//Outside ALIENTEK's own code you must provide USART_RX_STA and USART_RX_BUF[] yourself
 void usmart_scan(void)
 {
 	u8 sta,len;  
-	if(USART_RX_STA&0x8000)//串口接收完成？
+	if(USART_RX_STA&0x8000)//Has the serial receive finished?
 	{					   
-		len=USART_RX_STA&0x3fff;	//得到此次接收到的数据长度
-		USART_RX_BUF[len]='\0';	//在末尾加入结束符. 
-		sta=usmart_dev.cmd_rec(USART_RX_BUF);//得到函数各个信息
-		if(sta==0)usmart_dev.exe();	//执行函数 
+		len=USART_RX_STA&0x3fff;	//Get the length of what was received
+		USART_RX_BUF[len]='\0';	//Append the terminator. 
+		sta=usmart_dev.cmd_rec(USART_RX_BUF);//Work out the details of the function
+		if(sta==0)usmart_dev.exe();	//Run the function 
 		else 
 		{  
 			len=usmart_sys_cmd_exe(USART_RX_BUF);
@@ -417,32 +417,32 @@ void usmart_scan(void)
 				switch(sta)
 				{
 					case USMART_FUNCERR:
-						printf("函数错误!\r\n");   			
+						printf("Bad function!\r\n");   			
 						break;	
 					case USMART_PARMERR:
-						printf("参数错误!\r\n");   			
+						printf("Bad argument!\r\n");   			
 						break;				
 					case USMART_PARMOVER:
-						printf("参数太多!\r\n");   			
+						printf("Too many arguments!\r\n");   			
 						break;		
 					case USMART_NOFUNCFIND:
-						printf("未找到匹配的函数!\r\n");   			
+						printf("No matching function found!\r\n");   			
 						break;		
 				}
 			}
 		}
-		USART_RX_STA=0;//状态寄存器清空	    
+		USART_RX_STA=0;//Clear the state register	    
 	}
 }
 
-#if USMART_USE_WRFUNS==1 	//如果使能了读写操作
-//读取指定地址的值		 
+#if USMART_USE_WRFUNS==1 	//If the read/write operations are enabled
+//Read the value at a given address		 
 u32 read_addr(u32 addr)
 {
 	return *(u32*)addr;//	
 }
 
-//在指定地址写入指定的值		 
+//Write a given value to a given address		 
 void write_addr(u32 addr,u32 val)
 {
 	*(u32*)addr=val; 	

@@ -3,23 +3,23 @@
 
 extern volatile uint16_t SilenceTime;
 
-//定时器3中断服务程序	 
+//Timer 3 interrupt service routine	 
 void TIM3_IRQHandler(void)
 { 		    		  			    
-//	if(TIM3->SR & 0X0001)		//溢出中断
+//	if(TIM3->SR & 0X0001)		//overflow interrupt
 	if(TIM_GetFlagStatus(TIM3, TIM_IT_Update) == SET)
 	{
 		//LED1 = !LED1;			    				   				     	    	
 	}
-//	TIM3->SR &= ~(1 << 0);		//清除中断标志位 
+//	TIM3->SR &= ~(1 << 0);		//clear the interrupt flag 
 	TIM_ClearFlag(TIM3, TIM_IT_Update);	
 }
 
-//通用定时器3中断初始化
-//这里时钟选择为APB1的2倍，而APB1为36M
-//arr：自动重装值。
-//psc：时钟预分频数
-//这里使用的是定时器3!
+//General purpose timer 3 interrupt initialisation
+//The clock here is twice APB1, and APB1 is 36M
+//arr: auto-reload value.
+//psc: clock prescaler
+//This uses timer 3!
 void TIM3_Int_Init(u16 arr, u16 psc)
 {
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
@@ -33,21 +33,21 @@ void TIM3_Int_Init(u16 arr, u16 psc)
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
 	
-	//Timer3 NVIC 配置
+	//Timer3 NVIC configuration
   NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;	//抢占优先级0
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;			//子优先级2
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;				//IRQ通道使能
-	NVIC_Init(&NVIC_InitStructure);								//根据指定的参数初始化NVIC寄存器
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;	//Pre-emption priority 0
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;			//Sub-priority 2
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;				//Enable the IRQ channel
+	NVIC_Init(&NVIC_InitStructure);								//Initialise the NVIC registers with the given parameters
 	
 	TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
 	TIM_Cmd(TIM3, ENABLE);
 }
 
-//TIM3 PWM部分初始化 
-//PWM输出初始化
-//arr：自动重装值
-//psc：时钟预分频数
+//TIM3 PWM initialisation 
+//PWM output initialisation
+//arr: the auto-reload value
+//psc: clock prescaler
 //void TIM3_PWM_Init(u16 arr, u16 psc)
 //{
 //	GPIO_InitTypeDef GPIO_InitStructure;
@@ -108,8 +108,8 @@ void TIM3_Int_Init(u16 arr, u16 psc)
 //}
 
 /////////////////////////////////////////////////////////////////////////////////////////
-u32 uip_timer = 0;	//uip 计时器，每10ms增加1.
-//定时器6中断服务程序	 
+u32 uip_timer = 0;	//uIP timer, incremented every 10ms.
+//Timer 6 interrupt service routine	 
 extern u32  far miliseclast_cur;
 extern u32  far miliseclast;
 #if 0
@@ -131,15 +131,15 @@ void TIM6_IRQHandler(void)//1ms
 //	if(count >= 10) 
 //	{
 //		count = 0;
-//		uip_timer++;		//uip计时器增加1
+//		uip_timer++;		//advance the uIP timer by 1
 //	}
-//	if(TIM6->SR & 0X0001)	//溢出中断
+//	if(TIM6->SR & 0X0001)	//overflow interrupt
 #if ARM_MINI
 	scan_led();
 #endif	
 	if(TIM_GetFlagStatus(TIM6, TIM_IT_Update) == SET)
 	{
-		uip_timer++;		//uip计时器增加1
+		uip_timer++;		//Advance the uIP timer by 1
 	}
 	
 	miliseclast = miliseclast + SWTIMER_INTERVAL;  // 1ms
@@ -167,16 +167,16 @@ void TIM6_IRQHandler(void)//1ms
 	{
 		SilenceTime = 0;
 	}	
-//	TIM6->SR &= ~(1 << 0);	//清除中断标志位 
+//	TIM6->SR &= ~(1 << 0);	//clear the interrupt flag 
 	TIM_ClearFlag(TIM6, TIM_IT_Update);		
 	
 	portCLEAR_INTERRUPT_MASK_FROM_ISR(uxSavedInterruptStatus);
 }
 
-//基本定时器6中断初始化					  
-//arr：自动重装值。		
-//psc：时钟预分频数		 
-//Tout= ((arr+1)*(psc+1))/Tclk；
+//Basic timer 6 interrupt initialisation					  
+//arr: auto-reload value.		
+//psc: clock prescaler		 
+//Tout= ((arr+1)*(psc+1))/Tclk;
 void TIM6_Int_Init(u16 arr, u16 psc)
 {
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
@@ -190,20 +190,20 @@ void TIM6_Int_Init(u16 arr, u16 psc)
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit(TIM6, &TIM_TimeBaseStructure);
 	
-	//Timer3 NVIC 配置
+	//Timer3 NVIC configuration
   NVIC_InitStructure.NVIC_IRQChannel = TIM6_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;	//抢占优先级3
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 3;			//子优先级3
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;				//IRQ通道使能
-	NVIC_Init(&NVIC_InitStructure);								//根据指定的参数初始化NVIC寄存器
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;	//Pre-emption priority 3
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 3;			//Sub-priority 3
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;				//Enable the IRQ channel
+	NVIC_Init(&NVIC_InitStructure);								//Initialise the NVIC registers with the given parameters
 	
 	TIM_ITConfig(TIM6, TIM_IT_Update, ENABLE);
 	TIM_Cmd(TIM6, ENABLE);
 	
-//	RCC->APB1ENR |= 1 << 4;					//TIM6时钟使能    
-// 	TIM6->ARR = arr;  						//设定计数器自动重装值 
-//	TIM6->PSC = psc;  			 			//设置预分频器.
-// 	TIM6->DIER |= 1 << 0;   				//允许更新中断				
-// 	TIM6->CR1 |= 0x01;    					//使能定时器6
-//	MY_NVIC_Init(0, 0, TIM6_IRQn, 2);		//抢占1，子优先级2，组2		
+//	RCC->APB1ENR |= 1 << 4;					//enable the TIM6 clock    
+// 	TIM6->ARR = arr;  						//set the auto-reload value 
+//	TIM6->PSC = psc;  			 			//set the prescaler.
+// 	TIM6->DIER |= 1 << 0;   				//allow the update interrupt				
+// 	TIM6->CR1 |= 0x01;    					//enable timer 6
+//	MY_NVIC_Init(0, 0, TIM6_IRQn, 2);		//pre-emption 1, sub-priority 2, group 2		
 }

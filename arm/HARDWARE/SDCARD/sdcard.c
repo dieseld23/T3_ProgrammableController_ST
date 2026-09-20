@@ -399,57 +399,57 @@ SD_Error SD_PowerON(void)
   uint32_t SDType = SD_STD_CAPACITY;
 	
 /********************************************************************************************************/
-  /* 上电初始化 
-   * 配置SDIO的外设
+  /* power-up initialisation 
+   * configure the SDIO peripheral
    * SDIOCLK = HCLK, SDIO_CK = HCLK/(2 + SDIO_INIT_CLK_DIV)   
-   * 初始化时的时钟不能大于400KHz
+   * during init the clock must not exceed 400KHz
    */
 	/* HCLK = 72MHz, SDIOCLK = 72MHz, SDIO_CK = HCLK/(178 + 2) = 400 KHz */
   SDIO_InitStructure.SDIO_ClockDiv = SDIO_INIT_CLK_DIV;
 	
   SDIO_InitStructure.SDIO_ClockEdge = SDIO_ClockEdge_Rising;
 	
-	/* 不使用bypass模式，直接用HCLK进行分频得到SDIO_CK */
+	/* do not use bypass mode; divide HCLK down to get SDIO_CK */
   SDIO_InitStructure.SDIO_ClockBypass = SDIO_ClockBypass_Disable;
 
-	/* 空闲时不关闭时钟电源 */  
+	/* keep the clock powered when idle */  
   SDIO_InitStructure.SDIO_ClockPowerSave = SDIO_ClockPowerSave_Disable;
 	
-	/* 初始化的时候暂时先把数据线配置成1根 */
+	/* during init use just one data line for now */
   SDIO_InitStructure.SDIO_BusWide = SDIO_BusWide_1b;
 	
-	/* 失能硬件流控制 */
+	/* disable hardware flow control */
   SDIO_InitStructure.SDIO_HardwareFlowControl = SDIO_HardwareFlowControl_Disable;
 	
   SDIO_Init(&SDIO_InitStructure);
 
-  /* 开启SDIO外设的电源 */
+  /* power up the SDIO peripheral */
   SDIO_SetPowerState(SDIO_PowerState_ON);
 
-  /* 使能 SDIO 时钟 */
+  /* enable the SDIO clock */
   SDIO_ClockCmd(ENABLE);  
 /********************************************************************************************************/   
-  /* 下面发送一系列命令,开始卡识别流程
-   * CMD0: GO_IDLE_STATE(复位所以SD卡进入空闲状态) 
-   * 没有相应 
+  /* the following commands start the card identification sequence
+   * CMD0: GO_IDLE_STATE (resets every SD card into the idle state) 
+   * no response 
 	 */
   SDIO_CmdInitStructure.SDIO_Argument = 0x0;
   SDIO_CmdInitStructure.SDIO_CmdIndex = SDIO_GO_IDLE_STATE;
 	
-	/* 没有响应 */
+	/* no response */
   SDIO_CmdInitStructure.SDIO_Response = SDIO_Response_No;
 	
-	/* 关闭等待中断 */
+	/* turn off interrupt waiting */
   SDIO_CmdInitStructure.SDIO_Wait = SDIO_Wait_No;
 	
-	/* 则CPSM在开始发送命令之前等待数据传输结束 */
+	/* so the CPSM waits for the data transfer to finish before sending the command */
   SDIO_CmdInitStructure.SDIO_CPSM = SDIO_CPSM_Enable; 
   SDIO_SendCommand(&SDIO_CmdInitStructure);	  		
 	
-	/* 检测是否正确接收到cmd0 */
+	/* check that cmd0 was accepted */
   errorstatus = CmdError();
 
-	/* 命令发送出错，返回 */
+	/* the command failed, so return */
   if (errorstatus != SD_OK)	
   {
     /* CMD Response TimeOut (wait for CMDSENT flag) */
@@ -464,7 +464,7 @@ SD_Error SD_PowerON(void)
    *           - [7:0]  : Check Pattern (recommended 0xAA) 
    * CMD Response: R7 
 	 */
-	 /* 接收到命令sd会返回这个参数 */
+	 /* the card returns this argument when it accepts the command */
   SDIO_CmdInitStructure.SDIO_Argument = SD_CHECK_PATTERN;
 	
   SDIO_CmdInitStructure.SDIO_CmdIndex = SDIO_SEND_IF_COND;	
@@ -473,21 +473,21 @@ SD_Error SD_PowerON(void)
   SDIO_CmdInitStructure.SDIO_CPSM = SDIO_CPSM_Enable;
   SDIO_SendCommand(&SDIO_CmdInitStructure);
    
-  /*检查是否接收到命令*/
+  /*Check whether the command was received*/
   errorstatus = CmdResp7Error(); 
 
-	/* 有响应则card遵循sd协议2.0版本 */
+	/* a response means the card follows version 2.0 of the SD spec */
   if (errorstatus == SD_OK)	  	
   {
-		/* SD Card 2.0 ，先把它定义会sdsc类型的卡 */
+		/* SD Card 2.0; treat it as an SDSC card for now */
     CardType = SDIO_STD_CAPACITY_SD_CARD_V2_0;
 		
-		/* 这个变量用作ACMD41的参数，用来询问是sdsc卡还是sdhc卡 */
+		/* this variable is the ACMD41 argument, used to ask whether the card is SDSC or SDHC */
     SDType = SD_HIGH_CAPACITY;	
   }
-  else	/* 无响应，说明是1.x的或mmc的卡 */
+  else	/* no response, so it is a 1.x card or an MMC */
   {
-    /* 发命令 CMD55 */	  
+    /* send CMD55 */	  
     SDIO_CmdInitStructure.SDIO_Argument = 0x00;
     SDIO_CmdInitStructure.SDIO_CmdIndex = SDIO_APP_CMD;
     SDIO_CmdInitStructure.SDIO_Response = SDIO_Response_Short;
@@ -498,8 +498,8 @@ SD_Error SD_PowerON(void)
   }
 	
   /* CMD55 		
-   * 发送cmd55，用于检测是sd卡还是mmc卡，或是不支持的卡
-	 * CMD 响应: R1
+   * cmd55 tells an SD card from an MMC or an unsupported card
+	 * CMD response: R1
    */  
   SDIO_CmdInitStructure.SDIO_Argument = 0x00;
   SDIO_CmdInitStructure.SDIO_CmdIndex = SDIO_APP_CMD;
@@ -508,7 +508,7 @@ SD_Error SD_PowerON(void)
   SDIO_CmdInitStructure.SDIO_CPSM = SDIO_CPSM_Enable;
   SDIO_SendCommand(&SDIO_CmdInitStructure);
 	
-	/* 是否响应，没响应的是mmc或不支持的卡 */
+	/* did it respond? no response means an MMC or an unsupported card */
   errorstatus = CmdResp1Error(SDIO_APP_CMD);	
 
 /********************************************************************************************************/
@@ -516,16 +516,16 @@ SD_Error SD_PowerON(void)
    * If errorstatus is SD_OK it is a SD card: SD card 2.0 (voltage range mismatch)
    * or SD card 1.x 
 	 */
-  if (errorstatus == SD_OK)	//响应了cmd55，是sd卡，可能为1.x,可能为2.0
+  if (errorstatus == SD_OK)	//It answered cmd55, so it is an SD card, either 1.x or 2.0
   {
-  	/*下面开始循环地发送sdio支持的电压范围，循环一定次数*/
+  	/*Now send the voltage range SDIO supports, repeatedly, up to a set number of tries*/
 
     /* SD CARD
      * Send ACMD41 SD_APP_OP_COND with Argument 0x80100000 
 		 */
     while ((!validvoltage) && (count < SD_MAX_VOLT_TRIAL))
     {	 
-			/* 在发送ACMD命令前都要先向卡发送CMD55 
+			/* CMD55 must be sent to the card before any ACMD command 
        * SEND CMD55 APP_CMD with RCA as 0 
 			 */
       SDIO_CmdInitStructure.SDIO_Argument = 0x00;
@@ -543,10 +543,10 @@ SD_Error SD_PowerON(void)
       }
 			
 			/* ACMD41
-			 * 命令参数由支持的电压范围及HCS位组成，HCS位置一来区分卡是SDSC还是SDHC
+			 * the argument is the supported voltage range plus the HCS bit, which tells SDSC from SDHC
 			 * 0:SDSC
 			 * 1:SDHC
-       * 响应：R3,对应的是OCR寄存器			
+       * response: R3, which carries the OCR register			
 			 */			
       SDIO_CmdInitStructure.SDIO_Argument = SD_VOLTAGE_WINDOW_SD | SDType;	  
       SDIO_CmdInitStructure.SDIO_CmdIndex = SDIO_SD_APP_OP_COND;
@@ -562,27 +562,27 @@ SD_Error SD_PowerON(void)
         return(errorstatus); 
       }
 			
-			/* 若卡需求电压在SDIO的供电电压范围内，会自动上电并标志pwr_up位 
-			 * 读取卡寄存器，卡状态
+			/* if the card's voltage need falls inside the SDIO supply range it powers up and sets the pwr_up bit 
+			 * read the card register and status
 			 */
       response = SDIO_GetResponse(SDIO_RESP1);
 			
-			/* 读取卡的ocr寄存器的pwr_up位，看是否已工作在正常电压 */
+			/* read the pwr_up bit of the card's OCR to see whether it is running at the normal voltage */
       validvoltage = (((response >> 31) == 1) ? 1 : 0);	
-      count++;			  /* 计算循环次数 */
+      count++;			  /* count the loops */
     }
 		
-    if (count >= SD_MAX_VOLT_TRIAL)					 /* 循环检测超过一定次数还没上电 */
+    if (count >= SD_MAX_VOLT_TRIAL)					 /* still not powered up after the maximum number of tries */
     {
-      errorstatus = SD_INVALID_VOLTRANGE;	   /* SDIO不支持card的供电电压 */
+      errorstatus = SD_INVALID_VOLTRANGE;	   /* SDIO does not support this card's supply voltage */
       return(errorstatus);
     }
 		
-		/*检查卡返回信息中的HCS位*/
-		/* 判断ocr中的ccs位 ，如果是sdsc卡则不执行下面的语句 */
+		/*Check the HCS bit in what the card returned*/
+		/* test the CCS bit in the OCR; an SDSC card skips the statement below */
     if (response &= SD_HIGH_CAPACITY)       
     {
-      CardType = SDIO_HIGH_CAPACITY_SD_CARD; /* 把卡类型从初始化的sdsc型改为sdhc型 */
+      CardType = SDIO_HIGH_CAPACITY_SD_CARD; /* change the card type from the initial SDSC to SDHC */
     }
 
   }/* else MMC Card */
@@ -3226,7 +3226,7 @@ static void DMA_RxConfiguration(u32 *BufferDST, u32 BufferSize)
 u8 SD_ReadDisk(u8*buf, u32 sector, u8 cnt)
 {
 	u8 r1;
-	if(SD_Type != SD_TYPE_V2HC)sector <<= 9;//转换为字节地址
+	if(SD_Type != SD_TYPE_V2HC)sector <<= 9;//Convert to a byte address
 	if(cnt == 1)
 	{
 		 SD_ReadBlock(sector << 9 ,(u32 *)(&buf[0]),SECTOR_SIZE);

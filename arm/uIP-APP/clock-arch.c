@@ -41,11 +41,11 @@
 #include "clock-arch.h"
 #include "stm32f10x.h" 
 
-//uip时钟
-extern u32 uip_timer;//uip 计时器，每10ms增加1.
+//uIP clock
+extern u32 uip_timer;//uIP timer, incremented every 10ms.
 /*---------------------------------------------------------------------------*/
 clock_time_t
 clock_time(void)
 {
-	return uip_timer; /* 10ms 单位 */	 
+	return uip_timer; /* in units of 10ms */	 
 }

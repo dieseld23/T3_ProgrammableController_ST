@@ -235,7 +235,7 @@ TCHAR* f_gets (TCHAR*, int, FIL*);					/* Get a string from the file */
 #define f_tell(fp) ((fp)->fptr)
 #define f_size(fp) ((fp)->fsize)
 
-FRESULT dir_sdi (DIR *dj,WORD idx);	  	//让该函数可以被外部函数调用
+FRESULT dir_sdi (DIR *dj,WORD idx);	  	//Lets this function be called from outside
 
 #ifndef EOF
 #define EOF (-1)

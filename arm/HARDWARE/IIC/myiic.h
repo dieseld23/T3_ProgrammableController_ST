@@ -3,7 +3,7 @@
 
 #include "bitmap.h"
 #include "product.h"   
-////IO方向设置
+////IO direction control
 //static void SDA_IN(void)
 //{
 //	GPIO_InitTypeDef GPIO_InitStructure; 
@@ -22,16 +22,16 @@
 //	GPIO_SetBits(gpio_map[EEP_SDA].GPIOX, gpio_map[EEP_SDA].GPIO_Pin_X);
 //}
 
-//IO方向设置
+//IO direction control
 
 #if (ARM_MINI || ARM_CM5)
 //#define SDA_IN()	{GPIOA->CRH &= 0XFFFFFFF0; GPIOA->CRH |= ((u32)8 << 0);}  // A8
 //#define SDA_OUT()	{GPIOA->CRH &= 0XFFFFFFF0; GPIOA->CRH |= ((u32)3 << 0);}
 
-//IO操作函数	 
+//IO operation macros	 
 //#define IIC_SCL		PAout(15)	//SCL
 //#define IIC_SDA		PAout(8)	//SDA	 
-//#define READ_SDA	PAin(8)		//输入SDA 
+//#define READ_SDA	PAin(8)		//SDA as input 
 //#define IIC_WP		PCout(5) // big
 //#define IIC_WP_TINY		PDout(10) // tiny
 #endif
@@ -43,10 +43,10 @@
 #define SCL_IN()	{GPIOA->CRL &= 0XFFFF0FFF; GPIOA->CRL |= ((u32)8 << 12);}  // A3
 #define SCL_OUT()	{GPIOA->CRL &= 0XFFFF0FFF; GPIOA->CRL |= ((u32)3 << 12);}
 
-//IO操作函数	 
+//IO operation macros	 
 //#define IIC_SCL		PAout(3)	//SCL
 //#define IIC_SDA		PAout(2)	//SDA	 
-//#define READ_SDA	PAin(2)		//输入SDA 
+//#define READ_SDA	PAin(2)		//SDA as input 
 //#define READ_SCL	PAin(3)		// SCL input
 //#define IIC_WP		PCout(5) // big
 
@@ -57,16 +57,16 @@ u8 READ_SDA();
 #endif
 
 
-//IIC所有操作函数
-void IIC_Init(void);				//初始化IIC的IO口				 
-void IIC_Start(void);				//发送IIC开始信号
-void IIC_Stop(void);				//发送IIC停止信号
-void IIC_Send_Byte(u8 txd);			//IIC发送一个字节
-u8 IIC_Read_Byte(unsigned char ack);//IIC读取一个字节
-u8 IIC_Wait_Ack(void);				//IIC等待ACK信号
+//All the IIC operations
+void IIC_Init(void);				//Initialise the IIC IO pins				 
+void IIC_Start(void);				//Send an IIC START
+void IIC_Stop(void);				//Send an IIC STOP
+void IIC_Send_Byte(u8 txd);			//Send one byte over IIC
+u8 IIC_Read_Byte(unsigned char ack);//Read one byte over IIC
+u8 IIC_Wait_Ack(void);				//Wait for an IIC ACK
 u8 IIC_Wait_Ack1(void);
-void IIC_Ack(void);					//IIC发送ACK信号
-void IIC_NAck(void);				//IIC不发送ACK信号
+void IIC_Ack(void);					//Send an IIC ACK
+void IIC_NAck(void);				//Send an IIC NACK
 
 void IIC_Write_One_Byte(u8 daddr,u8 addr,u8 data);
 u8 IIC_Read_One_Byte(u8 daddr,u8 addr);

@@ -80,7 +80,7 @@ void show_parameter(void)
         //vars[108].value = Setting_Info.reg.com_baudrate[0];
         switch (Setting_Info.reg.com_baudrate[0])
         {
-            //case UART_1200:	    //Fandu  这一批波特率暂时不让设置
+            //case UART_1200:	    //Fandu: this group of baud rates cannot be set for now
             //case UART_2400:	   
             //case UART_3600:	   
             //case UART_4800:	   

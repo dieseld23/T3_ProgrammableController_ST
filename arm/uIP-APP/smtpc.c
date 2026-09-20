@@ -734,7 +734,7 @@ void SMTPC_appcall(void)
 			SMTPC_SendMessage(send_message,sizeof(send_message));
 		}
 	}
-	 	//接收到一个新的TCP数据包 
+	 	//A new TCP packet has arrived 
 	if(uip_newdata())
 	{	
 		memset(&smtpc_rcv_Buf[0], 0,200);
@@ -742,7 +742,7 @@ void SMTPC_appcall(void)
 		// deal with receiving data
 		SMTPC_Receive(smtpc_rcv_Buf, uip_len);
 	}		
-	if(uip_acked())//tcp_server_acked();			//发送的数据成功送达 
+	if(uip_acked())//tcp_server_acked();			//the data was delivered 
 	{
 		if (smtpc_Conns.State == SMTP_STATE_SEND_MESSAGE)
 		{
@@ -755,7 +755,7 @@ void SMTPC_appcall(void)
 			smtpc_Conns.State = SMTP_STATE_MESSAGE_SENT;
 		}
 	}
- 	if(uip_connected()) //连接成功	
+ 	if(uip_connected()) //Connected	
 	{
 		smtpc_Conns.State = SMTP_STATE_CONNECTED;
 	}   
@@ -784,7 +784,7 @@ unsigned char encode_base64(char * str)
 	
 	if(len % 3 != 0)		
 		len = (strlen(smtpc_Context) + 3) / 3 * 3;
-	// len不是3的倍数，一律补0
+	// if len is not a multiple of 3 it is padded with zeros
 	for(j = 0;j < len;j++)
 	{
 		cmime64(&smtpc_Context[j]);			
@@ -840,7 +840,7 @@ void Ethernet_Debug_Task()
 			server_ip[2] = 0;
 			server_ip[3] = 64;//Test[12];
 			uip_ipaddr(ipaddr, server_ip[0], server_ip[1], server_ip[2], server_ip[3]);	
-			debug_Client_Conn = uip_connect(&ipaddr,HTONS(1115));  //  消息发送函数 EthernetDebug_appcall
+			debug_Client_Conn = uip_connect(&ipaddr,HTONS(1115));  //  message send function, EthernetDebug_appcall
 		}
 
 }

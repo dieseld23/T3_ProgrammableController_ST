@@ -5,7 +5,7 @@
 #include "wifi.h"
 #define	NODES_POLL_PERIOD	30
 
-char UI_DIS_LINE1[4]; //对应之前 setpoint  fan 以及 sys
+char UI_DIS_LINE1[4]; //Corresponds to the old setpoint, fan and sys
 char UI_DIS_LINE2[4];
 char UI_DIS_LINE3[4];
 char UI_DIS_TOP[9];
@@ -115,15 +115,15 @@ void get_data_format(u8 loc,float num,char *s)
 	{
 		if(s[i]!= 0x20) break;
 	}
-	s_len = 9 - i;   					//数据长度
-	s_start = i;     					//数据起始位置
-	buf_start = i - i / 2; 				//重新排置后的起始位置
+	s_len = 9 - i;   					//Data length
+	s_start = i;     					//Start of the data
+	buf_start = i - i / 2; 				//Start position after rearranging
 	
-	for(i=0;i<s_len;i++) 				//数据左移
+	for(i=0;i<s_len;i++) 				//Shift the data left
 	{
 		s[buf_start + i] = s[s_start + i];
 	}
-	for(i=buf_start + s_len;i<9;i++ ) 	//补" "
+	for(i=buf_start + s_len;i<9;i++ ) 	//Pad with " "
 	{
 		s[i] = 0x20;
 	} 
@@ -155,7 +155,7 @@ void MenuIdle_display(void)
 		
     //display_input_value(inputs[0].value);
 		//display_value(inputs[0].value);
-		display_screen_value( 1); // 分别用var的值显示在原先的 set fan 以及sys 地方
+		display_screen_value( 1); // show the var values where set, fan and sys used to be
 		display_screen_value( 2);
 		display_screen_value( 3);
 
@@ -189,7 +189,7 @@ void MenuIdle_display(void)
 //		{
 //			if(Modbus.mini_type == MINI_T10P)
 //			{
-//				if((inputs[HI_COMMON_CHANNEL].digital_analog == 1) && inputs[HI_COMMON_CHANNEL].range == R10K_40_250DegF) //如果range选的是10K type2 F 就显示 F
+//				if((inputs[HI_COMMON_CHANNEL].digital_analog == 1) && inputs[HI_COMMON_CHANNEL].range == R10K_40_250DegF) //if the range is 10K type2 F, display F
 //				{	
 //					Top_area_display(TOP_AREA_DISP_ITEM_TEMPERATURE, inputs[HI_COMMON_CHANNEL].value / 100, TOP_AREA_DISP_UNIT_F);
 //				}
@@ -200,7 +200,7 @@ void MenuIdle_display(void)
 //			}
 //			else
 //			{
-//				if((inputs[COMMON_CHANNEL].digital_analog == 1) && inputs[COMMON_CHANNEL].range == R10K_40_250DegF) //如果range选的是10K type2 F 就显示 F
+//				if((inputs[COMMON_CHANNEL].digital_analog == 1) && inputs[COMMON_CHANNEL].range == R10K_40_250DegF) //if the range is 10K type2 F, display F
 //				{	
 //					Top_area_display(TOP_AREA_DISP_ITEM_TEMPERATURE, inputs[COMMON_CHANNEL].value / 100, TOP_AREA_DISP_UNIT_F);
 //				}
@@ -378,19 +378,19 @@ void MenuIdle_display(void)
 					if(vars[num].digital_analog == 1)
 					{
 						flag_digital_top_area = 0;	
-						if(vars[num].range == degF) //如果range选的是10K type2 F 就显示 F
+						if(vars[num].range == degF) //If range is set to 10K type2 F, display F
 						{	
 							Top_area_display(TOP_AREA_DISP_ITEM_TEMPERATURE, vars[num].value / 100, TOP_AREA_DISP_UNIT_F);
 						}
-						else	if(vars[num].range == degC) //如果range选的是10K type2 F 就显示 F
+						else	if(vars[num].range == degC) //If range is set to 10K type2 F, display F
 						{
 							Top_area_display(TOP_AREA_DISP_ITEM_TEMPERATURE, vars[num].value / 100, TOP_AREA_DISP_UNIT_C);
 						}
-						else	if(vars[num].range == KPa) //如果range选的是10K type2 F 就显示 F
+						else	if(vars[num].range == KPa) //If range is set to 10K type2 F, display F
 						{
 							Top_area_display(TOP_AREA_DISP_ITEM_TEMPERATURE, vars[num].value / 1000, TOP_AREA_DISP_UNIT_kPa);
 						}
-						else	if(vars[num].range == Pa) //如果range选的是10K type2 F 就显示 F
+						else	if(vars[num].range == Pa) //If range is set to 10K type2 F, display F
 						{
 							Top_area_display(TOP_AREA_DISP_ITEM_TEMPERATURE, vars[num].value / 1000, TOP_AREA_DISP_UNIT_Pa);
 						}
@@ -516,7 +516,7 @@ void MenuIdle_display(void)
 			disp_str(FORM15X30, SCH_XPOS,  SYS_MODE_POS, UI_DIS_LINE3,SCH_COLOR,TSTAT8_BACK_COLOR);
 		}
 
-        //sprintf(test_char, "%d", SSID_Info.IP_Wifi_Status); //测试用，在屏幕左上角 显示 wifi状态的数值;
+        //sprintf(test_char, "%d", SSID_Info.IP_Wifi_Status); //for testing: show the wifi status value in the top left of the screen;
         //disp_str(FORM15X30, 0, 0, test_char, SCH_COLOR, TSTAT8_BACK_COLOR);
 
 //        if (SSID_Info.IP_Wifi_Status == WIFI_NORMAL) 
@@ -531,7 +531,7 @@ void MenuIdle_display(void)
 //        else
 //            disp_icon(26, 26, wifinocnnct, 210, 0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 				
-			if(SSID_Info.IP_Wifi_Status == WIFI_NORMAL)//在屏幕右上角显示wifi的状态
+			if(SSID_Info.IP_Wifi_Status == WIFI_NORMAL)//Show the wifi status in the top right of the screen
 			{
 				if(SSID_Info.rssi < 70)		
 					disp_icon(26, 26, wifi_4, 210,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
@@ -764,7 +764,7 @@ void MenuIdle_keycope(uint16 key_value)
 			{
 				if ((vars[disp_index - 1].range >= 101) && (vars[disp_index - 1].range <= 103))  // 101 102 103 	MSV range
 				{
-					//if(vars[disp_index - 1].range == 101)  //判断range 是不是多态，是的话 调整多态的值;
+					//if(vars[disp_index - 1].range == 101)  //if the range is multi-state, adjust the multi-state value;
 					{
 						// check the lenght of msv_data
 						char len;

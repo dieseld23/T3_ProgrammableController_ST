@@ -16,8 +16,8 @@
 #define ASIX_CM5  0
 
 
-#define HANDLE_REBOOT_FLAG 0  // 如果要编译为1 就是编译给客户一个特殊的 开机关闭 prg 的版本 解决客户编写有问题的 一直重启;
-                              // 正常情况下这个值请保持为 0 ;
+#define HANDLE_REBOOT_FLAG 0  // building with this set to 1 produces a special version for the customer that disables the prg at power-up, to get round a badly written program that reboots continually;
+                              // normally leave this at 0;
 #define SAVE_LOCAL_VAR_TO_E2 0 // Only for PLC
 
 extern U8_T cpu_type;
@@ -194,10 +194,10 @@ void uart_send_string(unsigned char *p, unsigned int length,unsigned char port);
 #define COV   1
 #define SMTP  1
 #define NETWORK_MODBUS_BAC 	1
-//#define ETHERNET_DEBUG  0  //网络端口的调试信息 往 192.168.0.38    端口1115打印数据;
+//#define ETHERNET_DEBUG  0  //network port debug output, printed to 192.168.0.38 port 1115;
 #define ARM_UART_DEBUG 0
 #define DEBUG_EN  UART0_TXEN_BIG 
-//#define DEBUG_EN  UART0_TXEN_TINY  //Tiny 引脚不一样用这个
+//#define DEBUG_EN  UART0_TXEN_TINY  //use this because the Tiny has a different pinout
 
 #define PING  0
 

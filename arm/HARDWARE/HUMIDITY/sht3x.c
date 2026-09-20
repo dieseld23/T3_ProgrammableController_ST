@@ -6,7 +6,7 @@
 // Author    :  RFU
 // Date      :  16-Jun-2014
 // Controller:  STM32F100RB
-// IDE       :  µVision V4.71.2.0
+// IDE       :  uVision V4.71.2.0
 // Compiler  :  Armcc
 // Brief     :  Sensor Layer: Implementation of functions for sensor access.
 //==============================================================================
@@ -197,7 +197,7 @@ etError SHT3X_GetTempAndHumiClkStretch(float         *temp,
 
   SHT3X_StopAccess();
 
-  // if no error, calculate temperature in °C and humidity in %RH
+  // if no error, calculate temperature in degC and humidity in %RH
   if(error == NO_ERROR)
   {
     *temp = SHT3X_CalcTemperature(rawValueTemp);
@@ -262,7 +262,7 @@ etError SHT3X_GetTempAndHumiPolling(float         *temp,
 
   SHT3X_StopAccess();
 
-  // if no error, calculate temperature in °C and humidity in %RH
+  // if no error, calculate temperature in degC and humidity in %RH
   if(error == NO_ERROR)
   {
     *temp = SHT3X_CalcTemperature(rawValueTemp);
@@ -365,7 +365,7 @@ etError SHT3X_ReadMeasurementBuffer(float *temp, float *humi){
 	if(error == NO_ERROR)	error = SHT3X_Read2BytesAndCrc(&rawValueTemp, ACK, 0);
 	if(error == NO_ERROR) error = SHT3X_Read2BytesAndCrc(&rawValueHumi, NACK, 0);
 	
-	// if no error, calculate temperature in °C and humidity in %RH
+	// if no error, calculate temperature in degC and humidity in %RH
 	if(error == NO_ERROR)
 	{
 		*temp = SHT3X_CalcTemperature(rawValueTemp);
@@ -573,7 +573,7 @@ etError SHT3X_CheckCrc(uint8 dat[], uint8 nbrOfBytes, uint8 checksum){
 float SHT3X_CalcTemperature(uint16 rawValue){
 //==============================================================================
   float temp;
-	// calculate temperature [°C]
+	// calculate temperature [degC]
   // T = -45 + 175 * rawValue / (2^16-1)
   //return 175 * (uint32)rawValue*10 / 65535 - 45;
 	 temp = 175 * (float)rawValue*10/ 65535 - 450;
@@ -591,7 +591,7 @@ float SHT3X_CalcHumidity(uint16 rawValue){
 //==============================================================================
 uint16 SHT3X_CalcRawTemperature(float temperature){
 //==============================================================================
-  // calc raw value from a temperature [°C]
+  // calc raw value from a temperature [degC]
   // rawValue = (T + 45) / 175 * (2^16-1)
 	return (uint16)((temperature + 45) / 175 * 65535);
 }

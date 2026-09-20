@@ -6,7 +6,7 @@
 // Author    :  RFU
 // Date      :  16-Jun-2014
 // Controller:  STM32F100RB
-// IDE       :  µVision V4.71.2.0
+// IDE       :  uVision V4.71.2.0
 // Compiler  :  Armcc
 // Brief     :  Sensor Layer: Definitions of commands and functions for sensor
 //                            access.
@@ -179,7 +179,7 @@ etError SHT3X_ClearAllAlertFlags(void);
 
 
 //==============================================================================
-// Gets the temperature [°C] and the relative humidity [%RH] from the sensor.
+// Gets the temperature [degC] and the relative humidity [%RH] from the sensor.
 //------------------------------------------------------------------------------
 // input:  *temp        pointer to a variable to store the temperature
 //         *humi        pointer to a variable to store the humidity
@@ -201,7 +201,7 @@ etError SHT3X_GetTempAndHumi(float         *temp,
 
 
 //==============================================================================
-// Gets the temperature [°C] and the relative humidity [%RH] from the sensor.
+// Gets the temperature [degC] and the relative humidity [%RH] from the sensor.
 // This function uses the i2c clock stretching for waiting until measurement is
 // ready.
 //------------------------------------------------------------------------------
@@ -223,7 +223,7 @@ etError SHT3X_GetTempAndHumiClkStretch(float         *temp,
 
 
 //==============================================================================
-// Gets the temperature [°C] and the relative humidity [%RH] from the sensor.
+// Gets the temperature [degC] and the relative humidity [%RH] from the sensor.
 // This function polls every 1ms until measurement is ready.
 //------------------------------------------------------------------------------
 // input:  *temp        pointer to a variable to store the temperature
@@ -403,12 +403,12 @@ etError SHT3X_CheckCrc(uint8 dat[], uint8 nbrOfBytes, uint8 checksum);
 
 
 //==============================================================================
-// Calculates the temperature [°C] as a floating point value from the raw data
+// Calculates the temperature [degC] as a floating point value from the raw data
 // that are read from the sensor.
 //------------------------------------------------------------------------------
 // input:  rawValue     temperature raw value (16bit scaled)
 //
-// return:              temperature [°C] as a floating point value
+// return:              temperature [degC] as a floating point value
 //------------------------------------------------------------------------------
 float SHT3X_CalcTemperature(uint16 rawValue);
 
@@ -424,9 +424,9 @@ float SHT3X_CalcHumidity(uint16 rawValue);
 
 
 //==============================================================================
-// Calculates the raw data as 16-bit value from temperature [°C].
+// Calculates the raw data as 16-bit value from temperature [degC].
 //------------------------------------------------------------------------------
-// input:  temperature  temperature [°C] as a floating point value
+// input:  temperature  temperature [degC] as a floating point value
 //
 // return:              temperature raw value (16-bit scaled)
 //------------------------------------------------------------------------------

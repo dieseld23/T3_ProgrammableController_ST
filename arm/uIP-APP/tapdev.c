@@ -42,18 +42,18 @@
 
 //#define DHCP_ENABLE
 
-//用于固定IP地址开关打开后的IP设置，本例程没有用这个
+//Used to set the IP once the fixed-IP option is on; this example does not use it
 #define UIP_DRIPADDR0   192
 #define UIP_DRIPADDR1   168
 #define UIP_DRIPADDR2   0
 #define UIP_DRIPADDR3   111
 
 void uip_polling(void);
-//MAC地址,必须唯一
-//const u8 mymac[6]={0x04, 0x02, 0x35, 0x0F, 0x00, 0x01};	//MAC地址
+//MAC address, which must be unique
+//const u8 mymac[6]={0x04, 0x02, 0x35, 0x0F, 0x00, 0x01};	//MAC address
 extern uint32 multicast_addr;																				  
-//配置网卡硬件，并设置MAC地址 
-//返回值：0，正常；1，失败；
+//Configure the network hardware and set the MAC address 
+//Return: 0 = ok; 1 = failed;
 u8 tapdev_init(void)
 {  
 	u32 wait_count;	
@@ -62,24 +62,24 @@ u8 tapdev_init(void)
 	uip_ipaddr_t ipaddr;
 #endif
 		
-	res = ENC28J60_Init((u8*)Modbus.mac_addr);	//初始化ENC28J60					  
-	//把IP地址和MAC地址写入缓存区
+	res = ENC28J60_Init((u8*)Modbus.mac_addr);	//Initialise the ENC28J60					  
+	//Write the IP and MAC addresses into the buffer
 	for(i = 0; i < 6; i++)
 	{
 		uip_ethaddr.addr[i] = Modbus.mac_addr[i];
 	}
-    //指示灯状态:0x476 is PHLCON LEDA(绿)=links status, LEDB(红)=receive/transmit
- 	//PHLCON：PHY 模块LED 控制寄存器	    
+    //LED state: 0x476 is PHLCON, LEDA (green) = link status, LEDB (red) = receive/transmit
+ 	//PHLCON: the PHY module LED control register	    
 	ENC28J60_PHY_Write(PHLCON, 0x0476);
-	uip_init();							//uIP初始化	
+	uip_init();							//uIP initialisation	
 	if(Modbus.tcp_type == 0)	
 	{
 		U8_T temp[4];
-		uip_ipaddr(ipaddr, Modbus.ip_addr[0], Modbus.ip_addr[1], Modbus.ip_addr[2], Modbus.ip_addr[3]);	//设置本地设置IP地址
+		uip_ipaddr(ipaddr, Modbus.ip_addr[0], Modbus.ip_addr[1], Modbus.ip_addr[2], Modbus.ip_addr[3]);	//Set the local IP address
 		uip_sethostaddr(ipaddr);					    
-		uip_ipaddr(ipaddr, Modbus.getway[0], Modbus.getway[1], Modbus.getway[2], Modbus.getway[3]); 	//设置网关IP地址(其实就是你路由器的IP地址)
+		uip_ipaddr(ipaddr, Modbus.getway[0], Modbus.getway[1], Modbus.getway[2], Modbus.getway[3]); 	//Set the gateway IP address, which is your router's address
 		uip_setdraddr(ipaddr);						 
-		uip_ipaddr(ipaddr, Modbus.subnet[0], Modbus.subnet[1], Modbus.subnet[2], Modbus.subnet[3]);	//设置网络掩码
+		uip_ipaddr(ipaddr, Modbus.subnet[0], Modbus.subnet[1], Modbus.subnet[2], Modbus.subnet[3]);	//Set the netmask
 		uip_setnetmask(ipaddr);
 //		flag_dhcp_configured = 2;
 
@@ -109,13 +109,13 @@ u8 tapdev_init(void)
 //	printf("res=%u\n\r",res);
 	return res;	
 }
-//读取一包数据  
+//Read one packet  
 uint16_t tapdev_read(void)
 {	
 	return  ENC28J60_Packet_Receive(MAX_FRAMELEN, uip_buf);
 }
 
-//发送一包数据  
+//Send one packet  
 u8 tapdev_send(void)
 {
 	return ENC28J60_Packet_Send(uip_len, uip_buf);

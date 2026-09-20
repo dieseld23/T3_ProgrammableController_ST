@@ -28,8 +28,8 @@ void Sdio_GPIO_Init(void)
     NVIC_InitStructure.NVIC_IRQChannel = SDIO_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;	//抢占优先级0
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;			//子优先级2
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;				//IRQ通道使能
-	NVIC_Init(&NVIC_InitStructure);								//根据指定的参数初始化NVIC寄存器
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;				//Enable the IRQ channel
+	NVIC_Init(&NVIC_InitStructure);								//Initialise the NVIC registers with the given parameters
 
 	RCC->APB2ENR |= (1 << 4) | (1 << 5);    //使能PORTC,PORTD时钟	   	 
 	/* Configure PC.08, PC.09, PC.10, PC.11, PC.12 pin: D0, D1, D2, D3, CLK pin */  	 
@@ -111,10 +111,10 @@ void SD_DMA_Config(u32*mbuf, u32 bufsize, u8 dir)
  	DMA2->IFCR |= (0XF << 12);				//清除DMA2通道4的各种标记
  	DMA2_Channel4->CCR &= ~(1 << 0);		//关闭DMA 通道4
   	DMA2_Channel4->CCR &= ~(0X7FF << 4);	//清除之前的设置,DIR,CIRC,PINC,MINC,PSIZE,MSIZE,PL,MEM2MEM
- 	DMA2_Channel4->CCR |= dir << 4;  		//从存储器读   
-	DMA2_Channel4->CCR |= 0 << 5;  			//普通模式
-	DMA2_Channel4->CCR |= 0 << 6; 			//外设地址非增量模式
-	DMA2_Channel4->CCR |= 1 << 7;  			//存储器增量模式
+ 	DMA2_Channel4->CCR |= dir << 4;  		//Read from memory   
+	DMA2_Channel4->CCR |= 0 << 5;  			//Normal mode
+	DMA2_Channel4->CCR |= 0 << 6; 			//Peripheral address, no increment
+	DMA2_Channel4->CCR |= 1 << 7;  			//Memory increment mode
 	DMA2_Channel4->CCR |= 2 << 8;  			//外设数据宽度为32位
 	DMA2_Channel4->CCR |= 2 << 10; 			//存储器数据宽度32位
 	DMA2_Channel4->CCR |= 2 << 12; 			//高优先级	  
@@ -980,7 +980,7 @@ SD_Error IsCardProgramming(u8 *pstatus)
   	SDIO_Send_Cmd(SD_CMD_SEND_STATUS, 1, (u32)RCA << 16);		//发送CMD13 	   
   	status = SDIO->STA;
 	while(!(status & ((1 << 0) | (1 << 6) | (1 << 2))))
-		status = SDIO->STA;										//等待操作完成
+		status = SDIO->STA;										//Wait for the operation to finish
 	
    	if(status & (1 << 0))			//CRC检测失败
 	{
@@ -1006,7 +1006,7 @@ SD_Error IsCardProgramming(u8 *pstatus)
 }
 
 //SD卡写1个块 
-//buf:数据缓存区
+//buf: data buffer
 //addr:写地址
 //blksize:块大小	  
 //返回值:错误状态
@@ -1163,7 +1163,7 @@ SD_Error SD_WriteBlock(u8 *buf, u32 addr, u16 blksize)
 	return errorstatus;
 }
 //SD卡写多个块 
-//buf:数据缓存区
+//buf: data buffer
 //addr:写地址
 //blksize:块大小
 //nblks:要写入的块数
@@ -1471,7 +1471,7 @@ SD_Error FindSCR(u16 rca, u32 *pscr)
 
 //读SD卡
 //buf:读数据缓存区
-//sector:扇区地址
+//sector: sector address
 //cnt:扇区个数	
 //返回值:错误状态;0,正常;其他,错误代码;				  				 
 u8 SD_ReadDisk(u8*buf, u32 sector, u8 cnt)
@@ -1503,7 +1503,7 @@ u8 SD_ReadDisk(u8*buf, u32 sector, u8 cnt)
 
 //写SD卡
 //buf:写数据缓存区
-//sector:扇区地址
+//sector: sector address
 //cnt:扇区个数	
 //返回值:错误状态;0,正常;其他,错误代码;	
 u8 SD_WriteDisk(u8*buf, u32 sector, u8 cnt)

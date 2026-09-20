@@ -280,7 +280,7 @@ INT8U SD_ReadDisk(INT8U *buf, INT32U sector, INT8U cnt)
 {
 	INT8U r1;
 	if(SD_Type != SD_TYPE_V2HC) 
-		sector <<= 9;//转换为字节地址
+		sector <<= 9;//Convert to a byte address
 	
 	if(cnt == 1)
 	{ 

@@ -231,7 +231,7 @@ SD_Error SD_EnableWideBusOperation(u32 WideMode);
 SD_Error SD_SetDeviceMode(u32 Mode);
 SD_Error SD_SelectDeselect(u32 addr);
 SD_Error SD_ReadBlock(u32 addr, u32 *readbuff, u16 BlockSize);
-u8 SD_ReadDisk(u8*buf, u32 sector, u8 cnt);		//¶Á¿é
+u8 SD_ReadDisk(u8*buf, u32 sector, u8 cnt);		//Read a block
 SD_Error SD_ReadMultiBlocks(u32 addr, u32 *readbuff, u16 BlockSize, u32 NumberOfBlocks);
 SD_Error SD_WriteBlock(u32 addr, u32 *writebuff, u16 BlockSize);
 SD_Error SD_WriteMultiBlocks(u32 addr, u32 *writebuff, u16 BlockSize, u32 NumberOfBlocks);

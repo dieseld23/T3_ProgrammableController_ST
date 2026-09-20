@@ -42,7 +42,7 @@ Stack_Mem       SPACE   Stack_Size
 	
                 IF DATA_IN_ExtSRAM == 1 ; ADDED FOR EXTSRAM
 	
-__initial_sp EQU 0X20000000 + Stack_Size ;设置栈顶指针
+__initial_sp EQU 0X20000000 + Stack_Size ;Set the stack top pointer
  
               ELSE
 	
@@ -173,50 +173,50 @@ Reset_Handler   PROC
 ; ADD configure of FSMC
 				LDR R0,= 0x00000100;LDR R0,= 0x00000114
 				LDR R1,= 0x40021014
-				STR R0,[R1] ;使能FSMC时钟
+				STR R0,[R1] ;Enable the FSMC clock
 				LDR R0, =0X000001E0
 				LDR R1, =0X40021018
-				STR R0,[R1] ;GPIOD,GPIOE,GPIOF,GPIOG时钟使能
+				STR R0,[R1] ;Enable the GPIOD, GPIOE, GPIOF and GPIOG clocks
 				LDR R0,= 0xB4BB44BB
 				LDR R1,= 0x40011400 ;GPIOD->CRL
 				STR R0,[R1]
 				LDR R0,= 0xBBBBBBBB
 				LDR R1,= 0x40011404 ;GPIOD->CRH
-				STR R0,[R1] ;配置GPIOD
+				STR R0,[R1] ;Configure GPIOD
 				LDR R0,= 0xB44444BB
 				LDR R1,= 0x40011800 ;GPIOE->CRL
 				STR R0,[R1]
 				LDR R0,= 0xBBBBBBBB
 				LDR R1,= 0x40011804 ;GPIOE->CRH
-				STR R0,[R1] ;配置GPIOE
+				STR R0,[R1] ;Configure GPIOE
 				LDR R0,= 0x44BBBBBB
 				LDR R1,= 0x40011C00	;GPIOF->CRL
 				STR R0,[R1]
 				LDR R0,= 0xBBBB4444
 				LDR R1,= 0x40011C04 ;GPIOF->CRH
-				STR R0,[R1] ;配置GPIOF
+				STR R0,[R1] ;Configure GPIOF
 				LDR R0,= 0x44BBBBBB
 				LDR R1,= 0x40012000 ;GPIOG->CRL
 				STR R0,[R1]
 				LDR R0,= 0x44444444
 				LDR R1,= 0x40012004 ;GPIOG->CRH
-				STR R0,[R1] ;配置GPIOG
+				STR R0,[R1] ;Configure GPIOG
 				
 				
 				;LDR R0,= 0x00001011  ;16bit
 				LDR R0,= 0x00001001 ; 8bit
-				;选择存储类型sram，总线宽度16位，写使能，并启动存储器
+				;Select SRAM memory type, 16-bit bus width, write enable, and start the memory
 				LDR R1,= 0xA0000000 ; 	EN1
-				STR R0,[R1] ;对控制器寄存器配置完成
+				STR R0,[R1] ;Controller register configuration complete
 				
 				
-				LDR R0,= 0x00000300 ;根据外部SRAM芯片的时序配置时序寄存器
+				LDR R0,= 0x00000300 ;Configure the timing registers to match the external SRAM chip
 				LDR R1,= 0xA0000004 ; NE1 0X60000000
-				STR R0,[R1] ;时序寄存器配置完成
+				STR R0,[R1] ;Timing register configuration complete
 				
-				LDR R0,= 0x0FFFFFFF ;根据外部SRAM芯片的时序配置时序寄存器
+				LDR R0,= 0x0FFFFFFF ;Configure the timing registers to match the external SRAM chip
 				LDR R1,= 0xA0000104 ; NE1 0X60000000
-				STR R0,[R1] ;时序寄存器配置完成
+				STR R0,[R1] ;Timing register configuration complete
 
  ENDIF
 	 

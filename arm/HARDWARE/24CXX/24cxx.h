@@ -15,14 +15,14 @@
   
 #define EE_TYPE		AT24C16
 					  
-u8 AT24CXX_ReadOneByte(u16 ReadAddr);								//指定地址读取一个字节
-void AT24CXX_WriteOneByte(u16 WriteAddr, u8 DataToWrite);			//指定地址写入一个字节
-void AT24CXX_WriteLenByte(u16 WriteAddr, u32 DataToWrite, u8 Len);	//指定地址开始写入指定长度的数据
-u32 AT24CXX_ReadLenByte(u16 ReadAddr, u8 Len);						//指定地址开始读取指定长度数据
-void AT24CXX_Write(u16 WriteAddr, u8 *pBuffer, u16 NumToWrite);		//从指定地址开始写入指定长度的数据
-void AT24CXX_Read(u16 ReadAddr, u8 *pBuffer, u16 NumToRead);   		//从指定地址开始读出指定长度的数据
+u8 AT24CXX_ReadOneByte(u16 ReadAddr);								//Read one byte from the given address
+void AT24CXX_WriteOneByte(u16 WriteAddr, u8 DataToWrite);			//Write one byte to the given address
+void AT24CXX_WriteLenByte(u16 WriteAddr, u32 DataToWrite, u8 Len);	//Write a given number of bytes starting at the given address
+u32 AT24CXX_ReadLenByte(u16 ReadAddr, u8 Len);						//Read a given number of bytes starting at the given address
+void AT24CXX_Write(u16 WriteAddr, u8 *pBuffer, u16 NumToWrite);		//Write a given number of bytes starting at a given address
+void AT24CXX_Read(u16 ReadAddr, u8 *pBuffer, u16 NumToRead);   		//Read a given number of bytes starting at a given address
 
-u8 AT24CXX_Check(void);  //检查器件
-void AT24CXX_Init(void); //初始化IIC
+u8 AT24CXX_Check(void);  //Check the device
+void AT24CXX_Init(void); //Initialise the IIC bus
 
 #endif

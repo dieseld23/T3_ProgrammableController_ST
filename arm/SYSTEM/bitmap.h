@@ -4,13 +4,13 @@
 #include "stm32f10x.h"  
 																	    
 	 
-//位带操作,实现51类似的GPIO控制功能
-//具体实现思想,参考<<CM3权威指南>>第五章(87页~92页).
-//IO口操作宏定义
+//Bit-band access, giving 8051-style GPIO control
+//For how this works see chapter 5 of the Definitive Guide to the Cortex-M3 (pages 87~92).
+//GPIO access macros
 #define BITBAND(addr, bitnum) ((addr & 0xF0000000)+0x2000000+((addr &0xFFFFF)<<5)+(bitnum<<2)) 
 #define MEM_ADDR(addr)  *((volatile unsigned long  *)(addr)) 
 #define BIT_ADDR(addr, bitnum)   MEM_ADDR(BITBAND(addr, bitnum)) 
-//IO口地址映射
+//GPIO address mapping
 #define GPIOA_ODR_Addr    (GPIOA_BASE+12) //0x4001080C 
 #define GPIOB_ODR_Addr    (GPIOB_BASE+12) //0x40010C0C 
 #define GPIOC_ODR_Addr    (GPIOC_BASE+12) //0x4001100C 
@@ -27,28 +27,28 @@
 #define GPIOF_IDR_Addr    (GPIOF_BASE+8) //0x40011A08 
 #define GPIOG_IDR_Addr    (GPIOG_BASE+8) //0x40011E08 
  
-//IO口操作,只对单一的IO口!
-//确保n的值小于16!
-#define PAout(n)   BIT_ADDR(GPIOA_ODR_Addr,n)  //输出 
-#define PAin(n)    BIT_ADDR(GPIOA_IDR_Addr,n)  //输入 
+//GPIO access, for a single pin only!
+//Make sure n is less than 16!
+#define PAout(n)   BIT_ADDR(GPIOA_ODR_Addr,n)  //Output 
+#define PAin(n)    BIT_ADDR(GPIOA_IDR_Addr,n)  //Input 
 
-#define PBout(n)   BIT_ADDR(GPIOB_ODR_Addr,n)  //输出 
-#define PBin(n)    BIT_ADDR(GPIOB_IDR_Addr,n)  //输入 
+#define PBout(n)   BIT_ADDR(GPIOB_ODR_Addr,n)  //Output 
+#define PBin(n)    BIT_ADDR(GPIOB_IDR_Addr,n)  //Input 
 
-#define PCout(n)   BIT_ADDR(GPIOC_ODR_Addr,n)  //输出 
-#define PCin(n)    BIT_ADDR(GPIOC_IDR_Addr,n)  //输入 
+#define PCout(n)   BIT_ADDR(GPIOC_ODR_Addr,n)  //Output 
+#define PCin(n)    BIT_ADDR(GPIOC_IDR_Addr,n)  //Input 
 
-#define PDout(n)   BIT_ADDR(GPIOD_ODR_Addr,n)  //输出 
-#define PDin(n)    BIT_ADDR(GPIOD_IDR_Addr,n)  //输入 
+#define PDout(n)   BIT_ADDR(GPIOD_ODR_Addr,n)  //Output 
+#define PDin(n)    BIT_ADDR(GPIOD_IDR_Addr,n)  //Input 
 
-#define PEout(n)   BIT_ADDR(GPIOE_ODR_Addr,n)  //输出 
-#define PEin(n)    BIT_ADDR(GPIOE_IDR_Addr,n)  //输入
+#define PEout(n)   BIT_ADDR(GPIOE_ODR_Addr,n)  //Output 
+#define PEin(n)    BIT_ADDR(GPIOE_IDR_Addr,n)  //Input
 
-#define PFout(n)   BIT_ADDR(GPIOF_ODR_Addr,n)  //输出 
-#define PFin(n)    BIT_ADDR(GPIOF_IDR_Addr,n)  //输入
+#define PFout(n)   BIT_ADDR(GPIOF_ODR_Addr,n)  //Output 
+#define PFin(n)    BIT_ADDR(GPIOF_IDR_Addr,n)  //Input
 
-#define PGout(n)   BIT_ADDR(GPIOG_ODR_Addr,n)  //输出 
-#define PGin(n)    BIT_ADDR(GPIOG_IDR_Addr,n)  //输入
+#define PGout(n)   BIT_ADDR(GPIOG_ODR_Addr,n)  //Output 
+#define PGin(n)    BIT_ADDR(GPIOG_IDR_Addr,n)  //Input
 
 
 

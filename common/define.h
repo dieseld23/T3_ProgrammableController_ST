@@ -876,8 +876,8 @@ typedef enum {
 	MODBUS_OUTPUT_TEST_VALUE = 80,
 	MODBUS_OUTPUT_TEST_FLAG,
 	MODBUS_OUTPUT_MODE,  // AUTO - 1 OR STATIC - 0
-	MODBUS_VCC_ADC = 83, // calibration intpu Ð´ 4095	
-	//MODBUS_PT1K = 84,  // Write 0c Ð£ÕýÖµ
+	MODBUS_VCC_ADC = 83, // calibration input, write 4095	
+	//MODBUS_PT1K = 84,  // write the 0C calibration value
 	MODBUS_INPUT1_RAW, // 84
 	MODBUS_READ_POINT_TIMER, // 85
 	MODBUS_READ_SUB_OFFSET, // 86
