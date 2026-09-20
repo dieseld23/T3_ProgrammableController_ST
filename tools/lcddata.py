@@ -89,6 +89,12 @@ def array(src, name, kind, symbols):
     return m.span(), values(body[body.index('{') + 1:body.rindex('}')], symbols)
 
 
+def icon4_names(src):
+    """The 4 bit indexed icons, which come in an icon_/pal_ pair."""
+    return [n for n in re.findall(r'uint8 const icon_(\w+)\[\]\s*=', src)
+            if re.search(r'uint16 const pal_' + n + r'\[\]\s*=', src)]
+
+
 def icon_names(src):
     return re.findall(r'uint16 const (\w+)\[\]\s*=', src)
 

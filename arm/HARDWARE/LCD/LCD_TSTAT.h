@@ -44,20 +44,38 @@
 #define ICON_POS													274
 #define ICON_XPOS 												2
 
-#define FIRST_ICON_POS									  ICON_XPOS
-#define SECOND_ICON_POS                   FIRST_ICON_POS + 60
-#define THIRD_ICON_POS                    SECOND_ICON_POS + 60
-#define FOURTH_ICON_POS                   THIRD_ICON_POS + 60
-#define FIFTH_ICON_POS                    FOURTH_ICON_POS + 40
 
-#define ICON_XDOTS						55
-#define ICON_YDOTS						45
 
-#define FANBLADE_XDOTS						40
-#define FANBLADE_YDOTS						45
 
-#define FANSPEED_XDOTS						15
-#define FANSPEED_YDOTS						45
+
+/* The three state icons across the bottom.  Each is a 4 bit per pixel index
+ * map with its own sixteen entry palette -- see tools/icongen.py -- so a 72x45
+ * cell costs 1620 bytes instead of the 6480 the literal RGB565 icons cost, and
+ * ten states fit in less flash than three of the old ones did.  The height is
+ * still 45 so the cells clear exactly where the old row did. */
+#define ICON3_XDOTS						72
+#define ICON3_YDOTS						45
+#define ICON3_BYTES						(ICON3_XDOTS * ICON3_YDOTS / 2)
+#define ICON3_FAN_POS						6
+#define ICON3_MODE_POS						84
+#define ICON3_WALL_POS						162
+
+/* Which state each icon shows comes from a VAR, so a Control Basic program or
+ * T3000 drives them with no protocol change.  These sit just past the paged
+ * rows (PAGE_MARK_MAX * IDLE_PAGE_ROWS = 24), so a page can never reach them.
+ * A digital VAR contributes its control bit; an analogue one its value/1000.
+ * Anything out of range reads as state 0.
+ *
+ *   VAR25  circulation fan   0 off, 1 on, 2 auto
+ *   VAR26  call             0 idle, 1 heat, 2 cool, 3 heat override, 4 cool override
+ *   VAR27  sidewalls        0 down, 1 up                                          */
+#define ICON3_FAN_VAR						24
+#define ICON3_MODE_VAR						25
+#define ICON3_WALL_VAR						26
+#define ICON3_FAN_STATES					3
+#define ICON3_MODE_STATES					5
+#define ICON3_WALL_STATES					2
+
 
 #define THERM_METER_XPOS									39
 #define TEMP_FIRST_BLANK						      0//30  //+= blank width
@@ -349,8 +367,8 @@ void display_page_marks(uint8 current, uint8 count);
 void display_clock(void);
 void display_fanspeed(int16 speed);
 void display_mode(uint8 heat_cool_user);
-void display_fan(void);
 void display_icon(void);
+void disp_icon4(uint16 cp, uint16 pp, uint8 const *bits, uint16 const *pal, uint16 x, uint16 y);
 void display_value(uint16 pos,int16 disp_value, uint8 disp_unit);
 //void display_menu(uint16 pos, uint8 *item);
 void display_menu (uint8 *item1, uint8 *item2);

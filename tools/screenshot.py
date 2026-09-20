@@ -55,6 +55,11 @@ class Screen:
         for name in L.icon_names(self.src):
             _, vals = L.array(self.src, name, 'uint16', self.k)
             self.icons[name] = vals
+        self.icon4s = {}
+        for name in L.icon4_names(self.src):
+            _, bits = L.array(self.src, 'icon_' + name, 'uint8', self.k)
+            _, pal = L.array(self.src, 'pal_' + name, 'uint16', self.k)
+            self.icon4s[name] = (bits, pal)
         self.fonts = {}
         for name in ('chlibsmall', 'chlib', 'char_16_24', 'char_12_24'):
             _, vals = L.array(self.src, name, 'uint8', self.k)
@@ -78,6 +83,14 @@ class Screen:
         data = self.icons[name]
         for j in range(min(cp * pp, len(data))):
             self.put(x + j % cp, y + j // cp, data[j])
+
+    def icon4(self, name, x, y):
+        """Two pixels to a byte, low nibble first -- the glyph field order."""
+        bits, pal = self.icon4s[name]
+        w = self.k['ICON3_XDOTS']
+        for j, b in enumerate(bits):
+            self.put(x + (j * 2) % w, y + (j * 2) // w, pal[b & 0x0f])
+            self.put(x + (j * 2 + 1) % w, y + (j * 2 + 1) // w, pal[b >> 4])
 
     def _glyph(self, name, index, x, y, fg, bg):
         """Pixels are packed least significant field first, BPP bits each,
@@ -145,7 +158,7 @@ class Screen:
                            k['SCH_COLOR'] if i == current else dim)
 
 
-def render(s, labels, values, top, unit, page, pages, clock, selected):
+def render(s, labels, values, top, unit, page, pages, clock, selected, icons):
     k = s.k
     BG, CH, SCHC = k['TSTAT8_BACK_COLOR'], k['TSTAT8_CH_COLOR'], k['SCH_COLOR']
     M2, HL = k['TSTAT8_MENU_COLOR2'], k['TSTAT8_BACK_COLOR1']
@@ -179,13 +192,10 @@ def render(s, labels, values, top, unit, page, pages, clock, selected):
     s.label(k['CLOCK_XPOS'], k['TIME_POS'] + k['CLOCK_YOFF'],
             clock[:k['CLOCK_CHARS']].ljust(k['CLOCK_CHARS']), CH, M2)
 
-    s.icon(k['ICON_XDOTS'], k['ICON_YDOTS'], 'sunicon', k['FIRST_ICON_POS'], k['ICON_POS'])
-    s.icon(k['ICON_XDOTS'], k['ICON_YDOTS'], 'athome', k['SECOND_ICON_POS'], k['ICON_POS'])
-    s.icon(k['ICON_XDOTS'], k['ICON_YDOTS'], 'heaticon', k['THIRD_ICON_POS'], k['ICON_POS'])
-    s.icon(k['FANBLADE_XDOTS'], k['FANBLADE_YDOTS'], 'fanbladeA',
-           k['FOURTH_ICON_POS'], k['ICON_POS'])
-    s.icon(k['FANSPEED_XDOTS'], k['FANSPEED_YDOTS'], 'fanspeed2a',
-           k['FIFTH_ICON_POS'], k['ICON_POS'])
+    for name, x in ((icons[0], k['ICON3_FAN_POS']),
+                    (icons[1], k['ICON3_MODE_POS']),
+                    (icons[2], k['ICON3_WALL_POS'])):
+        s.icon4(name, x, k['ICON_POS'])
     return s.im
 
 
@@ -200,11 +210,14 @@ def main():
     ap.add_argument('--pages', type=int, default=3)
     ap.add_argument('--selected', type=int, default=0)
     ap.add_argument('--clock', default='Sep 20 | 12:00 PM')
+    ap.add_argument('--icons', default='fan_on,mode_heat,wall_up',
+                    help='one state per cell: fan, mode, sidewalls')
     ap.add_argument('--scale', type=int, default=2)
     args = ap.parse_args()
 
     im = render(Screen(), args.labels.split(','), args.values.split(','), args.top,
-                args.unit, args.page, args.pages, args.clock, args.selected)
+                args.unit, args.page, args.pages, args.clock, args.selected,
+                args.icons.split(','))
     if args.scale > 1:
         im = im.resize((W * args.scale, H * args.scale), Image.NEAREST)
     im.save(args.out)
