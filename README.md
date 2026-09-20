@@ -297,18 +297,37 @@ Two notes on the toolchain:
   the memory map is edited through the `OCR_RVCT` entries in the project rather
   than in `arm/OBJ/Tstat10_arm_revxx.sct`. The `<ScatterFile>` entry naming
   `..\OBJ	est.sct` is a stale leftover; no such file exists and nothing reads it.
-- **Both RAM regions are declared larger than the silicon, and that is
-  deliberate.** `RW_IRAM1` says `0x80000` against 64 KB on chip and `RW_RAM1`
-  says `0x800000` against the 512 KB IS61L5128L on the board. Correcting them
-  looks obviously right and was tried: capping `RW_RAM1` at the real `0x80000`
-  makes the linker spill about 21 KB into internal SRAM at `0x20000000`, which
-  no shipped image has ever used, and the first device flashed with that build
-  never left its bootloader. The over-declaration is what every released
-  firmware was linked with, so it stays until someone can say what the
-  bootloader keeps in internal SRAM. RW and ZI come to `0x7a6b8`, about 98% of
-  the real part, so the headroom that the declaration hides is genuinely small
-  and an overflow would corrupt at run time rather than fail the link. That is a
-  real hazard, but a smaller one than a board that will not boot.
+- **Both RAM regions are declared larger than the silicon, and that is load
+  bearing.** `RW_IRAM1` says `0x80000` against 64 KB on chip and `RW_RAM1` says
+  `0x800000` against the 512 KB IS61L5128L. Correcting `RW_RAM1` to the real
+  `0x80000` looks obviously right. It bricks the boot, and here is why.
+
+  `arm/CORE/startup_stm32f10x_hd.s` builds with `DATA_IN_ExtSRAM EQU 1`, and on
+  that branch it does not use the stack the linker placed. It writes an absolute
+  address instead:
+
+  ```asm
+  __initial_sp EQU 0X20000000 + Stack_Size    ; 0x20002000
+  ```
+
+  Nothing then references `Stack_Mem`, so the linker discards the section --
+  `Removing startup_stm32f10x_hd.o(STACK), (8192 bytes)` in the map -- and no
+  longer believes anything lives in internal SRAM. The arrangement only works
+  because the oversized `RW_RAM1` swallows every byte of RW and ZI, leaving
+  `0x20000000`-`0x20002000` empty for a stack the linker cannot see.
+
+  Cap `RW_RAM1` and that stops being true: the linker fills
+  `0x20000000`-`0x20005358` with RW and ZI, straight through the stack. The
+  first call corrupts data, and `__main` finishes the job by zeroing the ZI
+  sweep across live stack frames before `main()` is ever reached. A device
+  flashed with that build never left its bootloader.
+
+  So the declaration stays. The real fix is to stop the stack and the linker
+  disagreeing -- give `RW_IRAM1` a base of `0x20002000` so the stack region is
+  outside it, or drop the absolute `__initial_sp` and let the linker place the
+  stack -- and only then cap `RW_RAM1`. Until someone does that on hardware, RW
+  and ZI at `0x7a6b8` sit at about 98% of the real part with the overflow check
+  switched off, which is a hazard worth remembering.
 - Building dirties the checked-in artifacts under `arm/OBJ/`. Those are not part
   of any commit on this branch, with one exception:
   `arm/OBJ/Tstat10_arm_revxx.hex` is committed so the branch carries something
