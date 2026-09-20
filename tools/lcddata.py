@@ -24,19 +24,31 @@ def read(path):
     return open(path, encoding='utf-8', errors='surrogateescape').read()
 
 
+def define_pairs(hdr):
+    """(name, value) for every #define, with any comment removed.
+
+    Comments come off the whole header first, because a couple of the colours
+    are annotated with a /* */ that runs onto the next line.  The value is then
+    kept whole rather than cut at the first '/', which LABEL_CH_BYTES and
+    anything else written as a division needs.
+    """
+    for m in re.finditer(r'^#define[ \t]+(\w+)[ \t]+([^\r\n]+)', strip_comments(hdr), re.M):
+        val = m.group(2).strip()
+        if val:
+            yield m.group(1), val
+
+
 def defines(hdr=None):
     """#define NAME <number>, including ones written as expressions."""
     hdr = hdr if hdr is not None else read(HDR)
     out = {}
-    for m in re.finditer(r'^#define[ \t]+(\w+)[ \t]+([^/\r\n]+)', hdr, re.M):
-        name, val = m.group(1), m.group(2).strip()
+    for name, val in define_pairs(hdr):
         if HEX.fullmatch(val):
             out[name] = int(val, 16)
         elif DEC.fullmatch(val):
             out[name] = int(val)
     for _ in range(3):                       # a few refer to each other
-        for m in re.finditer(r'^#define[ \t]+(\w+)[ \t]+([^/\r\n]+)', hdr, re.M):
-            name, val = m.group(1), m.group(2).strip()
+        for name, val in define_pairs(hdr):
             if name in out or not re.fullmatch(r'[\w \t+\-*/()]+', val):
                 continue
             try:

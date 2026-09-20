@@ -11,6 +11,13 @@ boundaries.  Three tables use that layout:
     chlibsmall   24x36, 108 bytes/glyph, ASCII 32..126   the three value rows
     chlib        48x96, 576 bytes/glyph, '0'..'9','-',' '  the big top number
     char_16_24   16x24,  48 bytes/glyph, ASCII 32..122   the top-area label
+    char_12_24   12x24,  36 bytes/glyph, ASCII 32..126   the three row labels
+
+char_12_24 is the odd one out: it is condensed rather than drawn at its natural
+width, because the row label has to fit between the screen edge and the value
+box at x=102.  Eight characters is the whole of Str_variable_point.label, and 12
+pixels is both the widest cell that fits eight of them and the narrowest that
+stays legible, so there is no choice to make about the number.
 
 Before anything is generated the packer is run over the shipped arrays and the
 result compared byte for byte, so a mistake in the bit order cannot reach the
@@ -51,8 +58,10 @@ TABLES = {
     'chlibsmall': (24, 36, 108, ASCII,  22, 24, 4),
     'chlib':      (48, 96, 576, DIGITS, 46, 74, 9),
     'char_16_24': (16, 24,  48, [chr(c) for c in range(32, 123)], 14, 17, 4),
+    'char_12_24': (12, 24,  36, ASCII, 10, 17, 4),
 }
-KIND = {'chlibsmall': 'uint8', 'chlib': 'unsigned char', 'char_16_24': 'uint8'}
+KIND = {'chlibsmall': 'uint8', 'chlib': 'unsigned char', 'char_16_24': 'uint8',
+        'char_12_24': 'uint8'}
 
 
 def decode(data, w, h, nbytes, index):
@@ -78,7 +87,10 @@ def encode(rows, w, h, nbytes):
 
 def check_roundtrip(src, sym):
     for name, (w, h, nb, chars, _, _, _) in TABLES.items():
-        _, vals = L.array(src, name, 'uint8', sym)
+        span, vals = L.array(src, name, 'uint8', sym)
+        if span is None:
+            print('  %-12s not in the source yet, it will be added' % name)
+            continue
         want = len(chars) * nb
         if len(vals) != want:
             raise SystemExit('%s: %d bytes, expected %d' % (name, len(vals), want))
@@ -169,7 +181,14 @@ def main():
 
     for name, blob in built.items():
         span, _ = L.array(src, name, 'uint8', sym)
-        src = src[:span[0]] + L.emit(name, list(blob), 'uint8') + src[span[1]:]
+        text = L.emit(name, list(blob), 'uint8')
+        if span is None:
+            # a table generated for the first time goes in beside its neighbours
+            anchor, _ = L.array(src, 'char_16_24', 'uint8', sym)
+            gap = chr(10) * 2
+            src = src[:anchor[1]] + gap + text + src[anchor[1]:]
+        else:
+            src = src[:span[0]] + text + src[span[1]:]
     open(L.SRC, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(src)
 
     after = L.read(L.SRC)

@@ -1,6 +1,6 @@
 """Render the idle screen off the firmware's own data, as a PNG.
 
-    python tools/screenshot.py out.png --labels SET,ROO,MOD --values 45.0,45,HEAT
+    python tools/screenshot.py out.png --labels SETPOINT,ROOM,MODE --values 45.0,45,HEAT
 
 Reads the fonts, the icon bitmaps and the colour constants straight out of
 ER-TFT024-3_4-Wire_SPI.c and LCD_TSTAT.h and replays the drawing calls
@@ -30,7 +30,7 @@ class Screen:
             _, vals = L.array(self.src, name, 'uint16', self.k)
             self.icons[name] = vals
         self.fonts = {}
-        for name in ('chlibsmall', 'chlib', 'char_16_24'):
+        for name in ('chlibsmall', 'chlib', 'char_16_24', 'char_12_24'):
             _, vals = L.array(self.src, name, 'uint8', self.k)
             self.fonts[name] = vals
 
@@ -71,6 +71,12 @@ class Screen:
     def text(self, form, x, y, s, fg, bg):
         for n, c in enumerate(s):
             self.ch(form, x + n * (31 if form == 0 else 23), y, c, fg, bg)
+
+    def label(self, x, y, s, fg, bg):
+        k = self.k
+        for n, c in enumerate(s):
+            self._glyph(self.fonts['char_12_24'], k['LABEL_CH_BYTES'], k['LABEL_CH_XDOTS'],
+                        k['LABEL_CH_YDOTS'], ord(c) - 32, x + n * k['LABEL_CH_XDOTS'], y, fg, bg)
 
     def text_16_24(self, x, y, s, fg, bg):
         for n, c in enumerate(s):
@@ -130,7 +136,8 @@ def render(s, labels, values, top, unit, page, pages, clock, selected):
         s.tangle(102, y - 3)
     for i, y in enumerate(rows):
         back = HL if selected == i + 1 else BG
-        s.text(1, k['SCH_XPOS'], y, labels[i][:3].ljust(3), SCHC, back)
+        n = k['LABEL_CHARS']
+        s.label(k['LABEL_XPOS'], y + k['LABEL_YOFF'], labels[i][:n].ljust(n), SCHC, back)
         s.text(1, k['SCH_XPOS'] + 96, y, values[i][:5].ljust(5), SCHC, M2)
     s.page_marks(page, pages)
 
@@ -150,7 +157,7 @@ def render(s, labels, values, top, unit, page, pages, clock, selected):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('out')
-    ap.add_argument('--labels', default='SET,ROO,MOD')
+    ap.add_argument('--labels', default='SETPOINT,ROOM,MODE')
     ap.add_argument('--values', default='45.0,45,HEAT')
     ap.add_argument('--top', default='21.5')
     ap.add_argument('--unit', default='C')

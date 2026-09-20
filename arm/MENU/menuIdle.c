@@ -5,9 +5,9 @@
 #include "wifi.h"
 #define	NODES_POLL_PERIOD	30
 
-char UI_DIS_LINE1[4]; //Corresponds to the old setpoint, fan and sys
-char UI_DIS_LINE2[4];
-char UI_DIS_LINE3[4];
+char UI_DIS_LINE1[LABEL_CHARS + 1]; //Corresponds to the old setpoint, fan and sys
+char UI_DIS_LINE2[LABEL_CHARS + 1];
+char UI_DIS_LINE3[LABEL_CHARS + 1];
 char UI_DIS_TOP[9];
 
 static uint8 display_around_time_ctr = NODES_POLL_PERIOD;
@@ -51,6 +51,25 @@ static uint8 var_is_labelled(uint8 num)
 	return (first != 0) && (first != ' ') && (first != 0xff);
 }
 
+/* Copy a VAR label into a row buffer. At most LABEL_CHARS characters; anything
+ * outside printable ASCII ends the string, which covers both the NUL that
+ * T3000 writes and the 0xff of erased flash. The rest is padded with spaces so
+ * that drawing the buffer repaints every cell -- a shorter label can then not
+ * leave the tail of a longer one behind it. */
+static void load_label(char *dst, uint8 num)
+{
+	uint8 i, c, ended = 0;
+
+	for(i = 0;i < LABEL_CHARS;i++)
+	{
+		c = (uint8)vars[num].label[i];
+		if(c < ' ' || c > '~')
+			ended = 1;
+		dst[i] = ended ? ' ' : (char)c;
+	}
+	dst[LABEL_CHARS] = 0;
+}
+
 /* Pages to offer: page 0 always, then every page up to the last labelled VAR. */
 static uint8 idle_page_count(void)
 {
@@ -90,16 +109,13 @@ static void show_page_rows(void)
 	disp_str(FORM15X30, SCH_XPOS + 96,  FAN_MODE_POS, "     ",SCH_COLOR,TSTAT8_MENU_COLOR2);
 	disp_str(FORM15X30, SCH_XPOS + 96,  SYS_MODE_POS, "     ",SCH_COLOR,TSTAT8_MENU_COLOR2);
 
-	memset(UI_DIS_LINE1,'\0',4);
-	memset(UI_DIS_LINE2,'\0',4);
-	memset(UI_DIS_LINE3,'\0',4);
-	memcpy(UI_DIS_LINE1, vars[base].label, 3);
-	memcpy(UI_DIS_LINE2, vars[base + 1].label, 3);
-	memcpy(UI_DIS_LINE3, vars[base + 2].label, 3);
+	load_label(UI_DIS_LINE1, base);
+	load_label(UI_DIS_LINE2, base + 1);
+	load_label(UI_DIS_LINE3, base + 2);
 
-	disp_str(FORM15X30, SCH_XPOS,  SETPOINT_POS, UI_DIS_LINE1,SCH_COLOR,TSTAT8_BACK_COLOR);
-	disp_str(FORM15X30, SCH_XPOS,  FAN_MODE_POS, UI_DIS_LINE2,SCH_COLOR,TSTAT8_BACK_COLOR);
-	disp_str(FORM15X30, SCH_XPOS,  SYS_MODE_POS, UI_DIS_LINE3,SCH_COLOR,TSTAT8_BACK_COLOR);
+	disp_str_12_24(LABEL_XPOS, SETPOINT_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE1, SCH_COLOR, TSTAT8_BACK_COLOR);
+	disp_str_12_24(LABEL_XPOS, FAN_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE2, SCH_COLOR, TSTAT8_BACK_COLOR);
+	disp_str_12_24(LABEL_XPOS, SYS_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE3, SCH_COLOR, TSTAT8_BACK_COLOR);
 
 	display_page_marks(page_index, pages);
 }
@@ -209,24 +225,28 @@ void MenuIdle_display(void)
    	static u8 count_tx = 0;
 		static u8 count_rx = 0;
 		uint8 base = page_var_base();
+		char label[LABEL_CHARS + 1];
 		
-		if(memcmp(UI_DIS_LINE1,vars[base].label,3))
+		/* A label edited in T3000 arrives without a page change, so each row is
+		 * reloaded and repainted where it stands. Comparing the normalised copy
+		 * rather than the raw label keeps the padding from counting as a change. */
+		load_label(label, base);
+		if(memcmp(UI_DIS_LINE1, label, LABEL_CHARS))
 		{
-			disp_str(FORM15X30, SCH_XPOS,  SETPOINT_POS, "   ",SCH_COLOR,TSTAT8_BACK_COLOR);
-			memset(UI_DIS_LINE1,'\0',4);
-			memcpy(UI_DIS_LINE1, vars[base].label, 3);
+			memcpy(UI_DIS_LINE1, label, LABEL_CHARS + 1);
+			disp_str_12_24(LABEL_XPOS, SETPOINT_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE1, SCH_COLOR, TSTAT8_BACK_COLOR);
 		}
-		if(memcmp(UI_DIS_LINE2,vars[base + 1].label,3))
-		{		
-			disp_str(FORM15X30, SCH_XPOS,  FAN_MODE_POS, "   ",SCH_COLOR,TSTAT8_BACK_COLOR);
-			memset(UI_DIS_LINE2,'\0',4);
-			memcpy(UI_DIS_LINE2, vars[base + 1].label, 3);
-		}
-		if(memcmp(UI_DIS_LINE3,vars[base + 2].label,3))
+		load_label(label, base + 1);
+		if(memcmp(UI_DIS_LINE2, label, LABEL_CHARS))
 		{
-			disp_str(FORM15X30, SCH_XPOS,  SYS_MODE_POS, "   ",SCH_COLOR,TSTAT8_BACK_COLOR);
-			memset(UI_DIS_LINE3,'\0',4);
-			memcpy(UI_DIS_LINE3, vars[base + 2].label, 3);
+			memcpy(UI_DIS_LINE2, label, LABEL_CHARS + 1);
+			disp_str_12_24(LABEL_XPOS, FAN_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE2, SCH_COLOR, TSTAT8_BACK_COLOR);
+		}
+		load_label(label, base + 2);
+		if(memcmp(UI_DIS_LINE3, label, LABEL_CHARS))
+		{
+			memcpy(UI_DIS_LINE3, label, LABEL_CHARS + 1);
+			disp_str_12_24(LABEL_XPOS, SYS_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE3, SCH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		
     //display_input_value(inputs[0].value);
@@ -555,41 +575,41 @@ void MenuIdle_display(void)
 		{
 			if(flag_digital_top_area == 1)
 				disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  SETPOINT_POS, UI_DIS_LINE1,SCH_COLOR,TSTAT8_BACK_COLOR1);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  FAN_MODE_POS, UI_DIS_LINE2,SCH_COLOR,TSTAT8_BACK_COLOR);
-			disp_str(FORM15X30, SCH_XPOS,  SYS_MODE_POS, UI_DIS_LINE3,SCH_COLOR,TSTAT8_BACK_COLOR);
+			disp_str_12_24(LABEL_XPOS, SETPOINT_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE1, SCH_COLOR, TSTAT8_BACK_COLOR1);//TSTAT8_BACK_COLOR
+			disp_str_12_24(LABEL_XPOS, FAN_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE2, SCH_COLOR, TSTAT8_BACK_COLOR);
+			disp_str_12_24(LABEL_XPOS, SYS_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE3, SCH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		else if(disp_index == 2)
 		{
 			if(flag_digital_top_area == 1)
 				disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  SETPOINT_POS, UI_DIS_LINE1,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  FAN_MODE_POS, UI_DIS_LINE2,SCH_COLOR,TSTAT8_BACK_COLOR1);
-			disp_str(FORM15X30, SCH_XPOS,  SYS_MODE_POS, UI_DIS_LINE3,SCH_COLOR,TSTAT8_BACK_COLOR);
+			disp_str_12_24(LABEL_XPOS, SETPOINT_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE1, SCH_COLOR, TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
+			disp_str_12_24(LABEL_XPOS, FAN_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE2, SCH_COLOR, TSTAT8_BACK_COLOR1);
+			disp_str_12_24(LABEL_XPOS, SYS_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE3, SCH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		else if(disp_index == 3)
 		{
 			if(flag_digital_top_area == 1)
 				disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  SETPOINT_POS, UI_DIS_LINE1,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  FAN_MODE_POS, UI_DIS_LINE2,SCH_COLOR,TSTAT8_BACK_COLOR);
-			disp_str(FORM15X30, SCH_XPOS,  SYS_MODE_POS, UI_DIS_LINE3,SCH_COLOR,TSTAT8_BACK_COLOR1);
+			disp_str_12_24(LABEL_XPOS, SETPOINT_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE1, SCH_COLOR, TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
+			disp_str_12_24(LABEL_XPOS, FAN_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE2, SCH_COLOR, TSTAT8_BACK_COLOR);
+			disp_str_12_24(LABEL_XPOS, SYS_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE3, SCH_COLOR, TSTAT8_BACK_COLOR1);
 		}
 		else if(disp_index == 4) // top area
 		{
 			if(flag_digital_top_area == 1)
 				disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR1);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  SETPOINT_POS, UI_DIS_LINE1,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  FAN_MODE_POS, UI_DIS_LINE2,SCH_COLOR,TSTAT8_BACK_COLOR);
-			disp_str(FORM15X30, SCH_XPOS,  SYS_MODE_POS, UI_DIS_LINE3,SCH_COLOR,TSTAT8_BACK_COLOR);
+			disp_str_12_24(LABEL_XPOS, SETPOINT_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE1, SCH_COLOR, TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
+			disp_str_12_24(LABEL_XPOS, FAN_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE2, SCH_COLOR, TSTAT8_BACK_COLOR);
+			disp_str_12_24(LABEL_XPOS, SYS_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE3, SCH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		else
 		{
 			if(flag_digital_top_area == 1)
 				disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  SETPOINT_POS, UI_DIS_LINE1,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-			disp_str(FORM15X30, SCH_XPOS,  FAN_MODE_POS, UI_DIS_LINE2,SCH_COLOR,TSTAT8_BACK_COLOR);
-			disp_str(FORM15X30, SCH_XPOS,  SYS_MODE_POS, UI_DIS_LINE3,SCH_COLOR,TSTAT8_BACK_COLOR);
+			disp_str_12_24(LABEL_XPOS, SETPOINT_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE1, SCH_COLOR, TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
+			disp_str_12_24(LABEL_XPOS, FAN_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE2, SCH_COLOR, TSTAT8_BACK_COLOR);
+			disp_str_12_24(LABEL_XPOS, SYS_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE3, SCH_COLOR, TSTAT8_BACK_COLOR);
 		}
 
         //sprintf(test_char, "%d", SSID_Info.IP_Wifi_Status); //for testing: show the wifi status value in the top left of the screen;

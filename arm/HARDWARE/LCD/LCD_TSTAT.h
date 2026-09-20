@@ -78,6 +78,18 @@
 #define PAGE_MARK_YDOTS					9
 #define PAGE_MARK_PITCH					15
 #define PAGE_MARK_STRIP_YDOTS			(PAGE_MARK_MAX * PAGE_MARK_PITCH)
+/* Row labels. Str_variable_point.label is nine bytes, so eight characters is
+ * the whole of it. draw_tangle() puts the value box at x=102, which leaves
+ * x=0..101 for the label: eight 12 dot cells from x=2 end at x=97, clear of it.
+ * The glyphs are 24 tall against a 36 tall row, so they drop by 6 to sit level
+ * with the value beside them. */
+#define LABEL_CHARS			8
+#define LABEL_XPOS				2
+#define LABEL_CH_XDOTS			12
+#define LABEL_CH_YDOTS			24
+#define LABEL_CH_BYTES			(LABEL_CH_XDOTS * LABEL_CH_YDOTS / 8)
+#define LABEL_YOFF				6
+
 #define PAGE_MARK_DIM_COLOR			0x29c9	/* #2E3A48 a page you are not on */
 
 
@@ -230,6 +242,7 @@ void LCD_Intial(void);
 extern uint8 const chlib[];
 extern uint8 const chlibsmall[];
 extern uint8 const char_16_24[];
+extern uint8 const char_12_24[];
 extern uint16 const athome[];
 extern uint16 const offhome[];
 extern uint16 const sunicon[];
@@ -279,6 +292,8 @@ void disp_icon(uint16 cp, uint16 pp, uint16 const *icon_name, uint16 x,uint16 y,
 void disp_null_icon(uint16 cp, uint16 pp, uint16 const *icon_name, uint16 x,uint16 y,uint16 dcolor, uint16 bgcolor);
 void disp_str(uint8 form, uint16 x,uint16 y,uint8 *str,uint16 dcolor,uint16 bgcolor);	
 void disp_str_16_24(uint8 form, uint16 x, uint16 y, uint8 *str, uint16 dcolor, uint16 bgcolor);
+void disp_ch_12_24(uint16 x, uint16 y, uint8 value, uint16 dcolor, uint16 bgcolor);
+void disp_str_12_24(uint16 x, uint16 y, uint8 *str, uint16 dcolor, uint16 bgcolor);
 void display_SP(int16 setpoint);
 void display_screen_value(uint8 type);
 void display_screen_value_var(uint8 type, uint8 var_index);
