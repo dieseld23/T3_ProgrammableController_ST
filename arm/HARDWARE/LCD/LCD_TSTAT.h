@@ -68,6 +68,17 @@
 #define BUTTON_DARK_COLOR   							0X0BA7
 #define BTN_OFFSET												CH_HEIGHT+7
 
+/* Page indicator. The three value rows run to x=222 and the frame drawn round
+ * them by draw_tangle() ends at x=224, which leaves the strip from x=227 to the
+ * right edge free the whole height of the rows. One mark per page goes there. */
+#define PAGE_MARK_MAX					8
+#define PAGE_MARK_XPOS					227
+#define PAGE_MARK_YPOS					110
+#define PAGE_MARK_XDOTS					9
+#define PAGE_MARK_YDOTS					9
+#define PAGE_MARK_PITCH					15
+#define PAGE_MARK_STRIP_YDOTS			(PAGE_MARK_MAX * PAGE_MARK_PITCH)
+
 
 #define TOP_AREA_DISP_ITEM_TEMPERATURE   	0
 #define TOP_AREA_DISP_ITEM_HUM					 	1
@@ -258,6 +269,8 @@ void disp_str(uint8 form, uint16 x,uint16 y,uint8 *str,uint16 dcolor,uint16 bgco
 void disp_str_16_24(uint8 form, uint16 x, uint16 y, uint8 *str, uint16 dcolor, uint16 bgcolor);
 void display_SP(int16 setpoint);
 void display_screen_value(uint8 type);
+void display_screen_value_var(uint8 type, uint8 var_index);
+void display_page_marks(uint8 current, uint8 count);
 void display_fanspeed(int16 speed);
 void display_mode(uint8 heat_cool_user);
 void display_fan(void);

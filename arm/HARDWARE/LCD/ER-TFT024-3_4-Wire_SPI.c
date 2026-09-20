@@ -699,39 +699,47 @@ void disp_null_icon(uint16 cp, uint16 pp, uint16 const *icon_name, uint16 x,uint
 //Show the in, out and var values where setpoint, fan and sys used to be 
 void display_screen_value(uint8 type)
 {
+	// row n shows VARn, which is what the screen did before it had pages
+	display_screen_value_var(type, type - 1);
+}
+
+/* The same, but the row and the VAR it shows are chosen separately, so a page
+ * past the first can put VAR4 on row 1. */
+void display_screen_value_var(uint8 type, uint8 var_index)
+{
     int i = 0;
     uint8 spbuf[20];
     float show_value = 0;
     uint8 str_length = 0;		
     memset(spbuf, 0x20, 5);spbuf[5] = 0; //Initialise 5 bytes to spaces, so that after showing 12345 a later value of ABC does not come out as ABC45
-    if (type >= 1 && type <= 3)  // the data shown on the LCD is fixed as VAR1-VAR3
-    {// ONLY var1-3 support MSV
-			if ((vars[type - 1].range >= 101) && (vars[type - 1].range <= 103))  // 101 102 103 	MSV range
+    if (type >= 1 && type <= 3)  // there are three rows; which VAR each one shows depends on the page
+    {// only these three rows support MSV, whichever VARs the page puts on them
+			if ((vars[var_index].range >= 101) && (vars[var_index].range <= 103))  // 101 102 103 	MSV range
 			{
 				//sprintf(spbuf, "%d", msv_data[0][0].msv_value);
 				for ( i = 0; i < 8; i++)
 				{
-					if ((vars[type - 1].value/1000) == msv_data[vars[type - 1].range - 101][i].msv_value)
+					if ((vars[var_index].value/1000) == msv_data[vars[var_index].range - 101][i].msv_value)
 					{
-							str_length = strlen(msv_data[vars[type - 1].range - 101][i].msv_name);
+							str_length = strlen(msv_data[vars[var_index].range - 101][i].msv_name);
 							if (str_length >= 5)
 									str_length = 5;
-							memcpy(spbuf, msv_data[vars[type - 1].range - 101][i].msv_name, str_length);
+							memcpy(spbuf, msv_data[vars[var_index].range - 101][i].msv_name, str_length);
 							break;
 					}
 				}
 			}
 			else
 			{
-					show_value = ((float)vars[type - 1].value) / 1000;
-					if(vars[type - 1].value / 1000 >= 10000)
+					show_value = ((float)vars[var_index].value) / 1000;
+					if(vars[var_index].value / 1000 >= 10000)
 						show_value = 9999;
 					
-					if(vars[type - 1].digital_analog == 0)
+					if(vars[var_index].digital_analog == 0)
 					{						
-						show_value = vars[type - 1].control ? 1 : 0;
+						show_value = vars[var_index].control ? 1 : 0;
 						
-						switch(vars[type - 1].range)
+						switch(vars[var_index].range)
 						{
 							case OFF_ON:
 								if(show_value == 0)			memcpy(spbuf, "OFF  ", 5);
@@ -831,13 +839,13 @@ void display_screen_value(uint8 type)
 						{	
 							sprintf(spbuf, "%d",(int)show_value);
 						}
-						else if(vars[type - 1].value / 1000 >= 10)
+						else if(vars[var_index].value / 1000 >= 10)
 						{
 							sprintf(spbuf, "%.1f", show_value);
 						}
 						else
 						{
-							if(vars[type - 1].value > 0)
+							if(vars[var_index].value > 0)
 							{
 								sprintf(spbuf, "%.2f", show_value);
 							}
@@ -1291,6 +1299,25 @@ void display_icon(void)
 
 }
 
+
+/* The page indicator: one mark per page down the free strip at the right edge
+ * of the three value rows, the current page's mark bright and the rest dim.
+ * disp_null_icon() fills a rectangle, so this needs no bitmap and no font.
+ * A panel using only the first page gets an empty strip. */
+void display_page_marks(uint8 current, uint8 count)
+{
+	uint8 i;
+
+	// wipe the whole strip first, so dropping a page cannot leave a mark behind
+	disp_null_icon(PAGE_MARK_XDOTS, PAGE_MARK_STRIP_YDOTS, 0, PAGE_MARK_XPOS, PAGE_MARK_YPOS, TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
+
+	if(count < 2)
+		return;
+
+	for(i = 0;i < count;i++)
+		disp_null_icon(PAGE_MARK_XDOTS, PAGE_MARK_YDOTS, 0, PAGE_MARK_XPOS, PAGE_MARK_YPOS + i * PAGE_MARK_PITCH,
+			TSTAT8_BACK_COLOR, (i == current) ? SCH_COLOR : BUTTON_DARK_COLOR);
+}
 
 void clear_line(uint8 linenum)
 {
