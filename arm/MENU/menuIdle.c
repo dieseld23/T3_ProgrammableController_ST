@@ -153,6 +153,7 @@ static void show_page_rows(void)
 	disp_str_12_24(LABEL_XPOS, SYS_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE3, SCH_COLOR, TSTAT8_BACK_COLOR);
 
 	display_page_marks(page_index, pages);
+	display_top_rh(page_index);
 }
 
 void MenuIdle_init(void)

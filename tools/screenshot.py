@@ -143,22 +143,19 @@ class Screen:
         self.null_icon(2, 32, x + w - 2, y + 6, k['TANGLE_COLOR'])
 
     def page_marks(self, current, count):
-        """A row across the top, centred on however many pages there are."""
+        """A column in the top right, one mark per page, the strip wiped first."""
         k = self.k
-        strip = k['PAGE_MARK_STRIP_XDOTS']
-        self.null_icon(strip, k['PAGE_MARK_YDOTS'], (240 - strip) // 2,
-                       k['PAGE_MARK_YPOS'], k['TSTAT8_BACK_COLOR'])
+        self.null_icon(k['PAGE_MARK_XDOTS'], k['PAGE_MARK_STRIP_YDOTS'],
+                       k['PAGE_MARK_XPOS'], k['PAGE_MARK_YPOS'], k['TSTAT8_BACK_COLOR'])
         if count < 2:
             return
-        dim = k['PAGE_MARK_DIM_COLOR']
-        x0 = (240 - count * k['PAGE_MARK_PITCH']) // 2
         for i in range(count):
-            self.null_icon(k['PAGE_MARK_XDOTS'], k['PAGE_MARK_YDOTS'],
-                           x0 + i * k['PAGE_MARK_PITCH'], k['PAGE_MARK_YPOS'],
-                           k['SCH_COLOR'] if i == current else dim)
+            self.null_icon(k['PAGE_MARK_XDOTS'], k['PAGE_MARK_YDOTS'], k['PAGE_MARK_XPOS'],
+                           k['PAGE_MARK_YPOS'] + i * k['PAGE_MARK_PITCH'],
+                           k['SCH_COLOR'] if i == current else k['PAGE_MARK_DIM_COLOR'])
 
 
-def render(s, labels, values, top, unit, page, pages, clock, selected, icons):
+def render(s, labels, values, top, unit, page, pages, clock, selected, icons, rh=None):
     k = s.k
     BG, CH, SCHC = k['TSTAT8_BACK_COLOR'], k['TSTAT8_CH_COLOR'], k['SCH_COLOR']
     M2, HL = k['TSTAT8_MENU_COLOR2'], k['TSTAT8_BACK_COLOR1']
@@ -171,11 +168,20 @@ def render(s, labels, values, top, unit, page, pages, clock, selected, icons):
     s.icon(k['LINK_XDOTS'], k['LINK_YDOTS'], 'cmnct_send', k['LINK_TX_XPOS'], k['LINK_YPOS'])
     s.icon(k['LINK_XDOTS'], k['LINK_YDOTS'], 'cmnct_rcv', k['LINK_RX_XPOS'], k['LINK_YPOS'])
 
-    # whole degrees, at most three digits, right aligned with leading blanks
-    n = max(-99, min(999, int(round(float(top)))))
-    digits = '%3d' % n
+    # whole degrees, at most three digits, right aligned, with the sign riding
+    # in the cell left of the first digit rather than in a column of its own
+    n = int(round(float(top)))
+    neg = n < 0
+    n = min(99 if neg else 999, abs(n))
+    cells = [' ', ' ', chr(0x30 + n % 10)]
+    if n >= 10:
+        cells[1] = chr(0x30 + (n // 10) % 10)
+    if n >= 100:
+        cells[0] = chr(0x30 + n // 100)
+    if neg:
+        cells[1 if n < 10 else 0] = '-'
     for col, xk in enumerate(('FIRST_CH_POS', 'SECOND_CH_POS', 'THIRD_CH_POS')):
-        s.ch(0, k[xk], k['THERM_METER_POS'], digits[col], CH, BG)
+        s.ch(0, k[xk], k['THERM_METER_POS'], cells[col], CH, BG)
     # the degree ring is its own icon, with the letter beside it, both top
     # aligned with the cap line of the digits rather than sitting at their foot
     s.icon(14, 14, 'degree_o', k['UNIT_POS'] - 14, k['UNIT_YPOS'])
@@ -191,6 +197,12 @@ def render(s, labels, values, top, unit, page, pages, clock, selected, icons):
         s.label(k['LABEL_XPOS'], y + k['LABEL_YOFF'], labels[i][:n].ljust(n), SCHC, back)
         s.text(1, k['VALUE_XPOS'], y + k['VALUE_YOFF'], values[i][:v].rjust(v), SCHC, M2)
     s.page_marks(page, pages)
+
+    # the corner humidity readout, page 1 only, value over percent sign
+    if page == 0 and rh is not None:
+        r = max(0, min(99, int(rh)))
+        s.label(k['RH_XPOS'], k['RH_YPOS'], '%2d' % r, SCHC, BG)
+        s.label(k['RH_UNIT_XPOS'], k['RH_UNIT_YPOS'], '%', SCHC, BG)
 
     s.null_icon(240, 36, 0, k['TIME_POS'], M2)
     s.label(k['CLOCK_XPOS'], k['TIME_POS'] + k['CLOCK_YOFF'],
@@ -216,12 +228,13 @@ def main():
     ap.add_argument('--clock', default='Sep 20 | 12:00 PM')
     ap.add_argument('--icons', default='fan_on,mode_heat,wall_up',
                     help='one state per cell: fan, mode, sidewalls')
+    ap.add_argument('--rh', type=int, default=64, help='corner humidity, page 1 only')
     ap.add_argument('--scale', type=int, default=2)
     args = ap.parse_args()
 
     im = render(Screen(), args.labels.split(','), args.values.split(','), args.top,
                 args.unit, args.page, args.pages, args.clock, args.selected,
-                args.icons.split(','))
+                args.icons.split(','), args.rh)
     if args.scale > 1:
         im = im.resize((W * args.scale, H * args.scale), Image.NEAREST)
     im.save(args.out)

@@ -46,8 +46,8 @@ VAR1-VAR3. Each page shows the next three VARs, so a program can drive up to
 - **LEFT** still picks a row within the page; **LEFT+RIGHT** still opens the menu.
 - Pages past the last VAR that carries a label are not offered, so a panel that
   labels VAR1-VAR6 gets two pages rather than eight.
-- A row of marks across the top centre shows which page is up, sized to the
-  number of pages that exist. It is hidden when there is only one page.
+- A column of marks in the top right corner shows which page is up, one per
+  page that exists. It is hidden when there is only one page.
 
 ### Dark palette
 
@@ -117,6 +117,24 @@ bug: `sprintf` leaves a terminator part way along the buffer, which stopped
 `disp_str()` before it repainted the rest of the box, so going from `AUTO` to
 `72` left `TO` behind. `justify_value()` squares the full width off with spaces
 before shifting.
+
+### The corner strip
+
+The big number moved left to x=30, which centres a two digit reading on the
+screen and opens a 30 dot strip down the left edge. The strip carries the wifi
+bars, the RS485 arrows under them, and a humidity readout under those. Three
+characters will not fit across 30 dots, so the percent sign sits on its own line
+under the value.
+
+Moving the number also moved the minus sign. It used to be drawn on its own at
+x=6, which is now underneath the RS485 arrows, so it rides in the cell left of
+the first digit instead -- the 48x96 table already carries a `-` glyph. A three
+digit negative has no cell left for the sign, so the magnitude is capped at two
+digits when the value is negative.
+
+Humidity comes from `TOP_RH_VAR` (VAR28), following the three icon VARs and
+carrying whole percent in `value/1000`, the same convention. A value outside
+0..99 draws blank rather than a wrong number.
 
 ### A clock instead of scrolling text
 

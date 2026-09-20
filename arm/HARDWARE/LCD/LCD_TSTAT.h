@@ -49,7 +49,7 @@
 
 
 /* The link indicators share the top left corner: the wifi bars, and under them
- * the RS485 send and receive arrows.  Both sit left of FIRST_CH_POS (39), so
+ * the RS485 send and receive arrows.  Both sit left of FIRST_CH_POS (30), so
  * the column is clear of the big number for its whole height. */
 #define WIFI_XPOS						0
 #define WIFI_YPOS						0
@@ -101,7 +101,7 @@
 #define ICON3_WALL_STATES					2
 
 
-#define THERM_METER_XPOS									39
+#define THERM_METER_XPOS									30
 #define TEMP_FIRST_BLANK						      0//30  //+= blank width
 #define FIRST_CH_POS											TEMP_FIRST_BLANK + THERM_METER_XPOS
 #define SECOND_CH_POS											FIRST_CH_POS+48
@@ -113,13 +113,31 @@
 /* Page indicator. The three value rows run to x=222 and the frame drawn round
  * them by draw_tangle() ends at x=224, which leaves the strip from x=227 to the
  * right edge free the whole height of the rows. One mark per page goes there. */
+/* The corner humidity readout: the value and its percent sign on two 12 dot
+ * lines under the RS485 arrows, in the strip left of the big number.  Thirty
+ * dots is two cells, so three characters cannot go across and the sign sits on
+ * its own line.  TOP_RH_VAR follows the three icon VARs, and like them carries
+ * whole units in value/1000.  Page 1 only; the other pages blank the strip. */
+#define TOP_RH_VAR						27
+#define RH_XPOS							3
+#define RH_YPOS							58
+#define RH_UNIT_XPOS					9
+#define RH_UNIT_YPOS					(RH_YPOS + LABEL_CH_YDOTS)
+#define RH_XDOTS						30
+#define RH_YDOTS						(RH_UNIT_YPOS + LABEL_CH_YDOTS - RH_YPOS)
+
+/* The page indicator: a column of marks in the top right corner, one per page.
+ * It runs from PAGE_MARK_YPOS down, and the strip has to clear both the unit,
+ * whose 24 dot cell ends at UNIT_POS + 23, and the first value box, whose frame
+ * starts at SETPOINT_POS - 3.  Eight marks at a pitch of 12 end at row 97,
+ * seven rows clear of that box. */
 #define PAGE_MARK_MAX					8
-#define PAGE_MARK_XPOS			0
-#define PAGE_MARK_YPOS			5
+#define PAGE_MARK_XPOS					227
+#define PAGE_MARK_YPOS					5
 #define PAGE_MARK_XDOTS					9
 #define PAGE_MARK_YDOTS					9
-#define PAGE_MARK_PITCH					15
-#define PAGE_MARK_STRIP_XDOTS		(PAGE_MARK_MAX * PAGE_MARK_PITCH)
+#define PAGE_MARK_PITCH					12
+#define PAGE_MARK_STRIP_YDOTS			(PAGE_MARK_MAX * PAGE_MARK_PITCH)
 /* Row labels. Str_variable_point.label is nine bytes, so eight characters is
  * the whole of it. draw_tangle() puts the value box at x=102, which leaves
  * x=0..101 for the label: eight 12 dot cells from x=2 end at x=97, clear of it.
@@ -217,7 +235,7 @@
 #define SCH_BACK_COLOR  	0x3bef	/* unused */
 #define TSTAT8_BACK_COLOR1  0x220b	/* #22435E row picked with the LEFT key;
 									   has to sit lighter than the background */
-#define TSTAT8_BACK_COLOR   0x08a4	/* #0D1520 the screen itself */
+#define TSTAT8_BACK_COLOR   0x0083	/* #001018 the screen itself */
 #define TSTAT8_MENU_COLOR2  0x1106
 #define TANGLE_COLOR        0xbe9c	/* frame round each value; left light on
 									   purpose, and draw_tangle()'s corner
@@ -389,6 +407,7 @@ void display_screen_value(uint8 type);
 void display_screen_value_var(uint8 type, uint8 var_index);
 void display_page_marks(uint8 current, uint8 count);
 void display_clock(void);
+void display_top_rh(uint8 page);
 void display_fanspeed(int16 speed);
 void display_mode(uint8 heat_cool_user);
 void display_icon(void);
