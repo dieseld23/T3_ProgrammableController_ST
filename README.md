@@ -304,7 +304,13 @@ Two notes on the toolchain:
   about 92% full, so an overflow would have linked cleanly and corrupted at run
   time. It now fails the link instead.
 - Building dirties the checked-in artifacts under `arm/OBJ/`. Those are not part
-  of any commit on this branch.
+  of any commit on this branch, with one exception:
+  `arm/OBJ/Tstat10_arm_revxx.hex` is committed so the branch carries something
+  flashable. It covers `0x08008000`-`0x08054933` with the entry point at
+  `0x08008131` — the application only. The bootloader lives below `0x08008000`,
+  is not in this repository and is not touched by flashing this file, so a bad
+  application still leaves the device recoverable through the ISP window.
+  Re-run the build before trusting it after any source change.
 
 Current state of the `Tstat10_wifi` target: **0 errors, 492 warnings** (down from
 510 — the 18 that went were `char*` / `unsigned char*` mismatches removed by
