@@ -63,7 +63,7 @@
 #define TEMP_FIRST_BLANK						      0//30  //+= blank width
 #define FIRST_CH_POS											TEMP_FIRST_BLANK + THERM_METER_XPOS
 #define SECOND_CH_POS											FIRST_CH_POS+48
-#define THIRD_CH_POS											SECOND_CH_POS+48+16
+#define THIRD_CH_POS											SECOND_CH_POS+48
 #define UNIT_POS													THIRD_CH_POS + 48+ 15
 #define BUTTON_DARK_COLOR   							0X0BA7
 #define BTN_OFFSET												CH_HEIGHT+7
@@ -72,12 +72,12 @@
  * them by draw_tangle() ends at x=224, which leaves the strip from x=227 to the
  * right edge free the whole height of the rows. One mark per page goes there. */
 #define PAGE_MARK_MAX					8
-#define PAGE_MARK_XPOS					227
-#define PAGE_MARK_YPOS					110
+#define PAGE_MARK_XPOS			0
+#define PAGE_MARK_YPOS			5
 #define PAGE_MARK_XDOTS					9
 #define PAGE_MARK_YDOTS					9
 #define PAGE_MARK_PITCH					15
-#define PAGE_MARK_STRIP_YDOTS			(PAGE_MARK_MAX * PAGE_MARK_PITCH)
+#define PAGE_MARK_STRIP_XDOTS		(PAGE_MARK_MAX * PAGE_MARK_PITCH)
 /* Row labels. Str_variable_point.label is nine bytes, so eight characters is
  * the whole of it. draw_tangle() puts the value box at x=102, which leaves
  * x=0..101 for the label: eight 12 dot cells from x=2 end at x=97, clear of it.
@@ -112,6 +112,24 @@
 #define CH16_BYTES				(CH16_XDOTS * CH16_YDOTS * CH16_BPP / 8)
 
 #define LABEL_CH_BPP			2
+
+/* The value box. Temperatures are whole numbers of at most three digits and
+ * the words that share the box are four letters, so the box holds four
+ * characters rather than five. Its right edge stays beside the page marks and
+ * the left edge moves in, which widens the gap to the label rather than
+ * leaving a hole on the right. disp_str() advances 23 per character. */
+#define VALUE_CHARS			4
+#define VALUE_ADV				23
+#define VALUE_BOX_W			(VALUE_CHARS * VALUE_ADV + 8)
+#define VALUE_BOX_XPOS		(234 - VALUE_BOX_W)
+#define VALUE_XPOS			(VALUE_BOX_XPOS + 4)
+
+/* The clock line: "Sep 20 | 12:00 PM" in the 12 dot face. Seventeen characters
+ * is 204 dots, so it is centred with a margin either side; the old face could
+ * only fit ten characters across the screen. */
+#define CLOCK_CHARS			17
+#define CLOCK_XPOS			((240 - CLOCK_CHARS * LABEL_CH_XDOTS) / 2)
+#define CLOCK_YOFF			6
 
 #define LABEL_CHARS			8
 #define LABEL_XPOS				2
@@ -315,7 +333,7 @@ typedef struct
 } DISP_CHANGE; 
 extern DISP_CHANGE icon;
 //extern uint16 const angle[];
-void draw_tangle(uint8 xpos, uint16 ypos);
+void draw_tangle(uint8 xpos, uint16 ypos, uint8 w);
 void ClearScreen(unsigned int bColor);
 void disp_ch(uint8 form, uint16 x, uint16 y,uint8 value,uint16 dcolor,uint16 bgcolor);		
 void disp_icon(uint16 cp, uint16 pp, uint16 const *icon_name, uint16 x,uint16 y,uint16 dcolor, uint16 bgcolor);
@@ -328,6 +346,7 @@ void display_SP(int16 setpoint);
 void display_screen_value(uint8 type);
 void display_screen_value_var(uint8 type, uint8 var_index);
 void display_page_marks(uint8 current, uint8 count);
+void display_clock(void);
 void display_fanspeed(int16 speed);
 void display_mode(uint8 heat_cool_user);
 void display_fan(void);

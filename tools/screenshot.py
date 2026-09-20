@@ -114,33 +114,34 @@ class Screen:
         for n, c in enumerate(s):
             self._glyph('char_16_24', ord(c) - 32, x + n * 16, y, fg, bg)
 
-    def tangle(self, x, y):
+    def tangle(self, x, y, w):
         k = self.k
         self.icon(8, 8, 'leftup', x, y)
-        self.null_icon(113, 1, x + 6, y + 2, k['TSTAT8_MENU_COLOR'])
+        self.null_icon(w - 10, 1, x + 6, y + 2, k['TSTAT8_MENU_COLOR'])
         self.null_icon(2, 28, x + 2, y + 8, k['TSTAT8_MENU_COLOR'])
         self.icon(8, 8, 'leftdown', x, y + 34)
-        self.null_icon(113, 1, x + 6, y + 39, k['TSTAT8_MENU_COLOR'])
-        self.icon(8, 8, 'rightdown', x + 115, y + 34)
-        self.icon(8, 8, 'rightup', x + 115, y)
-        self.null_icon(1, 28, x + 120, y + 8, k['TSTAT8_MENU_COLOR'])
-        self.null_icon(115, 2, x + 5, y + 40, k['TANGLE_COLOR'])
-        self.null_icon(115, 2, x + 5, y, k['TANGLE_COLOR'])
+        self.null_icon(w - 10, 1, x + 6, y + 39, k['TSTAT8_MENU_COLOR'])
+        self.icon(8, 8, 'rightdown', x + w - 8, y + 34)
+        self.icon(8, 8, 'rightup', x + w - 8, y)
+        self.null_icon(1, 28, x + w - 3, y + 8, k['TSTAT8_MENU_COLOR'])
+        self.null_icon(w - 8, 2, x + 5, y + 40, k['TANGLE_COLOR'])
+        self.null_icon(w - 8, 2, x + 5, y, k['TANGLE_COLOR'])
         self.null_icon(2, 32, x, y + 6, k['TANGLE_COLOR'])
-        self.null_icon(2, 32, x + 121, y + 6, k['TANGLE_COLOR'])
+        self.null_icon(2, 32, x + w - 2, y + 6, k['TANGLE_COLOR'])
 
     def page_marks(self, current, count):
+        """A row across the top, centred on however many pages there are."""
         k = self.k
-        if 'PAGE_MARK_XPOS' not in k:
-            return
-        self.null_icon(k['PAGE_MARK_XDOTS'], k['PAGE_MARK_STRIP_YDOTS'],
-                       k['PAGE_MARK_XPOS'], k['PAGE_MARK_YPOS'], k['TSTAT8_BACK_COLOR'])
+        strip = k['PAGE_MARK_STRIP_XDOTS']
+        self.null_icon(strip, k['PAGE_MARK_YDOTS'], (240 - strip) // 2,
+                       k['PAGE_MARK_YPOS'], k['TSTAT8_BACK_COLOR'])
         if count < 2:
             return
-        dim = k.get('PAGE_MARK_DIM_COLOR', k.get('BUTTON_DARK_COLOR'))
+        dim = k['PAGE_MARK_DIM_COLOR']
+        x0 = (240 - count * k['PAGE_MARK_PITCH']) // 2
         for i in range(count):
-            self.null_icon(k['PAGE_MARK_XDOTS'], k['PAGE_MARK_YDOTS'], k['PAGE_MARK_XPOS'],
-                           k['PAGE_MARK_YPOS'] + i * k['PAGE_MARK_PITCH'],
+            self.null_icon(k['PAGE_MARK_XDOTS'], k['PAGE_MARK_YDOTS'],
+                           x0 + i * k['PAGE_MARK_PITCH'], k['PAGE_MARK_YPOS'],
                            k['SCH_COLOR'] if i == current else dim)
 
 
@@ -154,27 +155,29 @@ def render(s, labels, values, top, unit, page, pages, clock, selected):
     s.icon(13, 26, 'cmnct_rcv', 13, 0)
     s.icon(26, 26, 'wifi_4', 210, 0)
 
-    whole, _, frac = top.partition('.')
-    whole = whole.rjust(2)
-    s.ch(0, k['FIRST_CH_POS'], k['THERM_METER_POS'], whole[0], CH, BG)
-    s.ch(0, k['SECOND_CH_POS'], k['THERM_METER_POS'], whole[1], CH, BG)
-    if frac:
-        s.null_icon(8, 8, k['SECOND_CH_POS'] + 52, 85, CH)
-        s.ch(0, k['THIRD_CH_POS'], k['THERM_METER_POS'], frac[0], CH, BG)
-    s.text_16_24(k['UNIT_POS'] - 8, 26, unit, CH, BG)
+    # whole degrees, at most three digits, right aligned with leading blanks
+    n = max(-99, min(999, int(round(float(top)))))
+    digits = '%3d' % n
+    for col, xk in enumerate(('FIRST_CH_POS', 'SECOND_CH_POS', 'THIRD_CH_POS')):
+        s.ch(0, k[xk], k['THERM_METER_POS'], digits[col], CH, BG)
+    # the degree ring is its own icon, with the letter beside it
+    s.icon(14, 14, 'degree_o', k['UNIT_POS'] - 14, 56)
+    s.text(1, k['UNIT_POS'], 56, unit[:1], CH, BG)
 
     rows = (k['SETPOINT_POS'], k['FAN_MODE_POS'], k['SYS_MODE_POS'])
     for y in rows:
-        s.tangle(102, y - 3)
+        s.tangle(k['VALUE_BOX_XPOS'], y - 3, k['VALUE_BOX_W'])
     for i, y in enumerate(rows):
         back = HL if selected == i + 1 else BG
         n = k['LABEL_CHARS']
+        v = k['VALUE_CHARS']
         s.label(k['LABEL_XPOS'], y + k['LABEL_YOFF'], labels[i][:n].ljust(n), SCHC, back)
-        s.text(1, k['SCH_XPOS'] + 96, y, values[i][:5].ljust(5), SCHC, M2)
+        s.text(1, k['VALUE_XPOS'], y, values[i][:v].ljust(v), SCHC, M2)
     s.page_marks(page, pages)
 
     s.null_icon(240, 36, 0, k['TIME_POS'], M2)
-    s.text(1, 30, k['TIME_POS'], clock[:9], CH, M2)
+    s.label(k['CLOCK_XPOS'], k['TIME_POS'] + k['CLOCK_YOFF'],
+            clock[:k['CLOCK_CHARS']].ljust(k['CLOCK_CHARS']), CH, M2)
 
     s.icon(k['ICON_XDOTS'], k['ICON_YDOTS'], 'sunicon', k['FIRST_ICON_POS'], k['ICON_POS'])
     s.icon(k['ICON_XDOTS'], k['ICON_YDOTS'], 'athome', k['SECOND_ICON_POS'], k['ICON_POS'])
@@ -190,13 +193,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('out')
     ap.add_argument('--labels', default='SETPOINT,ROOM,MODE')
-    ap.add_argument('--values', default='45.0,45,HEAT')
-    ap.add_argument('--top', default='21.5')
-    ap.add_argument('--unit', default='C')
+    ap.add_argument('--values', default='72,71,HEAT')
+    ap.add_argument('--top', default='71')
+    ap.add_argument('--unit', default='F')
     ap.add_argument('--page', type=int, default=0)
     ap.add_argument('--pages', type=int, default=3)
     ap.add_argument('--selected', type=int, default=0)
-    ap.add_argument('--clock', default='09-20 14:')
+    ap.add_argument('--clock', default='Sep 20 | 12:00 PM')
     ap.add_argument('--scale', type=int, default=2)
     args = ap.parse_args()
 

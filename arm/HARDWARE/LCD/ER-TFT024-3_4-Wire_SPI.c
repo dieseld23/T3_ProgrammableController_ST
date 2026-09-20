@@ -766,7 +766,7 @@ void display_screen_value_var(uint8 type, uint8 var_index)
     uint8 spbuf[20];
     float show_value = 0;
     uint8 str_length = 0;		
-    memset(spbuf, 0x20, 5);spbuf[5] = 0; //Initialise 5 bytes to spaces, so that after showing 12345 a later value of ABC does not come out as ABC45
+    memset(spbuf, 0x20, VALUE_CHARS);spbuf[VALUE_CHARS] = 0; //Initialise 5 bytes to spaces, so that after showing 12345 a later value of ABC does not come out as ABC45
     if (type >= 1 && type <= 3)  // there are three rows; which VAR each one shows depends on the page
     {// only these three rows support MSV, whichever VARs the page puts on them
 			if ((vars[var_index].range >= 101) && (vars[var_index].range <= 103))  // 101 102 103 	MSV range
@@ -777,8 +777,8 @@ void display_screen_value_var(uint8 type, uint8 var_index)
 					if ((vars[var_index].value/1000) == msv_data[vars[var_index].range - 101][i].msv_value)
 					{
 							str_length = strlen(msv_data[vars[var_index].range - 101][i].msv_name);
-							if (str_length >= 5)
-									str_length = 5;
+							if (str_length >= VALUE_CHARS)
+									str_length = VALUE_CHARS;
 							memcpy(spbuf, msv_data[vars[var_index].range - 101][i].msv_name, str_length);
 							break;
 					}
@@ -797,92 +797,92 @@ void display_screen_value_var(uint8 type, uint8 var_index)
 						switch(vars[var_index].range)
 						{
 							case OFF_ON:
-								if(show_value == 0)			memcpy(spbuf, "OFF  ", 5);
-								else							memcpy(spbuf, "ON   ", 5);
+								if(show_value == 0)			memcpy(spbuf, "OFF ", VALUE_CHARS);
+								else							memcpy(spbuf, "ON  ", VALUE_CHARS);
 								break;
 							case CLOSED_OPEN:					
-									if(show_value == 0)			memcpy(spbuf, "CLOSE", 5);
-								else							memcpy(spbuf, "OPEN ", 5);
+									if(show_value == 0)			memcpy(spbuf, "CLSD", VALUE_CHARS);
+								else							memcpy(spbuf, "OPEN", VALUE_CHARS);
 								break;
 							case STOP_START:
-								if(show_value == 0)					memcpy(spbuf, "STOP ", 5);
-								else						memcpy(spbuf, "START", 5);
+								if(show_value == 0)					memcpy(spbuf, "STOP", VALUE_CHARS);
+								else						memcpy(spbuf, "STRT", VALUE_CHARS);
 							break;
 							case DISABLED_ENABLED:
-								if(show_value == 0)			memcpy(spbuf, "DISAB", 5);
-								else							memcpy(spbuf, "ENABL", 5);
+								if(show_value == 0)			memcpy(spbuf, "DSBL", VALUE_CHARS);
+								else							memcpy(spbuf, "ENBL", VALUE_CHARS);
 								break;
 							case NORMAL_ALARM:
-								if(show_value == 0)			memcpy(spbuf, "NAORM", 5);
-								else							memcpy(spbuf, "ALARM", 5);
+								if(show_value == 0)			memcpy(spbuf, "NORM", VALUE_CHARS);
+								else							memcpy(spbuf, "ALRM", VALUE_CHARS);
 								break;
 							case NORMAL_HIGH:					
-									if(show_value == 0)			memcpy(spbuf, "NAORM", 5);
-								else							memcpy(spbuf, "HIGH ", 5);
+									if(show_value == 0)			memcpy(spbuf, "NORM", VALUE_CHARS);
+								else							memcpy(spbuf, "HIGH", VALUE_CHARS);
 								break;
 							case NORMAL_LOW:
-								if(show_value == 0)					memcpy(spbuf, "NAORM", 5);
-								else						memcpy(spbuf, "LOW  ", 5);
+								if(show_value == 0)					memcpy(spbuf, "NORM", VALUE_CHARS);
+								else						memcpy(spbuf, "LOW ", VALUE_CHARS);
 							break;
 							case NO_YES:
-								if(show_value == 0)			memcpy(spbuf, "NO   ", 5);
-								else							memcpy(spbuf, "YES  ", 5);
+								if(show_value == 0)			memcpy(spbuf, "NO  ", VALUE_CHARS);
+								else							memcpy(spbuf, "YES ", VALUE_CHARS);
 								break;
 							case COOL_HEAT:
-								if(show_value == 0)			memcpy(spbuf, "COOL ", 5);
-								else							memcpy(spbuf, "HEAT ", 5);
+								if(show_value == 0)			memcpy(spbuf, "COOL", VALUE_CHARS);
+								else							memcpy(spbuf, "HEAT", VALUE_CHARS);
 								break;
 							case UNOCCUPIED_OCCUPIED:					
-									if(show_value == 0)			memcpy(spbuf, "UNOCC", 5);
-								else							memcpy(spbuf, "OCC  ", 5);
+									if(show_value == 0)			memcpy(spbuf, "UNOC", VALUE_CHARS);
+								else							memcpy(spbuf, "OCC ", VALUE_CHARS);
 								break;
 							case LOW_HIGH:
-								if(show_value == 0)					memcpy(spbuf, "LOW  ", 5);
-								else						memcpy(spbuf, "HIGH ", 5);
+								if(show_value == 0)					memcpy(spbuf, "LOW ", VALUE_CHARS);
+								else						memcpy(spbuf, "HIGH", VALUE_CHARS);
 							break;
 							case ON_OFF:
-								if(show_value == 0)			memcpy(spbuf, "ON   ", 5);
-								else							memcpy(spbuf, "OFF  ", 5);
+								if(show_value == 0)			memcpy(spbuf, "ON  ", VALUE_CHARS);
+								else							memcpy(spbuf, "OFF ", VALUE_CHARS);
 								break;
 							case OPEN_CLOSED:
-								if(show_value == 0)			memcpy(spbuf, "OPEN ", 5);
-								else							memcpy(spbuf, "CLOSE", 5);
+								if(show_value == 0)			memcpy(spbuf, "OPEN", VALUE_CHARS);
+								else							memcpy(spbuf, "CLSD", VALUE_CHARS);
 								break;
 							case START_STOP:					
-									if(show_value == 0)			memcpy(spbuf, "START", 5);
-								else							memcpy(spbuf, "STOP ", 5);
+									if(show_value == 0)			memcpy(spbuf, "STRT", VALUE_CHARS);
+								else							memcpy(spbuf, "STOP", VALUE_CHARS);
 								break;
 							case ENABLED_DISABLED:
-								if(show_value == 0)					memcpy(spbuf, "ENABL", 5);
-								else						memcpy(spbuf, "DISAB", 5);
+								if(show_value == 0)					memcpy(spbuf, "ENBL", VALUE_CHARS);
+								else						memcpy(spbuf, "DSBL", VALUE_CHARS);
 							break;
 							case ALARM_NORMAL:
-								if(show_value == 0)			memcpy(spbuf, "ALARM", 5);
-								else							memcpy(spbuf, "NORMA", 5);
+								if(show_value == 0)			memcpy(spbuf, "ALRM", VALUE_CHARS);
+								else							memcpy(spbuf, "NORM", VALUE_CHARS);
 								break;
 							case HIGH_NORMAL:
-								if(show_value == 0)			memcpy(spbuf, "HIGH ", 5);
-								else							memcpy(spbuf, "NORMA", 5);
+								if(show_value == 0)			memcpy(spbuf, "HIGH", VALUE_CHARS);
+								else							memcpy(spbuf, "NORM", VALUE_CHARS);
 								break;
 							case LOW_NORMAL:					
-									if(show_value == 0)			memcpy(spbuf, "LOW  ", 5);
-								else							memcpy(spbuf, "NORMA", 5);
+									if(show_value == 0)			memcpy(spbuf, "LOW ", VALUE_CHARS);
+								else							memcpy(spbuf, "NORM", VALUE_CHARS);
 								break;
 							case YES_NO:
-								if(show_value == 0)					memcpy(spbuf, "YES  ", 5);
-								else						memcpy(spbuf, "NO   ", 5);
+								if(show_value == 0)					memcpy(spbuf, "YES ", VALUE_CHARS);
+								else						memcpy(spbuf, "NO  ", VALUE_CHARS);
 							break;
 							case HEAT_COOL:
-								if(show_value == 0)			memcpy(spbuf, "HEAT ", 5);
-								else							memcpy(spbuf, "COOL ", 5);
+								if(show_value == 0)			memcpy(spbuf, "HEAT", VALUE_CHARS);
+								else							memcpy(spbuf, "COOL", VALUE_CHARS);
 								break;
 							case OCCUPIED_UNOCCUPIED:
-								if(show_value == 0)					memcpy(spbuf, "OCC  ", 5);
-								else						memcpy(spbuf, "UNOCC", 5);
+								if(show_value == 0)					memcpy(spbuf, "OCC ", VALUE_CHARS);
+								else						memcpy(spbuf, "UNOC", VALUE_CHARS);
 							break;
 							case HIGH_LOW:
-								if(show_value == 0)			memcpy(spbuf, "HIGH ", 5);
-								else							memcpy(spbuf, "LOW  ", 5);
+								if(show_value == 0)			memcpy(spbuf, "HIGH", VALUE_CHARS);
+								else							memcpy(spbuf, "LOW ", VALUE_CHARS);
 								break;
 							default:
 								break;
@@ -914,12 +914,14 @@ void display_screen_value_var(uint8 type, uint8 var_index)
 			}
     }
 		
+		spbuf[VALUE_CHARS] = 0;		// the box holds four, whatever sprintf produced
+
 		if(type == 1)	        
-			disp_str(FORM15X30, SCH_XPOS + 96, SETPOINT_POS, spbuf, SCH_COLOR, TSTAT8_MENU_COLOR2);
+			disp_str(FORM15X30, VALUE_XPOS, SETPOINT_POS, spbuf, SCH_COLOR, TSTAT8_MENU_COLOR2);
     else if (type == 2)
-			disp_str(FORM15X30, SCH_XPOS + 96, FAN_MODE_POS, spbuf, SCH_COLOR, TSTAT8_MENU_COLOR2);
+			disp_str(FORM15X30, VALUE_XPOS, FAN_MODE_POS, spbuf, SCH_COLOR, TSTAT8_MENU_COLOR2);
     else if (type == 3)
-      disp_str(FORM15X30, SCH_XPOS + 96, SYS_MODE_POS, spbuf, SCH_COLOR, TSTAT8_MENU_COLOR2);
+      disp_str(FORM15X30, VALUE_XPOS, SYS_MODE_POS, spbuf, SCH_COLOR, TSTAT8_MENU_COLOR2);
 }
 
 void display_SP(int16 disp_setpoint)
@@ -1359,19 +1361,62 @@ void display_icon(void)
  * of the three value rows, the current page's mark bright and the rest dim.
  * disp_null_icon() fills a rectangle, so this needs no bitmap and no font.
  * A panel using only the first page gets an empty strip. */
+/* A row of marks across the top, centred on however many pages there are. The
+ * strip is wiped first so that dropping a page cannot leave one behind. */
 void display_page_marks(uint8 current, uint8 count)
 {
 	uint8 i;
+	uint16 x0;
 
-	// wipe the whole strip first, so dropping a page cannot leave a mark behind
-	disp_null_icon(PAGE_MARK_XDOTS, PAGE_MARK_STRIP_YDOTS, 0, PAGE_MARK_XPOS, PAGE_MARK_YPOS, TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
-
+	disp_null_icon(PAGE_MARK_STRIP_XDOTS, PAGE_MARK_YDOTS, 0,
+		(240 - PAGE_MARK_STRIP_XDOTS) / 2, PAGE_MARK_YPOS, TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
 	if(count < 2)
 		return;
 
+	x0 = (uint16)((240 - count * PAGE_MARK_PITCH) / 2);
 	for(i = 0;i < count;i++)
-		disp_null_icon(PAGE_MARK_XDOTS, PAGE_MARK_YDOTS, 0, PAGE_MARK_XPOS, PAGE_MARK_YPOS + i * PAGE_MARK_PITCH,
+		disp_null_icon(PAGE_MARK_XDOTS, PAGE_MARK_YDOTS, 0,
+			x0 + i * PAGE_MARK_PITCH, PAGE_MARK_YPOS,
 			TSTAT8_BACK_COLOR, (i == current) ? SCH_COLOR : PAGE_MARK_DIM_COLOR);
+}
+
+/* "Sep 20 | 12:00 PM" in the 12 dot face. Seventeen characters fit across the
+ * screen, where the face the clock used before could only manage ten. */
+void display_clock(void)
+{
+	static char const month[12][4] = {"Jan","Feb","Mar","Apr","May","Jun",
+									"Jul","Aug","Sep","Oct","Nov","Dec"};
+	char buf[CLOCK_CHARS + 1];
+	uint8 mon = Rtc.Clk.mon;
+	uint8 h12 = (uint8)(Rtc.Clk.hour % 12);
+	uint8 pm = (uint8)(Rtc.Clk.hour >= 12);
+
+	if(mon < 1 || mon > 12)
+		mon = 1;
+	if(h12 == 0)
+		h12 = 12;
+
+	buf[0] = month[mon - 1][0];
+	buf[1] = month[mon - 1][1];
+	buf[2] = month[mon - 1][2];
+	buf[3] = ' ';
+	buf[4] = (char)(Rtc.Clk.day / 10 + '0');
+	buf[5] = (char)(Rtc.Clk.day % 10 + '0');
+	buf[6] = ' ';
+	buf[7] = '|';
+	buf[8] = ' ';
+	buf[9] = h12 >= 10 ? '1' : ' ';
+	buf[10] = (char)(h12 % 10 + '0');
+	buf[11] = ':';
+	buf[12] = (char)(Rtc.Clk.min / 10 + '0');
+	buf[13] = (char)(Rtc.Clk.min % 10 + '0');
+	buf[14] = ' ';
+	buf[15] = pm ? 'P' : 'A';
+	buf[16] = 'M';
+	buf[17] = 0;
+
+	disp_str_12_24(CLOCK_XPOS, TIME_POS + CLOCK_YOFF, (uint8 *)buf,
+		TSTAT8_CH_COLOR, TSTAT8_MENU_COLOR2);
 }
 
 void clear_line(uint8 linenum)
@@ -1532,29 +1577,29 @@ void display_menu (uint8 *item1, uint8 *item2)
 	disp_str(FORM15X30, 0,FAN_MODE_POS,item2,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
 }
 
-void draw_tangle(uint8 xpos, uint16 ypos)
+void draw_tangle(uint8 xpos, uint16 ypos, uint8 w)
 {
 		disp_icon(8, 8, leftup, 	xpos,	ypos, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);	
 		
-		disp_null_icon(113, 1, 0, xpos+6,ypos+2,TSTAT8_CH_COLOR, TSTAT8_MENU_COLOR);
+		disp_null_icon(w-10, 1, 0, xpos+6,ypos+2,TSTAT8_CH_COLOR, TSTAT8_MENU_COLOR);
 		
 		disp_null_icon(2, 28, 0, xpos+2,ypos+8,TSTAT8_CH_COLOR, TSTAT8_MENU_COLOR);
 		
 		disp_icon(8, 8, leftdown, 	xpos,	ypos+34, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);	
 		
-		disp_null_icon(113, 1, 0, xpos+6,ypos+39,TSTAT8_CH_COLOR, TSTAT8_MENU_COLOR);
+		disp_null_icon(w-10, 1, 0, xpos+6,ypos+39,TSTAT8_CH_COLOR, TSTAT8_MENU_COLOR);
 
-		disp_icon(8, 8, rightdown, 	xpos+115,	ypos+34, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);	
+		disp_icon(8, 8, rightdown, 	xpos+w-8,	ypos+34, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);	
 		
-		disp_icon(8, 8, rightup, 	xpos+115,	ypos, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);	
+		disp_icon(8, 8, rightup, 	xpos+w-8,	ypos, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);	
 		
 		
-		disp_null_icon(1, 28, 0, xpos+120,ypos+8,TSTAT8_CH_COLOR, TSTAT8_MENU_COLOR);
+		disp_null_icon(1, 28, 0, xpos+w-3,ypos+8,TSTAT8_CH_COLOR, TSTAT8_MENU_COLOR);
 	
-		disp_null_icon(115, 2, 0, xpos+5,ypos+40,TSTAT8_CH_COLOR, TANGLE_COLOR);
-	  disp_null_icon(115, 2, 0, xpos+5,ypos,TSTAT8_CH_COLOR, TANGLE_COLOR);
+		disp_null_icon(w-8, 2, 0, xpos+5,ypos+40,TSTAT8_CH_COLOR, TANGLE_COLOR);
+	  disp_null_icon(w-8, 2, 0, xpos+5,ypos,TSTAT8_CH_COLOR, TANGLE_COLOR);
 	  disp_null_icon(2, 32, 0, xpos,ypos+6,TSTAT8_CH_COLOR, TANGLE_COLOR);
-		disp_null_icon(2, 32, 0, xpos+121,ypos+6,TSTAT8_CH_COLOR, TANGLE_COLOR);
+		disp_null_icon(2, 32, 0, xpos+w-2,ypos+6,TSTAT8_CH_COLOR, TANGLE_COLOR);
 
 }
 
@@ -1806,114 +1851,35 @@ void Top_area_display(uint8 item, int16 value, uint8 unit)
 	switch(item)
 	{
 	case TOP_AREA_DISP_ITEM_TEMPERATURE:
-		if(unit == TOP_AREA_DISP_UNIT_C || unit == TOP_AREA_DISP_UNIT_F || unit == TOP_AREA_DISP_UNIT_RH)
+		/* Whole numbers only, three digits at most. Temperature and humidity
+		 * arrive in tenths and are rounded to units; the other units already
+		 * come through whole. The value is right aligned across the three
+		 * cells with leading zeros blanked, and no decimal point is drawn. */
 		{
-			if(value >=0)
+			uint8 tenths = (unit == TOP_AREA_DISP_UNIT_C || unit == TOP_AREA_DISP_UNIT_F
+					|| unit == TOP_AREA_DISP_UNIT_RH);
+			uint8 neg = 0;
+
+			value_buf = value;
+			if(value_buf < 0)
 			{
-				value_buf = value;
-				disp_str(FORM15X30, 6,  32,  " ",SCH_COLOR,TSTAT8_BACK_COLOR);
-				if(value >= 1000)
-				{
-					value_buf /= 10;
-					if((value_buf >= 100))
-						disp_ch(0,FIRST_CH_POS,THERM_METER_POS,0x30+value_buf/100,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-					else 
-						disp_ch(0,FIRST_CH_POS,THERM_METER_POS,' ',TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-					disp_ch(0,SECOND_CH_POS,THERM_METER_POS,0x30+(value_buf%100)/10,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-					disp_ch(0,THIRD_CH_POS,THERM_METER_POS,0x30+value_buf%10,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);			
-				}
-				if(value<1000 )
-				{
-	//				disp_null_icon(30, 96, 0, THERM_METER_XPOS,THERM_METER_POS,TSTAT8_MENU_COLOR, TSTAT8_MENU_COLOR);
-					//disp_ch(0,0,THERM_METER_POS,' ',TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-					if((value >= 100))
-						disp_ch(0,FIRST_CH_POS,THERM_METER_POS,0x30+value_buf/100,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-					else 
-						disp_ch(0,FIRST_CH_POS,THERM_METER_POS,' ',TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-					disp_ch(0,SECOND_CH_POS,THERM_METER_POS,0x30+(value_buf%100)/10,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-					disp_ch(0,THIRD_CH_POS,THERM_METER_POS,0x30+value_buf%10,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-				}
-				else if(value <100)
-				{
-					disp_ch(0,FIRST_CH_POS,THERM_METER_POS,0x30+value_buf/1000,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-					disp_ch(0,SECOND_CH_POS,THERM_METER_POS,0x30+(value_buf%1000)/100,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-					disp_ch(0,THIRD_CH_POS,THERM_METER_POS,0x30+(value_buf%100)/10,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-					
-				
-				}
+				neg = 1;
+				value_buf = -value_buf;
 			}
-			else//nagtive value
-			{
-				value_buf = -value;
-				disp_str(FORM15X30, 6,  32,  "-",SCH_COLOR,TSTAT8_BACK_COLOR);
-				//disp_null_icon(0, 8, 0, THERM_METER_XPOS+2,53,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
-				if(value_buf >= 100)
-				{
-				//disp_ch(0,0,THERM_METER_POS,'-',TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-				
-				disp_ch(0,FIRST_CH_POS,THERM_METER_POS,0x30+value_buf/100,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-				disp_ch(0,SECOND_CH_POS,THERM_METER_POS,0x30+(value_buf%100)/10,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);	
-				disp_ch(0,THIRD_CH_POS,THERM_METER_POS,0x30+value_buf%10,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-				}
-				else if(value_buf < 100)
-				{
-				//disp_ch(0,0,THERM_METER_POS,' ',TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-				//disp_str(FORM15X30, FIRST_CH_POS,  25,  ' ',SCH_COLOR,TSTAT8_BACK_COLOR);
-				//disp_str(FORM15X30,FIRST_CH_POS,THERM_METER_POS,'-',TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-				disp_ch(0,FIRST_CH_POS,THERM_METER_POS,' ',TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);	
-				disp_ch(0,SECOND_CH_POS,THERM_METER_POS,0x30+(value_buf%100)/10,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);	
-				disp_ch(0,THIRD_CH_POS,THERM_METER_POS,0x30+value_buf%10,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);			
-				}
-			}
-		}
-		else
-		{			
-			if(value > 999) value = 999;
-			disp_str(FORM15X30, 6,  32," ",SCH_COLOR,TSTAT8_BACK_COLOR);
-			if(value >= 100)
-			{
-				disp_ch(0,FIRST_CH_POS,THERM_METER_POS,0x30+value/100,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-				disp_ch(0,SECOND_CH_POS,THERM_METER_POS,0x30+(value%100)/10,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-				disp_ch(0,THIRD_CH_POS-16,THERM_METER_POS,0x30+value%10,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-			}
-			else if(value >= 10)
-			{
-				disp_ch(0,FIRST_CH_POS,THERM_METER_POS,' ',TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-				disp_ch(0,SECOND_CH_POS,THERM_METER_POS,0x30+(value%100)/10,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-				disp_ch(0,THIRD_CH_POS-16,THERM_METER_POS,0x30+value%10,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-			}
-			else if(value >= 0)
-			{
-				disp_ch(0,FIRST_CH_POS,THERM_METER_POS,' ',TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-				disp_ch(0,SECOND_CH_POS,THERM_METER_POS,' ',TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-				disp_ch(0,THIRD_CH_POS-16,THERM_METER_POS,0x30+value%10,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-			}
-			else
-			{
-				value_buf = -value;
-				disp_str(FORM15X30, 6,  32,  "-",SCH_COLOR,TSTAT8_BACK_COLOR);
-				if(value_buf >= 100)
-				{
-				disp_ch(0,FIRST_CH_POS,THERM_METER_POS,0x30+value_buf/100,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-				disp_ch(0,SECOND_CH_POS,THERM_METER_POS,0x30+(value_buf%100)/10,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);	
-				disp_ch(0,THIRD_CH_POS-16,THERM_METER_POS,0x30+value_buf%10,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-				}
-				else if(value_buf >= 10)
-				{
-				//disp_ch(0,0,THERM_METER_POS,' ',TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-				//disp_str(FORM15X30, FIRST_CH_POS,  25,  ' ',SCH_COLOR,TSTAT8_BACK_COLOR);
-				//disp_str(FORM15X30,FIRST_CH_POS,THERM_METER_POS,'-',TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-				disp_ch(0,FIRST_CH_POS,THERM_METER_POS,' ',TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);	
-				disp_ch(0,SECOND_CH_POS,THERM_METER_POS,0x30+(value_buf%100)/10,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);	
-				disp_ch(0,THIRD_CH_POS-16,THERM_METER_POS,0x30+value_buf%10,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);			
-				}
-				else 
-				{
-					disp_ch(0,FIRST_CH_POS,THERM_METER_POS,' ',TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-					disp_ch(0,SECOND_CH_POS,THERM_METER_POS,' ',TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-					disp_ch(0,THIRD_CH_POS-16,THERM_METER_POS,0x30 + value_buf%10,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
-				}
-			}
+			if(tenths)
+				value_buf = (int16)((value_buf + 5) / 10);
+			if(value_buf > 999)
+				value_buf = 999;
+
+			disp_str(FORM15X30, 6, 32, (uint8 *)(neg ? "-" : " "), SCH_COLOR, TSTAT8_BACK_COLOR);
+			disp_ch(0, FIRST_CH_POS, THERM_METER_POS,
+				value_buf >= 100 ? (uint8)(0x30 + value_buf / 100) : ' ',
+				TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+			disp_ch(0, SECOND_CH_POS, THERM_METER_POS,
+				value_buf >= 10 ? (uint8)(0x30 + (value_buf / 10) % 10) : ' ',
+				TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+			disp_ch(0, THIRD_CH_POS, THERM_METER_POS,
+				(uint8)(0x30 + value_buf % 10), TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		break;
 	default:
@@ -1934,7 +1900,7 @@ void Top_area_display(uint8 item, int16 value, uint8 unit)
 			if(value>1000)
 				display_dec(0);
 			else
-				display_dec(1);
+				display_dec(0);
 				disp_str(FORM15X30, UNIT_POS,56,"C",TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
 		}
     else if(unit == TOP_AREA_DISP_UNIT_F)
@@ -1944,12 +1910,12 @@ void Top_area_display(uint8 item, int16 value, uint8 unit)
 			if(value>1000)
 				display_dec(0);
 			else
-				display_dec(1);
+				display_dec(0);
         disp_str(FORM15X30, UNIT_POS, 56, "F", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		else if(unit == TOP_AREA_DISP_UNIT_RH)
 		{
-			display_dec(1);
+			display_dec(0);
       disp_str(FORM15X30, UNIT_POS - 23, 56, "%R", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 		}
 		else if(unit == TOP_AREA_DISP_UNIT_PPM)

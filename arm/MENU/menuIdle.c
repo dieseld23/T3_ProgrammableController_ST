@@ -140,9 +140,9 @@ static void show_page_rows(void)
 		page_index = 0;
 	base = page_var_base();
 
-	disp_str(FORM15X30, SCH_XPOS + 96,  SETPOINT_POS, "     ",SCH_COLOR,TSTAT8_MENU_COLOR2);
-	disp_str(FORM15X30, SCH_XPOS + 96,  FAN_MODE_POS, "     ",SCH_COLOR,TSTAT8_MENU_COLOR2);
-	disp_str(FORM15X30, SCH_XPOS + 96,  SYS_MODE_POS, "     ",SCH_COLOR,TSTAT8_MENU_COLOR2);
+	disp_str(FORM15X30, VALUE_XPOS,  SETPOINT_POS, "    ",SCH_COLOR,TSTAT8_MENU_COLOR2);
+	disp_str(FORM15X30, VALUE_XPOS,  FAN_MODE_POS, "    ",SCH_COLOR,TSTAT8_MENU_COLOR2);
+	disp_str(FORM15X30, VALUE_XPOS,  SYS_MODE_POS, "    ",SCH_COLOR,TSTAT8_MENU_COLOR2);
 
 	load_label(UI_DIS_LINE1, base);
 	load_label(UI_DIS_LINE2, base + 1);
@@ -192,9 +192,9 @@ void MenuIdle_init(void)
 //	fanspeedbuf = fan_speed_user;
 	
 	
-	draw_tangle(102,105);
-	draw_tangle(102,148);
-	draw_tangle(102,191);
+	draw_tangle(VALUE_BOX_XPOS,105,VALUE_BOX_W);
+	draw_tangle(VALUE_BOX_XPOS,148,VALUE_BOX_W);
+	draw_tangle(VALUE_BOX_XPOS,191,VALUE_BOX_W);
 
 	show_page_rows();
 
@@ -294,7 +294,7 @@ void MenuIdle_display(void)
 		//display_mode(vars[0].value / 1000);
 		if(Modbus.disable_tstat10_display == 0)
 		{
-			display_scroll();			
+			display_clock();			
 			display_icon();
 			display_fan();
 		}		
@@ -308,7 +308,7 @@ void MenuIdle_display(void)
 		}
 		else if(Modbus.disable_tstat10_display == 2)
 		{
-			display_scroll();		
+			display_clock();		
 			disp_null_icon(ICON_XDOTS, ICON_YDOTS, 0, FIRST_ICON_POS ,ICON_POS,TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
 			disp_null_icon(ICON_XDOTS, ICON_YDOTS, 0, SECOND_ICON_POS ,ICON_POS,TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
 			disp_null_icon(ICON_XDOTS, ICON_YDOTS, 0, THIRD_ICON_POS ,ICON_POS,TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
