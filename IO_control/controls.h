@@ -96,7 +96,7 @@ S8_T check_external_out_on_line(U8_T index);
 void Check_Send_bip(void);
 void Check_Program_Output_Pri_valid(void);
 void Send_UserList_Broadcast(U8_T start,U8_T end);
-void Check_Remote_Panel_Table();
+void Check_Remote_Panel_Table(void);
 S8_T Get_rmp_index_by_panel(uint8_t panel,uint8_t sub_id,uint8_t * index,uint8_t protocal);
 
 

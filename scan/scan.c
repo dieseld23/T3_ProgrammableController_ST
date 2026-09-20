@@ -864,8 +864,8 @@ void clear_scan_db(void)
 	}
 	for (i = 0;i < MAXREMOTEPOINTS;i++)
 	{
-		flag_rmp_ad[MAXREMOTEPOINTS] = 0;;
-    count_read_rmp_ad[MAXREMOTEPOINTS] = 0;
+		flag_rmp_ad[i] = 0;
+    count_read_rmp_ad[i] = 0;
 	}
 	
 	// clear remote point list

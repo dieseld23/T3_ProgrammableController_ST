@@ -53,7 +53,7 @@ extern "C" {
 void dlenv_maintenance_timer(
     uint16_t elapsed_seconds);
 void register_ftd(long address,int port,int time);
-void dlenv_init();
+void dlenv_init(void);
 void dlenv_bbmd_port_set(
     int port);
 void dlenv_bbmd_address_set(

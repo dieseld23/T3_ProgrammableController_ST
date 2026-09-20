@@ -2679,7 +2679,7 @@ char * itoa( int value, char *string, int radix )
 char* Get_temcovars_string_from_buf(uint8_t number)
 {
 	char type,num;
-	char str[20];
+	static char str[20];
 	if(number == 4)
 	{
 		memset(str,'\0',20);

@@ -829,7 +829,7 @@ unsigned char encode_base64(char * str)
 
 //void test_scram(void);
 static struct uip_conn * debug_Client_Conn = NULL;
-void Ethernet_Debug_Task()
+void Ethernet_Debug_Task(void)
 {
 	uip_ipaddr_t ipaddr;
 	 unsigned char server_ip[4];

@@ -1997,7 +1997,7 @@ uint8 Check_sensor_exist(uint8 type)
 }
 
 uint8_t item_to_adjust;
-typedef enum
+enum
 {
 	D_ADDESS,
 };

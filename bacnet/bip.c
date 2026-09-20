@@ -81,7 +81,7 @@ int bip_send_pdu_client(
     unsigned pdu_len,uint8_t protocal
 	)
 {
-
+	return 0;	// stub: BACnet/IP sending is not used on the WiFi build
 }
 	
 int bip_send_pdu_client_COV(
@@ -91,7 +91,7 @@ int bip_send_pdu_client_COV(
     unsigned pdu_len,uint8_t protocal
 	)
 {
-
+	return 0;	// stub: BACnet/IP sending is not used on the WiFi build
 }
 
 int bip_send_pdu_client_BBMD(
@@ -101,7 +101,7 @@ int bip_send_pdu_client_BBMD(
     unsigned pdu_len,uint8_t protocal
 	)
 {
-
+	return 0;	// stub: BACnet/IP sending is not used on the WiFi build
 }
 #endif
 
