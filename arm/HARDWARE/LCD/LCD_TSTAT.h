@@ -83,11 +83,41 @@
  * x=0..101 for the label: eight 12 dot cells from x=2 end at x=97, clear of it.
  * The glyphs are 24 tall against a 36 tall row, so they drop by 6 to sit level
  * with the value beside them. */
+/* Glyph storage. A pixel is a coverage level of <table>_BPP bits, packed least
+ * significant field first and straight across the row boundaries; disp_ch()
+ * turns the level into a colour through a palette interpolated between dcolor
+ * and bgcolor. The big number carries 4 bits because it is the text the eye
+ * goes to and it is only twelve glyphs; the rest carry 2, which is where
+ * nearly all of the benefit already is.
+ *
+ * Two invariants. Each table's <t>_BYTES must stay w*h*bpp/8, and a renderer
+ * must write exactly cp*pp pixels between LCD_SetPos() calls -- write fewer
+ * and the panel write desyncs, which corrupts the whole screen rather than
+ * one glyph. tools/fontgen.py generates the arrays to match these. */
+#define GLYPH_MAX_LEVELS		16		/* the 4 bpp palette; the widest in use */
+
+#define CHLIB_BPP				4
+#define CHLIB_XDOTS			48
+#define CHLIB_YDOTS			96
+#define CHLIB_BYTES			(CHLIB_XDOTS * CHLIB_YDOTS * CHLIB_BPP / 8)
+
+#define CHSMALL_BPP			2
+#define CHSMALL_XDOTS			24
+#define CHSMALL_YDOTS			36
+#define CHSMALL_BYTES			(CHSMALL_XDOTS * CHSMALL_YDOTS * CHSMALL_BPP / 8)
+
+#define CH16_BPP				2
+#define CH16_XDOTS				16
+#define CH16_YDOTS				24
+#define CH16_BYTES				(CH16_XDOTS * CH16_YDOTS * CH16_BPP / 8)
+
+#define LABEL_CH_BPP			2
+
 #define LABEL_CHARS			8
 #define LABEL_XPOS				2
 #define LABEL_CH_XDOTS			12
 #define LABEL_CH_YDOTS			24
-#define LABEL_CH_BYTES			(LABEL_CH_XDOTS * LABEL_CH_YDOTS / 8)
+#define LABEL_CH_BYTES			(LABEL_CH_XDOTS * LABEL_CH_YDOTS * LABEL_CH_BPP / 8)
 #define LABEL_YOFF				6
 
 #define PAGE_MARK_DIM_COLOR			0x29c9	/* #2E3A48 a page you are not on */

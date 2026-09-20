@@ -19,6 +19,32 @@ import lcddata as L
 
 W, H = 240, 320
 
+# Must match fontgen.TABLES. Kept here rather than imported so that a
+# disagreement between the two shows up as a mangled render instead of being
+# silently shared.
+DIMS = {'chlibsmall': (24, 36), 'chlib': (48, 96),
+        'char_16_24': (16, 24), 'char_12_24': (12, 24)}
+BPP = {'chlibsmall': 2, 'chlib': 4, 'char_16_24': 2, 'char_12_24': 2}
+
+
+def glyph_bytes(name):
+    w, h = DIMS[name]
+    return w * h * BPP[name] // 8
+
+
+def blend565(bg, fg, level, top):
+    """The palette entry for a coverage level, in the same 5/6/5 integer steps
+    the C renderer uses, so the two cannot drift apart."""
+    if level <= 0:
+        return bg
+    if level >= top:
+        return fg
+    br, bn, bb = (bg >> 11) & 0x1f, (bg >> 5) & 0x3f, bg & 0x1f
+    fr, fn, fb = (fg >> 11) & 0x1f, (fg >> 5) & 0x3f, fg & 0x1f
+    return (((br + (fr - br) * level // top) << 11)
+            | ((bn + (fn - bn) * level // top) << 5)
+            | (bb + (fb - bb) * level // top))
+
 
 class Screen:
     def __init__(self):
@@ -53,34 +79,40 @@ class Screen:
         for j in range(min(cp * pp, len(data))):
             self.put(x + j % cp, y + j // cp, data[j])
 
-    def _glyph(self, table, nbytes, w, h, index, x, y, fg, bg):
-        base = index * nbytes
-        for j in range(nbytes):
+    def _glyph(self, name, index, x, y, fg, bg):
+        """Pixels are packed least significant field first, BPP bits each,
+        straight across the row boundaries -- the same order disp_ch() unpacks."""
+        w, h = DIMS[name]
+        bpp = BPP[name]
+        table, nb = self.fonts[name], glyph_bytes(name)
+        per, mask = 8 // bpp, (1 << bpp) - 1
+        base = index * nb
+        for j in range(nb):
             b = table[base + j]
-            for i in range(8):
-                idx = j * 8 + i
-                self.put(x + idx % w, y + idx // w, fg if (b >> i) & 1 else bg)
+            for i in range(per):
+                idx = j * per + i
+                self.put(x + idx % w, y + idx // w,
+                         blend565(bg, fg, (b >> (i * bpp)) & mask, mask))
 
     def ch(self, form, x, y, c, fg, bg):
         if form == 0:
             idx = 10 if c == '-' else 11 if c == ' ' else ord(c) - 48
-            self._glyph(self.fonts['chlib'], 576, 48, 96, idx, x, y, fg, bg)
+            self._glyph('chlib', idx, x, y, fg, bg)
         else:
-            self._glyph(self.fonts['chlibsmall'], 108, 24, 36, ord(c) - 32, x, y, fg, bg)
+            self._glyph('chlibsmall', ord(c) - 32, x, y, fg, bg)
 
     def text(self, form, x, y, s, fg, bg):
         for n, c in enumerate(s):
             self.ch(form, x + n * (31 if form == 0 else 23), y, c, fg, bg)
 
     def label(self, x, y, s, fg, bg):
-        k = self.k
+        adv = DIMS['char_12_24'][0]
         for n, c in enumerate(s):
-            self._glyph(self.fonts['char_12_24'], k['LABEL_CH_BYTES'], k['LABEL_CH_XDOTS'],
-                        k['LABEL_CH_YDOTS'], ord(c) - 32, x + n * k['LABEL_CH_XDOTS'], y, fg, bg)
+            self._glyph('char_12_24', ord(c) - 32, x + n * adv, y, fg, bg)
 
     def text_16_24(self, x, y, s, fg, bg):
         for n, c in enumerate(s):
-            self._glyph(self.fonts['char_16_24'], 48, 16, 24, ord(c) - 32, x + n * 16, y, fg, bg)
+            self._glyph('char_16_24', ord(c) - 32, x + n * 16, y, fg, bg)
 
     def tangle(self, x, y):
         k = self.k
