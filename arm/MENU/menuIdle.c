@@ -8,7 +8,7 @@
 char UI_DIS_LINE1[LABEL_CHARS + 1]; //Corresponds to the old setpoint, fan and sys
 char UI_DIS_LINE2[LABEL_CHARS + 1];
 char UI_DIS_LINE3[LABEL_CHARS + 1];
-char UI_DIS_TOP[9];
+char UI_DIS_TOP[10];
 
 static uint8 display_around_time_ctr = NODES_POLL_PERIOD;
 static uint8 disp_index = 0;
@@ -33,6 +33,9 @@ extern uint16_t count_suspend_mstp;
  * Pages past the last VAR that carries a label are left out, so a panel that
  * labels VAR1-VAR6 gets two pages rather than eight.
  */
+/* a point_type no drawing branch matches, so nothing is drawn */
+#define TOP_AREA_NO_POINT	0xff
+
 #define IDLE_PAGE_ROWS		3
 static uint8 page_index = 0;
 
@@ -70,6 +73,38 @@ static void load_label(char *dst, uint8 num)
 	dst[LABEL_CHARS] = 0;
 }
 
+/* The top area shows one configured point. npoint.number is 1-based and comes
+ * from T3000, so 0 underflows to 255, and nothing range checks it against the
+ * table it indexes; point_type is unchecked too and can hold any of the
+ * MAX_POINT_TYPE kinds rather than the three drawn here. Flash supplies a sane
+ * default only when it reads back erased, so a bad pair written over Modbus
+ * arrives here untouched.
+ *
+ * An unusable pair selects no point at all: the type becomes one that none of
+ * the drawing branches match, so the top area stays blank, and the index is
+ * pinned to 0 so that anything reading it anyway stays inside the table. Blank
+ * is the honest thing to show for a point that is not there. */
+static void load_top_area_point(uint8 *type, uint8 *num)
+{
+	uint8 t = Setting_Info.reg.display_lcd.lcd_mod_reg.npoint.point_type;
+	uint8 n = (uint8)(Setting_Info.reg.display_lcd.lcd_mod_reg.npoint.number - 1);
+	uint8 ok = (t == IN && n < MAX_INS)
+			|| (t == OUT && n < MAX_OUTS)
+			|| (t == VAR && n < MAX_VARS);
+
+	*type = ok ? t : TOP_AREA_NO_POINT;
+	*num = ok ? n : 0;
+}
+
+/* label[] is nine bytes and need not carry a NUL, so copying all nine into
+ * UI_DIS_TOP and handing it to disp_str_16_24() ran off the end of the buffer
+ * until it happened to meet a zero. */
+static void load_top_label(const void *label)
+{
+	memcpy(UI_DIS_TOP, label, 9);
+	UI_DIS_TOP[9] = 0;
+}
+
 /* Pages to offer: page 0 always, then every page up to the last labelled VAR. */
 static uint8 idle_page_count(void)
 {
@@ -105,9 +140,9 @@ static void show_page_rows(void)
 		page_index = 0;
 	base = page_var_base();
 
-	disp_str(FORM15X30, SCH_XPOS + 96,  SETPOINT_POS, "     ",SCH_COLOR,TSTAT8_MENU_COLOR2);
-	disp_str(FORM15X30, SCH_XPOS + 96,  FAN_MODE_POS, "     ",SCH_COLOR,TSTAT8_MENU_COLOR2);
-	disp_str(FORM15X30, SCH_XPOS + 96,  SYS_MODE_POS, "     ",SCH_COLOR,TSTAT8_MENU_COLOR2);
+	disp_str(FORM15X30, VALUE_XPOS,  SETPOINT_POS + VALUE_YOFF, "    ",SCH_COLOR,TSTAT8_MENU_COLOR2);
+	disp_str(FORM15X30, VALUE_XPOS,  FAN_MODE_POS + VALUE_YOFF, "    ",SCH_COLOR,TSTAT8_MENU_COLOR2);
+	disp_str(FORM15X30, VALUE_XPOS,  SYS_MODE_POS + VALUE_YOFF, "    ",SCH_COLOR,TSTAT8_MENU_COLOR2);
 
 	load_label(UI_DIS_LINE1, base);
 	load_label(UI_DIS_LINE2, base + 1);
@@ -118,6 +153,7 @@ static void show_page_rows(void)
 	disp_str_12_24(LABEL_XPOS, SYS_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE3, SCH_COLOR, TSTAT8_BACK_COLOR);
 
 	display_page_marks(page_index, pages);
+	display_top_rh(page_index);
 }
 
 void MenuIdle_init(void)
@@ -132,10 +168,9 @@ void MenuIdle_init(void)
   digital_top_area_num = 0;
 	digital_top_area_changed = 0;
 
-	digital_top_area_type = Setting_Info.reg.display_lcd.lcd_mod_reg.npoint.point_type;
-	digital_top_area_num = Setting_Info.reg.display_lcd.lcd_mod_reg.npoint.number - 1;	
+	load_top_area_point(&digital_top_area_type, &digital_top_area_num);
 						
-	memset(UI_DIS_TOP,0,9);
+	memset(UI_DIS_TOP,0,sizeof(UI_DIS_TOP));
 	digital_top_area_changed = 0;
 	
 	disp_str(FORM15X30, SCH_XPOS,  0, "              ",SCH_COLOR,TSTAT8_BACK_COLOR);					
@@ -145,12 +180,12 @@ void MenuIdle_init(void)
 	
 	if(digital_top_area_type == IN)
 	{
-		memcpy(UI_DIS_TOP, inputs[digital_top_area_num].label, 9);		
+		load_top_label(inputs[digital_top_area_num].label);		
 	}
 	else if(digital_top_area_type == OUT)
-		memcpy(UI_DIS_TOP, outputs[digital_top_area_num].label, 9);
+		load_top_label(outputs[digital_top_area_num].label);
 	else if(digital_top_area_type == VAR)
-		memcpy(UI_DIS_TOP, vars[digital_top_area_num].label, 9);		
+		load_top_label(vars[digital_top_area_num].label);		
 
 	disp_null_icon(240, 36, 0, 0,TIME_POS,TSTAT8_CH_COLOR, TSTAT8_MENU_COLOR2);
 	
@@ -158,9 +193,9 @@ void MenuIdle_init(void)
 //	fanspeedbuf = fan_speed_user;
 	
 	
-	draw_tangle(102,105);
-	draw_tangle(102,148);
-	draw_tangle(102,191);
+	draw_tangle(VALUE_BOX_XPOS, SETPOINT_POS - VALUE_BOX_YOFF, VALUE_BOX_W);
+	draw_tangle(VALUE_BOX_XPOS, FAN_MODE_POS - VALUE_BOX_YOFF, VALUE_BOX_W);
+	draw_tangle(VALUE_BOX_XPOS, SYS_MODE_POS - VALUE_BOX_YOFF, VALUE_BOX_W);
 
 	show_page_rows();
 
@@ -260,25 +295,22 @@ void MenuIdle_display(void)
 		//display_mode(vars[0].value / 1000);
 		if(Modbus.disable_tstat10_display == 0)
 		{
-			display_scroll();			
+			display_clock();			
 			display_icon();
-			display_fan();
 		}		
 		else if(Modbus.disable_tstat10_display == 1)
 		{
 			disp_str(FORM15X30, 0,TIME_POS,"            ",TSTAT8_CH_COLOR,TSTAT8_MENU_COLOR2); 
-			disp_null_icon(ICON_XDOTS, ICON_YDOTS, 0, FIRST_ICON_POS ,ICON_POS,TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
-			disp_null_icon(ICON_XDOTS, ICON_YDOTS, 0, SECOND_ICON_POS ,ICON_POS,TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
-			disp_null_icon(ICON_XDOTS, ICON_YDOTS, 0, THIRD_ICON_POS ,ICON_POS,TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
-			disp_null_icon(ICON_XDOTS, ICON_YDOTS, 0, FOURTH_ICON_POS ,ICON_POS,TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
+			disp_null_icon(ICON3_XDOTS, ICON3_YDOTS, 0, ICON3_FAN_POS, ICON_POS, TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
+			disp_null_icon(ICON3_XDOTS, ICON3_YDOTS, 0, ICON3_MODE_POS, ICON_POS, TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
+			disp_null_icon(ICON3_XDOTS, ICON3_YDOTS, 0, ICON3_WALL_POS, ICON_POS, TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
 		}
 		else if(Modbus.disable_tstat10_display == 2)
 		{
-			display_scroll();		
-			disp_null_icon(ICON_XDOTS, ICON_YDOTS, 0, FIRST_ICON_POS ,ICON_POS,TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
-			disp_null_icon(ICON_XDOTS, ICON_YDOTS, 0, SECOND_ICON_POS ,ICON_POS,TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
-			disp_null_icon(ICON_XDOTS, ICON_YDOTS, 0, THIRD_ICON_POS ,ICON_POS,TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
-			disp_null_icon(ICON_XDOTS, ICON_YDOTS, 0, FOURTH_ICON_POS ,ICON_POS,TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
+			display_clock();		
+			disp_null_icon(ICON3_XDOTS, ICON3_YDOTS, 0, ICON3_FAN_POS, ICON_POS, TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
+			disp_null_icon(ICON3_XDOTS, ICON3_YDOTS, 0, ICON3_MODE_POS, ICON_POS, TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
+			disp_null_icon(ICON3_XDOTS, ICON3_YDOTS, 0, ICON3_WALL_POS, ICON_POS, TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
 		}
 
 //		if(Setting_Info.reg.display_lcd.lcddisplay[0] == 0)
@@ -311,23 +343,16 @@ void MenuIdle_display(void)
 			char type,num;
 			//if(Setting_Info.reg.display_lcd.lcddisplay[0] == 1) // modbus
 			{				
-				if(digital_top_area_type != Setting_Info.reg.display_lcd.lcd_mod_reg.npoint.point_type)
 				{
-					digital_top_area_type = Setting_Info.reg.display_lcd.lcd_mod_reg.npoint.point_type;
-					digital_top_area_changed = 1;
-//					disp_str(FORM15X30, SCH_XPOS,  0, "              ",SCH_COLOR,TSTAT8_BACK_COLOR);					
-//					disp_str(FORM15X30, SCH_XPOS,  IDLE_LINE2_POS, "            ",SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-//					disp_str(FORM15X30, SCH_XPOS,  CH_HEIGHT, "              ",SCH_COLOR,TSTAT8_BACK_COLOR);
-//					disp_str(FORM15X30, SCH_XPOS,  CH_HEIGHT * 2 - 7, "              ",SCH_COLOR,TSTAT8_BACK_COLOR);
-				}
-				if(digital_top_area_num != Setting_Info.reg.display_lcd.lcd_mod_reg.npoint.number - 1)
-				{
-					digital_top_area_num = Setting_Info.reg.display_lcd.lcd_mod_reg.npoint.number - 1;
-					digital_top_area_changed = 1;
-//					disp_str(FORM15X30, SCH_XPOS,  0, "              ",SCH_COLOR,TSTAT8_BACK_COLOR);					
-//					disp_str(FORM15X30, SCH_XPOS,  IDLE_LINE2_POS, "            ",SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-//					disp_str(FORM15X30, SCH_XPOS,  CH_HEIGHT, "              ",SCH_COLOR,TSTAT8_BACK_COLOR);
-//					disp_str(FORM15X30, SCH_XPOS,  CH_HEIGHT * 2 - 7, "              ",SCH_COLOR,TSTAT8_BACK_COLOR);
+					uint8 new_type, new_num;
+
+					load_top_area_point(&new_type, &new_num);
+					if(digital_top_area_type != new_type || digital_top_area_num != new_num)
+					{
+						digital_top_area_type = new_type;
+						digital_top_area_num = new_num;
+						digital_top_area_changed = 1;
+					}
 				}
 			
 				type = digital_top_area_type;
@@ -362,7 +387,7 @@ void MenuIdle_display(void)
 					else
 					{			
 						flag_digital_top_area = 1;						
-						memcpy(UI_DIS_TOP, inputs[digital_top_area_num].label, 9);
+						load_top_label(inputs[digital_top_area_num].label);
 						disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
 						
 						
@@ -426,7 +451,7 @@ void MenuIdle_display(void)
 					{
 						flag_digital_top_area = 1;
 
-						memcpy(UI_DIS_TOP, outputs[digital_top_area_num].label, 9);
+						load_top_label(outputs[digital_top_area_num].label);
 						disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
 						if(outputs[num].control)
 						{
@@ -505,7 +530,7 @@ void MenuIdle_display(void)
 					{
 						flag_digital_top_area = 1;						
 						
-						memcpy(UI_DIS_TOP, vars[digital_top_area_num].label, 9);
+						load_top_label(vars[digital_top_area_num].label);
 						disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
 						
 						if(vars[num].control)
@@ -630,20 +655,20 @@ void MenuIdle_display(void)
 			if(SSID_Info.IP_Wifi_Status == WIFI_NORMAL)//Show the wifi status in the top right of the screen
 			{
 				if(SSID_Info.rssi < 70)		
-					disp_icon(26, 26, wifi_4, 210,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+					disp_icon(WIFI_XDOTS, WIFI_YDOTS, wifi_4, WIFI_XPOS,	WIFI_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 				else if(SSID_Info.rssi < 80)							
-					disp_icon(26, 26, wifi_3, 210,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+					disp_icon(WIFI_XDOTS, WIFI_YDOTS, wifi_3, WIFI_XPOS,	WIFI_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 				else if(SSID_Info.rssi < 90)							
-					disp_icon(26, 26, wifi_2, 210,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+					disp_icon(WIFI_XDOTS, WIFI_YDOTS, wifi_2, WIFI_XPOS,	WIFI_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 				else							
-					disp_icon(26, 26, wifi_1, 210,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+					disp_icon(WIFI_XDOTS, WIFI_YDOTS, wifi_1, WIFI_XPOS,	WIFI_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 			}
 			else	if((SSID_Info.IP_Wifi_Status == WIFI_NO_CONNECT)
 				|| (SSID_Info.IP_Wifi_Status == WIFI_SSID_FAIL))
-					disp_icon(26, 26, wifi_0, 210,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+					disp_icon(WIFI_XDOTS, WIFI_YDOTS, wifi_0, WIFI_XPOS,	WIFI_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 				// if WIFI_NONE, do not show wifi flag
 			else //if((SSID_Info.IP_Wifi_Status == WIFI_NO_WIFI)
-				disp_icon(26, 26, wifi_none, 210,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+				disp_icon(WIFI_XDOTS, WIFI_YDOTS, wifi_none, WIFI_XPOS,	WIFI_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 			
 						
 			// show TX,RX
@@ -651,14 +676,14 @@ void MenuIdle_display(void)
 			if(flagLED_uart0_tx > 0)
 			{
 				if(count_tx++ % 2 == 0)
-					disp_icon(13, 26, cmnct_send, 	0,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+					disp_icon(LINK_XDOTS, LINK_YDOTS, cmnct_send, 	LINK_TX_XPOS,	LINK_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 				else
-					disp_null_icon(13, 26, 0, 0,0,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+					disp_null_icon(LINK_XDOTS, LINK_YDOTS, 0, LINK_TX_XPOS,LINK_YPOS,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 			}
 			else
 			{
 				count_tx = 0;
-				disp_null_icon(13, 26, 0, 0,0,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);//(26, 26, cmnct_icon, 	0,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+				disp_null_icon(LINK_XDOTS, LINK_YDOTS, 0, LINK_TX_XPOS,LINK_YPOS,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);//(26, 26, cmnct_icon, 	0,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 			}
 			
 			if(flagLED_uart0_rx > 0)
@@ -667,14 +692,14 @@ void MenuIdle_display(void)
 				if(count_tx % 2 == 1)
 					count_rx = 0;
 				if(count_rx++ % 2 == 1)
-					disp_icon(13, 26, cmnct_rcv, 	13,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+					disp_icon(LINK_XDOTS, LINK_YDOTS, cmnct_rcv, 	LINK_RX_XPOS,	LINK_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 				else
-					disp_null_icon(13, 26, 0, 13,0,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+					disp_null_icon(LINK_XDOTS, LINK_YDOTS, 0, LINK_RX_XPOS,LINK_YPOS,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 			}
 			else
 			{
 				count_rx = 0;
-				disp_null_icon(13, 26, 0, 13,0,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);//(26, 26, cmnct_icon, 	0,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+				disp_null_icon(LINK_XDOTS, LINK_YDOTS, 0, LINK_RX_XPOS,LINK_YPOS,TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);//(26, 26, cmnct_icon, 	0,	0, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 			}
 			
 			if(flagLED_uart0_tx > 0)

@@ -4,27 +4,37 @@
     python tools/fontgen.py --write
     python tools/fontgen.py --font C:/Windows/Fonts/lucon.ttf --write
 
-disp_ch() and disp_ch_16_24() store a glyph as a 1-bit bitmap, row major, eight
-pixels per byte, least significant bit first, packed straight across the row
-boundaries.  Three tables use that layout:
+A glyph is stored row major, packed across row boundaries, least significant
+bit first.  Each pixel is a coverage level of `bpp` bits, so 1 bpp is the
+original ink/no-ink bitmap and anything above that is antialiased: the renderer
+turns the level into a colour through a palette interpolated between dcolor and
+bgcolor.  Four tables:
 
-    chlibsmall   24x36, 108 bytes/glyph, ASCII 32..126   the three value rows
-    chlib        48x96, 576 bytes/glyph, '0'..'9','-',' '  the big top number
-    char_16_24   16x24,  48 bytes/glyph, ASCII 32..122   the top-area label
-    char_12_24   12x24,  36 bytes/glyph, ASCII 32..126   the three row labels
+    chlibsmall   24x36, 2 bpp, ASCII 32..126        the three value rows
+    chlib        48x96, 4 bpp, '0'..'9','-',' '     the big top number
+    char_16_24   16x24, 2 bpp, ASCII 32..122        the top-area label
+    char_12_24   12x24, 2 bpp, ASCII 32..126        the three row labels
 
-char_12_24 is the odd one out: it is condensed rather than drawn at its natural
-width, because the row label has to fit between the screen edge and the value
-box at x=102.  Eight characters is the whole of Str_variable_point.label, and 12
-pixels is both the widest cell that fits eight of them and the narrowest that
-stays legible, so there is no choice to make about the number.
+The big number carries 4 bpp because it is the text the eye goes to and it is
+only twelve glyphs; the rest carry 2 bpp, where nearly all of the benefit is.
+Going from 1 bpp to 2 removes the staircase, and 2 to 4 only refines an edge
+that already reads as smooth, so the extra bits are not worth 3x the flash
+everywhere.
 
-Before anything is generated the packer is run over the shipped arrays and the
-result compared byte for byte, so a mistake in the bit order cannot reach the
-device.
+Two checks run before anything is generated:
 
-Three things fix the glyph box, all of them from the firmware rather than from
-the font:
+  * the 1 bpp packer is re-run over the arrays as they were committed and
+    compared byte for byte.  Those arrays were consumed correctly by the
+    shipped renderer, so this is an independent check of the packing machinery
+    rather than the packer agreeing with itself.
+  * every table currently in the source is unpacked and repacked at its
+    declared depth.
+
+Neither proves the multi-bit field order matches what the C renderers extract.
+That is checked by rendering: tools/screenshot.py unpacks with the same
+convention, so a disagreement shows up as visibly mangled text.
+
+Three things fix the glyph box, all from the firmware rather than the font:
 
   * disp_str() advances 23 pixels but the cell is 24 wide, so the last column of
     every glyph is painted over by its neighbour.  Ink is kept inside columns
@@ -32,73 +42,101 @@ the font:
   * the cell has no margin: anything drawn outside it is simply lost, so the
     whole character set has to fit between the cap line and the bottom row.
   * the cap height and cap top row are pinned to what the face that shipped
-    used, so the new one lands in the same place on the screen rather than
-    floating up or down inside the frames.
-
-A monospace face needs the least horizontal squeezing here: the cell is 24x36,
-close to the aspect ratio such a face is drawn at.  At cap 24 Consolas Bold needs
-no condensing at all, where Arial Narrow Bold needs 0.75 and Segoe UI Semibold
-0.62.
+    used, so the new one lands in the same place on the screen.
 """
 import argparse
-import re
+import subprocess
 
 from PIL import Image, ImageDraw, ImageFont
 
 import lcddata as L
 
 SS = 4            # glyphs are rendered this many times oversize, then scaled down
-THRESHOLD = 110   # coverage, 0..255, at which a scaled-down pixel turns on
+THRESHOLD = 110   # coverage, 0..255, at which a 1 bpp pixel turns on
 
 ASCII = [chr(c) for c in range(32, 127)]
 DIGITS = list('0123456789') + ['-', ' ']
 
-# name -> (w, h, bytes/glyph, chars, ink columns, cap height, cap top row)
+# name -> (w, h, chars, ink columns, cap height, cap top row, bits per pixel)
 TABLES = {
-    'chlibsmall': (24, 36, 108, ASCII,  22, 24, 4),
-    'chlib':      (48, 96, 576, DIGITS, 46, 74, 9),
-    'char_16_24': (16, 24,  48, [chr(c) for c in range(32, 123)], 14, 17, 4),
-    'char_12_24': (12, 24,  36, ASCII, 10, 17, 4),
+    'chlibsmall': (24, 36, ASCII,  22, 24, 4, 2),
+    'chlib':      (48, 96, DIGITS, 46, 74, 9, 4),
+    'char_16_24': (16, 24, [chr(c) for c in range(32, 123)], 14, 17, 4, 2),
+    'char_12_24': (12, 24, ASCII,  10, 17, 4, 2),
 }
-KIND = {'chlibsmall': 'uint8', 'chlib': 'unsigned char', 'char_16_24': 'uint8',
-        'char_12_24': 'uint8'}
 
 
-def decode(data, w, h, nbytes, index):
-    g = data[index * nbytes:(index + 1) * nbytes]
-    bits = []
+def geom(name):
+    w, h, chars, ink_w, cap, cap_top, bpp = TABLES[name]
+    return w, h, chars, ink_w, cap, cap_top, bpp
+
+
+def nbytes(name, bpp=None):
+    """Bytes per glyph. The cell always divides evenly at 1, 2 and 4 bpp."""
+    w, h, _, _, _, _, declared = geom(name)
+    bpp = declared if bpp is None else bpp
+    bits = w * h * bpp
+    assert bits % 8 == 0, name
+    return bits // 8
+
+
+def decode(data, w, h, nb, index, bpp):
+    g = data[index * nb:(index + 1) * nb]
+    per, mask = 8 // bpp, (1 << bpp) - 1
+    px = []
     for b in g:
-        for i in range(8):
-            bits.append((b >> i) & 1)
-    return [[bits[y * w + x] for x in range(w)] for y in range(h)]
+        for k in range(per):
+            px.append((b >> (k * bpp)) & mask)
+    return [[px[y * w + x] for x in range(w)] for y in range(h)]
 
 
-def encode(rows, w, h, nbytes):
-    bits = [rows[y][x] for y in range(h) for x in range(w)]
+def encode(rows, w, h, nb, bpp):
+    per, mask = 8 // bpp, (1 << bpp) - 1
+    px = [rows[y][x] for y in range(h) for x in range(w)]
     out = bytearray()
-    for j in range(nbytes):
+    for j in range(nb):
         b = 0
-        for i in range(8):
-            if bits[j * 8 + i]:
-                b |= 1 << i
+        for k in range(per):
+            b |= (px[j * per + k] & mask) << (k * bpp)
         out.append(b)
     return bytes(out)
 
 
-def check_roundtrip(src, sym):
-    for name, (w, h, nb, chars, _, _, _) in TABLES.items():
+def roundtrip(vals, name, bpp, label):
+    """Unpack and repack every glyph, comparing byte for byte."""
+    w, h, chars = geom(name)[0], geom(name)[1], geom(name)[2]
+    nb = nbytes(name, bpp)
+    want = len(chars) * nb
+    if len(vals) != want:
+        return '%d bytes, not the %d that %d bpp needs' % (len(vals), want, bpp)
+    for i in range(len(chars)):
+        got = encode(decode(vals, w, h, nb, i, bpp), w, h, nb, bpp)
+        if got != bytes(vals[i * nb:(i + 1) * nb]):
+            return 'glyph %d does not round trip' % i
+    print('  %-12s %-9s %3d glyphs, %6d bytes at %d bpp  round trips exactly'
+          % (name, label, len(chars), len(vals), bpp))
+    return None
+
+
+def committed_source(rev):
+    out = subprocess.check_output(['git', 'show', '%s:%s' % (rev, L.SRC)])
+    return out.decode('utf-8', 'surrogateescape')
+
+
+def check_committed_1bpp(sym, rev):
+    """The independent check: the shipped renderer consumed these arrays."""
+    try:
+        src = committed_source(rev)
+    except Exception as exc:
+        print('  could not read %s from %s (%s), skipping' % (L.SRC, rev, exc))
+        return
+    for name in TABLES:
         span, vals = L.array(src, name, 'uint8', sym)
         if span is None:
-            print('  %-12s not in the source yet, it will be added' % name)
             continue
-        want = len(chars) * nb
-        if len(vals) != want:
-            raise SystemExit('%s: %d bytes, expected %d' % (name, len(vals), want))
-        for i in range(len(chars)):
-            if encode(decode(vals, w, h, nb, i), w, h, nb) != bytes(vals[i * nb:(i + 1) * nb]):
-                raise SystemExit('%s: glyph %d does not round trip' % (name, i))
-        print('  %-12s %3d glyphs, %5d bytes  round trips exactly'
-              % (name, len(chars), len(vals)))
+        err = roundtrip(vals, name, 1, '@' + rev)
+        if err and 'bytes, not the' not in err:
+            raise SystemExit('%s at %s: %s' % (name, rev, err))
 
 
 def size_for_cap(path, cap):
@@ -112,7 +150,9 @@ def size_for_cap(path, cap):
 
 
 def build_table(path, name):
-    w, h, nb, chars, ink_w, cap, cap_top = TABLES[name]
+    w, h, chars, ink_w, cap, cap_top, bpp = geom(name)
+    nb = nbytes(name)
+    top = (1 << bpp) - 1
     sz, ft = size_for_cap(path, cap)
 
     inked = [c for c in chars if c != ' ']
@@ -131,25 +171,34 @@ def build_table(path, name):
             if condense < 0.999:
                 big = big.resize((int(big.width * condense), big.height), Image.LANCZOS)
         small = big.resize((max(1, big.width // SS), h), Image.LANCZOS)
-        cell = [[1 if (x < small.width and small.getpixel((x, y)) >= THRESHOLD) else 0
-                 for x in range(w)] for y in range(h)]
+
+        cell = []
+        for y in range(h):
+            row = []
+            for x in range(w):
+                v = small.getpixel((x, y)) if x < small.width else 0
+                if bpp == 1:
+                    row.append(top if v >= THRESHOLD else 0)
+                else:
+                    row.append(int(round(v / 255.0 * top)))
+            cell.append(row)
         # column 0 stays clear, and so does everything the next glyph paints over
         lost = 0
         for row in cell:
-            lost += row[0]
+            lost += 1 if row[0] else 0
             row[0] = 0
             for x in range(ink_w + 1, w):
-                lost += row[x]
+                lost += 1 if row[x] else 0
                 row[x] = 0
         if lost:
             clipped.append((ch, lost))
-        data += encode(cell, w, h, nb)
+        data += encode(cell, w, h, nb, bpp)
 
     blob = bytes(data)
-    rows8 = decode(blob, w, h, nb, chars.index('8'))
+    rows8 = decode(blob, w, h, nb, chars.index('8'), bpp)
     used = [y for y in range(h) if any(rows8[y])]
-    print("  %-12s %-16s size %-4d condense %.2f  '8' rows %d..%d (cap %d)"
-          % (name, path.split('/')[-1], sz // SS, condense, used[0], used[-1],
+    print("  %-12s %-16s %d bpp  size %-4d condense %.2f  '8' rows %d..%d (cap %d)"
+          % (name, path.split('/')[-1], bpp, sz // SS, condense, used[0], used[-1],
              used[-1] - used[0] + 1))
     if clipped:
         worst = sorted(clipped, key=lambda t: -t[1])[:6]
@@ -161,19 +210,33 @@ def build_table(path, name):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--font', default='C:/Windows/Fonts/consolab.ttf')
+    ap.add_argument('--rev', default='HEAD', help='revision holding the 1 bpp arrays')
     ap.add_argument('--write', action='store_true')
     args = ap.parse_args()
 
     src = L.read(L.SRC)
     sym = L.defines()
-    print('packer check against the shipped arrays:')
-    check_roundtrip(src, sym)
+
+    print('1 bpp packer against the arrays as committed at %s:' % args.rev)
+    check_committed_1bpp(sym, args.rev)
+
+    print('tables in the working source, at their declared depth:')
+    for name in TABLES:
+        span, vals = L.array(src, name, 'uint8', sym)
+        if span is None:
+            print('  %-12s not in the source yet, it will be added' % name)
+            continue
+        err = roundtrip(vals, name, geom(name)[6], 'on disk')
+        if err:
+            print('  %-12s %s -- it will be replaced' % (name, err))
 
     print('generating from %s:' % args.font)
     built = {n: build_table(args.font, n) for n in TABLES}
+    total = 0
     for name, blob in built.items():
-        w, h, nb, chars, _, _, _ = TABLES[name]
-        assert len(blob) == nb * len(chars), name
+        assert len(blob) == nbytes(name) * len(geom(name)[2]), name
+        total += len(blob)
+    print('  %d bytes of glyph data in total' % total)
 
     if not args.write:
         print('\npreview only; pass --write to replace the arrays')
@@ -195,7 +258,7 @@ def main():
     for name, blob in built.items():
         _, vals = L.array(after, name, 'uint8', sym)
         assert bytes(vals) == blob, name + ' did not read back'
-    print('\nrewrote %s, all three arrays read back identical' % L.SRC)
+    print('\nrewrote %s, all four arrays read back identical' % L.SRC)
 
 
 if __name__ == '__main__':

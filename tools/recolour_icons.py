@@ -28,7 +28,8 @@ import argparse
 import lcddata as L
 
 # the screen colours the icons were drawn against; 0x8618 is the TX/RX pair's own
-OLD_BACKGROUNDS = (0x7E19, 0x7E17, 0x8618)
+OLD_BACKGROUNDS = (0x7E19, 0x7E17, 0x8618,   # what the icons shipped with
+                   0x08a4)                   # this fork, before the darkening
 
 
 def recolour(vals, newbg):

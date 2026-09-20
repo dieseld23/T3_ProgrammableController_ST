@@ -19,6 +19,79 @@ import lcddata as L
 
 W, H = 240, 320
 
+# Must match fontgen.TABLES. Kept here rather than imported so that a
+# disagreement between the two shows up as a mangled render instead of being
+# silently shared.
+DIMS = {'chlibsmall': (24, 36), 'chlib': (48, 96),
+        'char_16_24': (16, 24), 'char_12_24': (12, 24)}
+BPP = {'chlibsmall': 2, 'chlib': 4, 'char_16_24': 2, 'char_12_24': 2}
+
+
+def glyph_bytes(name):
+    w, h = DIMS[name]
+    return w * h * BPP[name] // 8
+
+
+def blend565(bg, fg, level, top):
+    """The palette entry for a coverage level, in the same 5/6/5 integer steps
+    the C renderer uses, so the two cannot drift apart."""
+    if level <= 0:
+        return bg
+    if level >= top:
+        return fg
+    br, bn, bb = (bg >> 11) & 0x1f, (bg >> 5) & 0x3f, bg & 0x1f
+    fr, fn, fb = (fg >> 11) & 0x1f, (fg >> 5) & 0x3f, fg & 0x1f
+    return (((br + (fr - br) * level // top) << 11)
+            | ((bn + (fn - bn) * level // top) << 5)
+            | (bb + (fb - bb) * level // top))
+
+
+def format_value(v, chars):
+    """Mirror of format_value() in ER-TFT024-3_4-Wire_SPI.c: pick the decimal
+    places from what fits in `chars` cells, then measure, because rounding can
+    carry into a new digit."""
+    v = min(9999.0, max(-999.0, float(v)))
+    room = chars - (1 if v < 0 else 0)
+    whole, digits = int(abs(v)), 1
+    while whole >= 10:
+        whole //= 10
+        digits += 1
+    places = min(2, room - digits - 1)
+    while places > 0:
+        out = '%.*f' % (places, v)
+        if len(out) <= chars:
+            return out
+        places -= 1
+    return '%d' % int(v - 0.5 if v < 0 else v + 0.5)
+
+
+def justify_value(text, chars):
+    """Mirror of justify_value(): square the full width off with spaces, then
+    push a short value right. str.rjust() is NOT the same -- it leaves the
+    trailing spaces a memcpy'd literal like "ON  " carries, so the firmware
+    would show "  ON" where rjust() shows "ON  "."""
+    out = (text + ' ' * chars)[:chars]
+    length = len(out.rstrip(' '))
+    if length == 0 or length == chars:
+        return out
+    return ' ' * (chars - length) + out[:length]
+
+
+def round_tenths(value):
+    """Mirror of (value + 5) / 10 in Top_area_display: half away from zero, not
+    Python's round(), which rounds half to even and disagrees on every .5."""
+    neg = value < 0
+    n = (abs(int(value)) + 5) // 10
+    return -n if neg else n
+
+
+# The unit each firmware branch draws, keyed the way Top_area_display switches.
+# Two characters start at UNIT2_POS; one hangs off UNIT_POS, with the degree
+# ring beside it only for the temperature scales.
+UNITS = {'C': ('C', True), 'F': ('F', True), 'PERCENT': ('%', False),
+         'RH': ('%R', False), 'PPM': ('pp', False), 'kPa': ('kP', False),
+         'Pa': ('Pa', False), 'NONE': ('', False)}
+
 
 class Screen:
     def __init__(self):
@@ -29,6 +102,11 @@ class Screen:
         for name in L.icon_names(self.src):
             _, vals = L.array(self.src, name, 'uint16', self.k)
             self.icons[name] = vals
+        self.icon4s = {}
+        for name in L.icon4_names(self.src):
+            _, bits = L.array(self.src, 'icon_' + name, 'uint8', self.k)
+            _, pal = L.array(self.src, 'pal_' + name, 'uint16', self.k)
+            self.icon4s[name] = (bits, pal)
         self.fonts = {}
         for name in ('chlibsmall', 'chlib', 'char_16_24', 'char_12_24'):
             _, vals = L.array(self.src, name, 'uint8', self.k)
@@ -50,107 +128,175 @@ class Screen:
 
     def icon(self, cp, pp, name, x, y):
         data = self.icons[name]
-        for j in range(min(cp * pp, len(data))):
+        # disp_icon() writes exactly cp*pp pixels whatever the array holds, so a
+        # short one desyncs the panel write and corrupts the rest of the screen.
+        # Clipping it here would hide the very failure this tool exists to catch.
+        if len(data) != cp * pp:
+            raise SystemExit('%s holds %d pixels, not the %d that %dx%d needs'
+                             % (name, len(data), cp * pp, cp, pp))
+        for j in range(cp * pp):
             self.put(x + j % cp, y + j // cp, data[j])
 
-    def _glyph(self, table, nbytes, w, h, index, x, y, fg, bg):
-        base = index * nbytes
-        for j in range(nbytes):
+    def icon4(self, name, x, y):
+        """Two pixels to a byte, low nibble first -- the glyph field order."""
+        bits, pal = self.icon4s[name]
+        w = self.k['ICON3_XDOTS']
+        for j, b in enumerate(bits):
+            self.put(x + (j * 2) % w, y + (j * 2) // w, pal[b & 0x0f])
+            self.put(x + (j * 2 + 1) % w, y + (j * 2 + 1) // w, pal[b >> 4])
+
+    def _glyph(self, name, index, x, y, fg, bg):
+        """Pixels are packed least significant field first, BPP bits each,
+        straight across the row boundaries -- the same order disp_ch() unpacks."""
+        w, h = DIMS[name]
+        bpp = BPP[name]
+        table, nb = self.fonts[name], glyph_bytes(name)
+        per, mask = 8 // bpp, (1 << bpp) - 1
+        base = index * nb
+        for j in range(nb):
             b = table[base + j]
-            for i in range(8):
-                idx = j * 8 + i
-                self.put(x + idx % w, y + idx // w, fg if (b >> i) & 1 else bg)
+            for i in range(per):
+                idx = j * per + i
+                self.put(x + idx % w, y + idx // w,
+                         blend565(bg, fg, (b >> (i * bpp)) & mask, mask))
 
     def ch(self, form, x, y, c, fg, bg):
+        """The same fallbacks disp_ch() applies: the 48x96 table holds only the
+        digits, '-' and ' ', and anything else shows as a space; the 24x36 table
+        is ASCII 32..126 and clamps to a space outside that."""
         if form == 0:
-            idx = 10 if c == '-' else 11 if c == ' ' else ord(c) - 48
-            self._glyph(self.fonts['chlib'], 576, 48, 96, idx, x, y, fg, bg)
+            v = ord(c)
+            idx = 10 if c == '-' else 11 if (v < 0x30 or v > 0x39) else v - 0x30
+            self._glyph('chlib', idx, x, y, fg, bg)
         else:
-            self._glyph(self.fonts['chlibsmall'], 108, 24, 36, ord(c) - 32, x, y, fg, bg)
+            v = ord(c)
+            if v < 32 or v > 126:
+                v = 32
+            self._glyph('chlibsmall', v - 32, x, y, fg, bg)
 
     def text(self, form, x, y, s, fg, bg):
         for n, c in enumerate(s):
             self.ch(form, x + n * (31 if form == 0 else 23), y, c, fg, bg)
 
     def label(self, x, y, s, fg, bg):
-        k = self.k
+        adv = DIMS['char_12_24'][0]
         for n, c in enumerate(s):
-            self._glyph(self.fonts['char_12_24'], k['LABEL_CH_BYTES'], k['LABEL_CH_XDOTS'],
-                        k['LABEL_CH_YDOTS'], ord(c) - 32, x + n * k['LABEL_CH_XDOTS'], y, fg, bg)
+            v = ord(c)
+            if v < 32 or v > 126:               # disp_ch_12_24 clamps the same way
+                v = 32
+            self._glyph('char_12_24', v - 32, x + n * adv, y, fg, bg)
 
     def text_16_24(self, x, y, s, fg, bg):
         for n, c in enumerate(s):
-            self._glyph(self.fonts['char_16_24'], 48, 16, 24, ord(c) - 32, x + n * 16, y, fg, bg)
+            v = ord(c)
+            if v < 32 or v > 122:               # this table stops at 'z'
+                v = 32
+            self._glyph('char_16_24', v - 32, x + n * 16, y, fg, bg)
 
-    def tangle(self, x, y):
+    def tangle(self, x, y, w):
         k = self.k
         self.icon(8, 8, 'leftup', x, y)
-        self.null_icon(113, 1, x + 6, y + 2, k['TSTAT8_MENU_COLOR'])
+        self.null_icon(w - 10, 1, x + 6, y + 2, k['TSTAT8_MENU_COLOR'])
         self.null_icon(2, 28, x + 2, y + 8, k['TSTAT8_MENU_COLOR'])
         self.icon(8, 8, 'leftdown', x, y + 34)
-        self.null_icon(113, 1, x + 6, y + 39, k['TSTAT8_MENU_COLOR'])
-        self.icon(8, 8, 'rightdown', x + 115, y + 34)
-        self.icon(8, 8, 'rightup', x + 115, y)
-        self.null_icon(1, 28, x + 120, y + 8, k['TSTAT8_MENU_COLOR'])
-        self.null_icon(115, 2, x + 5, y + 40, k['TANGLE_COLOR'])
-        self.null_icon(115, 2, x + 5, y, k['TANGLE_COLOR'])
+        self.null_icon(w - 10, 1, x + 6, y + 39, k['TSTAT8_MENU_COLOR'])
+        self.icon(8, 8, 'rightdown', x + w - 8, y + 34)
+        self.icon(8, 8, 'rightup', x + w - 8, y)
+        self.null_icon(1, 28, x + w - 3, y + 8, k['TSTAT8_MENU_COLOR'])
+        self.null_icon(w - 8, 2, x + 5, y + 40, k['TANGLE_COLOR'])
+        self.null_icon(w - 8, 2, x + 5, y, k['TANGLE_COLOR'])
         self.null_icon(2, 32, x, y + 6, k['TANGLE_COLOR'])
-        self.null_icon(2, 32, x + 121, y + 6, k['TANGLE_COLOR'])
+        self.null_icon(2, 32, x + w - 2, y + 6, k['TANGLE_COLOR'])
 
     def page_marks(self, current, count):
+        """A column in the top right, one mark per page, the strip wiped first."""
         k = self.k
-        if 'PAGE_MARK_XPOS' not in k:
-            return
         self.null_icon(k['PAGE_MARK_XDOTS'], k['PAGE_MARK_STRIP_YDOTS'],
                        k['PAGE_MARK_XPOS'], k['PAGE_MARK_YPOS'], k['TSTAT8_BACK_COLOR'])
         if count < 2:
             return
-        dim = k.get('PAGE_MARK_DIM_COLOR', k.get('BUTTON_DARK_COLOR'))
+        if count > k['PAGE_MARK_MAX']:
+            raise SystemExit('%d pages, but the strip only holds %d'
+                             % (count, k['PAGE_MARK_MAX']))
         for i in range(count):
             self.null_icon(k['PAGE_MARK_XDOTS'], k['PAGE_MARK_YDOTS'], k['PAGE_MARK_XPOS'],
                            k['PAGE_MARK_YPOS'] + i * k['PAGE_MARK_PITCH'],
-                           k['SCH_COLOR'] if i == current else dim)
+                           k['SCH_COLOR'] if i == current else k['PAGE_MARK_DIM_COLOR'])
 
 
-def render(s, labels, values, top, unit, page, pages, clock, selected):
+def render(s, labels, values, top, unit, page, pages, clock, selected, icons, rh=None):
     k = s.k
     BG, CH, SCHC = k['TSTAT8_BACK_COLOR'], k['TSTAT8_CH_COLOR'], k['SCH_COLOR']
     M2, HL = k['TSTAT8_MENU_COLOR2'], k['TSTAT8_BACK_COLOR1']
     s.clear(BG)
 
-    s.icon(13, 26, 'cmnct_send', 0, 0)
-    s.icon(13, 26, 'cmnct_rcv', 13, 0)
-    s.icon(26, 26, 'wifi_4', 210, 0)
+    # the link corner: wifi bars, and the RS485 arrows under them. The firmware
+    # only paints the arrows while there is traffic and blinks them; they are
+    # drawn unconditionally here because the render carries no traffic state.
+    s.icon(k['WIFI_XDOTS'], k['WIFI_YDOTS'], 'wifi_4', k['WIFI_XPOS'], k['WIFI_YPOS'])
+    s.icon(k['LINK_XDOTS'], k['LINK_YDOTS'], 'cmnct_send', k['LINK_TX_XPOS'], k['LINK_YPOS'])
+    s.icon(k['LINK_XDOTS'], k['LINK_YDOTS'], 'cmnct_rcv', k['LINK_RX_XPOS'], k['LINK_YPOS'])
 
-    whole, _, frac = top.partition('.')
-    whole = whole.rjust(2)
-    s.ch(0, k['FIRST_CH_POS'], k['THERM_METER_POS'], whole[0], CH, BG)
-    s.ch(0, k['SECOND_CH_POS'], k['THERM_METER_POS'], whole[1], CH, BG)
-    if frac:
-        s.null_icon(8, 8, k['SECOND_CH_POS'] + 52, 85, CH)
-        s.ch(0, k['THIRD_CH_POS'], k['THERM_METER_POS'], frac[0], CH, BG)
-    s.text_16_24(k['UNIT_POS'] - 8, 26, unit, CH, BG)
+    # whole degrees, at most three digits, right aligned, with the sign riding
+    # in the cell left of the first digit rather than in a column of its own
+    n = round_tenths(top) if unit in ('C', 'F', 'RH') else int(top)
+    neg = n < 0
+    n = min(99 if neg else 999, abs(n))
+    cells = [' ', ' ', chr(0x30 + n % 10)]
+    if n >= 10:
+        cells[1] = chr(0x30 + (n // 10) % 10)
+    if n >= 100:
+        cells[0] = chr(0x30 + n // 100)
+    if neg:
+        cells[1 if n < 10 else 0] = '-'
+    for col, xk in enumerate(('FIRST_CH_POS', 'SECOND_CH_POS', 'THIRD_CH_POS')):
+        s.ch(0, k[xk], k['THERM_METER_POS'], cells[col], CH, BG)
+    # the unit band, wiped then drawn: one character hangs off UNIT_POS with the
+    # degree ring beside it where a temperature scale wants one, two characters
+    # start at UNIT2_POS where the digits end. Both ink on the digits' cap line.
+    s.null_icon(k['UNIT_BAND_XDOTS'], k['UNIT_BAND_YDOTS'],
+                k['UNIT_BAND_XPOS'], k['UNIT_BAND_YPOS'], BG)
+    text, ring = UNITS[unit]
+    if ring:
+        s.icon(14, 14, 'degree_o', k['UNIT_POS'] - 14, k['UNIT_YPOS'])
+    if len(text) == 2:
+        s.text(1, k['UNIT2_POS'], k['UNIT_TEXT_YPOS'], text, CH, BG)
+    elif text:
+        s.text(1, k['UNIT_POS'], k['UNIT_TEXT_YPOS'], text, CH, BG)
 
     rows = (k['SETPOINT_POS'], k['FAN_MODE_POS'], k['SYS_MODE_POS'])
     for y in rows:
-        s.tangle(102, y - 3)
+        s.tangle(k['VALUE_BOX_XPOS'], y - k['VALUE_BOX_YOFF'], k['VALUE_BOX_W'])
     for i, y in enumerate(rows):
         back = HL if selected == i + 1 else BG
         n = k['LABEL_CHARS']
+        v = k['VALUE_CHARS']
         s.label(k['LABEL_XPOS'], y + k['LABEL_YOFF'], labels[i][:n].ljust(n), SCHC, back)
-        s.text(1, k['SCH_XPOS'] + 96, y, values[i][:5].ljust(5), SCHC, M2)
+        # an analogue point goes through format_value, a digital one arrives as
+        # a memcpy'd literal; both then go through justify_value, exactly as
+        # display_screen_value_var() does it
+        raw = values[i]
+        try:
+            shown = format_value(float(raw), v)
+        except ValueError:
+            shown = raw
+        s.text(1, k['VALUE_XPOS'], y + k['VALUE_YOFF'], justify_value(shown, v), SCHC, M2)
     s.page_marks(page, pages)
 
-    s.null_icon(240, 36, 0, k['TIME_POS'], M2)
-    s.text(1, 30, k['TIME_POS'], clock[:9], CH, M2)
+    # the corner humidity readout, page 1 only, value over percent sign
+    if page == 0 and rh is not None:
+        r = max(0, min(99, int(rh)))
+        s.label(k['RH_XPOS'], k['RH_YPOS'], '%2d' % r, SCHC, BG)
+        s.label(k['RH_UNIT_XPOS'], k['RH_UNIT_YPOS'], '%', SCHC, BG)
 
-    s.icon(k['ICON_XDOTS'], k['ICON_YDOTS'], 'sunicon', k['FIRST_ICON_POS'], k['ICON_POS'])
-    s.icon(k['ICON_XDOTS'], k['ICON_YDOTS'], 'athome', k['SECOND_ICON_POS'], k['ICON_POS'])
-    s.icon(k['ICON_XDOTS'], k['ICON_YDOTS'], 'heaticon', k['THIRD_ICON_POS'], k['ICON_POS'])
-    s.icon(k['FANBLADE_XDOTS'], k['FANBLADE_YDOTS'], 'fanbladeA',
-           k['FOURTH_ICON_POS'], k['ICON_POS'])
-    s.icon(k['FANSPEED_XDOTS'], k['FANSPEED_YDOTS'], 'fanspeed2a',
-           k['FIFTH_ICON_POS'], k['ICON_POS'])
+    s.null_icon(240, 36, 0, k['TIME_POS'], M2)
+    s.label(k['CLOCK_XPOS'], k['TIME_POS'] + k['CLOCK_YOFF'],
+            clock[:k['CLOCK_CHARS']].ljust(k['CLOCK_CHARS']), CH, M2)
+
+    for name, x in ((icons[0], k['ICON3_FAN_POS']),
+                    (icons[1], k['ICON3_MODE_POS']),
+                    (icons[2], k['ICON3_WALL_POS'])):
+        s.icon4(name, x, k['ICON_POS'])
     return s.im
 
 
@@ -158,18 +304,25 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('out')
     ap.add_argument('--labels', default='SETPOINT,ROOM,MODE')
-    ap.add_argument('--values', default='45.0,45,HEAT')
-    ap.add_argument('--top', default='21.5')
-    ap.add_argument('--unit', default='C')
+    ap.add_argument('--values', default='72,71,HEAT',
+                    help='a number goes through format_value, anything else is a literal')
+    ap.add_argument('--top', default='710', type=int,
+                    help='the big number as the firmware gets it: tenths for C, F and RH')
+    ap.add_argument('--unit', default='F', choices=sorted(UNITS),
+                    help='the firmware unit branch to draw')
     ap.add_argument('--page', type=int, default=0)
     ap.add_argument('--pages', type=int, default=3)
     ap.add_argument('--selected', type=int, default=0)
-    ap.add_argument('--clock', default='09-20 14:')
+    ap.add_argument('--clock', default='Sep 20 | 12:00 PM')
+    ap.add_argument('--icons', default='fan_on,mode_heat,wall_up',
+                    help='one state per cell: fan, mode, sidewalls')
+    ap.add_argument('--rh', type=int, default=64, help='corner humidity, page 1 only')
     ap.add_argument('--scale', type=int, default=2)
     args = ap.parse_args()
 
     im = render(Screen(), args.labels.split(','), args.values.split(','), args.top,
-                args.unit, args.page, args.pages, args.clock, args.selected)
+                args.unit, args.page, args.pages, args.clock, args.selected,
+                args.icons.split(','), args.rh)
     if args.scale > 1:
         im = im.resize((W * args.scale, H * args.scale), Image.NEAREST)
     im.save(args.out)
