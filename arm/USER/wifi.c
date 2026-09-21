@@ -16,7 +16,14 @@ uint8 flag_set_wifi;
 #define WIFI_CONNECTED 			1
 #define WIFI_DISCONNECTED   0
 
-#define WifiSTACK_SIZE 1000//2048
+/* In words, not bytes: 1000 gave this task 4000 bytes, and the deepest chain
+ * the linker traces from WIFI_task -- npdu_handler, apdu_handler,
+ * handler_private_transfer, put_net_point_value, WriteRemotePoint,
+ * Send_Write_Property_Request(_Data), datalink_send_pdu, bip_send_pdu -- needs
+ * 4344, before the recursion the call graph cannot trace.  See
+ * "Maximum Stack Usage" in arm/OBJ/Tstat10_arm_revxx.htm.  Back to the 2048
+ * that was commented out beside it. */
+#define WifiSTACK_SIZE 2048
 xTaskHandle Wifi_Handler;
 extern uint8_t PDUBuffer_BIP[MAX_APDU];
 STR_SSID	SSID_Info;
