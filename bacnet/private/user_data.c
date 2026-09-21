@@ -826,7 +826,7 @@ void init_panel(void)
 	
 	Write_Special.reg.clear_health_rx_tx = 0;
 	
-	memcpy(update_dyndns_time.all,0,sizeof(UN_Time));
+	memset(update_dyndns_time.all,0,sizeof(UN_Time));	/* was memcpy from address 0 */
 	
 	memset(remote_panel_db,0,sizeof(STR_REMOTE_PANEL_DB) * MAX_REMOTE_PANEL_NUMBER);
 	remote_panel_num = 0;
