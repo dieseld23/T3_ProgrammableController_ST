@@ -344,8 +344,13 @@ void generate_common_alarm(U8_T index)
 
 void generate_program_alarm(U8_T type,U8_T prg)
 {
-	S8_T far str[20];
-	memset(str,0,20);
+	/* The longest of the three messages below reaches 32 bytes with a
+	 * three-digit program number, and the truncation further down already
+	 * assumes the buffer runs to ALARM_MESSAGE_SIZE, so size it that way.
+	 * At 20 bytes every branch overran this frame before the strlen check
+	 * downstream ever got to look at it. */
+	S8_T far str[ALARM_MESSAGE_SIZE + 1];
+	memset(str,0,sizeof(str));
 
 	//if(index == ALARM_PROGRAM)
 	if(type == 0) // dead cycle
