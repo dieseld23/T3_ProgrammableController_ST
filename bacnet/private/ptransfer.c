@@ -147,7 +147,19 @@ void Get_Pkt_Bac_to_Modbus(Str_user_data_header * header)
 {  
 	uint8_t buf[300];
 	uint16_t len;
-	uint16_t crc_check; 
+	uint16_t crc_check;
+
+	/* total_length comes straight off the wire.  The multi-write branch copies
+	 * total_length - 7 bytes to &buf[7] and then lays the CRC at buf[len] and
+	 * buf[len + 1] with len == total_length, so any length past
+	 * sizeof(buf) - 2 writes off the end of this frame.  bacnet_to_modbus is
+	 * itself only 300 bytes, so an oversized length over-reads the source too.
+	 * A short length is already safe -- total_length - 7 promotes to int, so
+	 * 0..6 fails the > 2 test below and takes the single-register branch
+	 * instead of wrapping -- but a long one had nothing stopping it. */
+	if(header->total_length > sizeof(buf) - 2)
+		return;
+
 	//  for read command
 	buf[0] = Modbus.address;
 	if(header->command == READ_BACNET_TO_MDOBUS)
