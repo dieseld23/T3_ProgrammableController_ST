@@ -193,6 +193,26 @@ U32_T convert_pointer_to_double( U8_T *iAddr )	  // DoulbemGetPointWord
 //}
 
 extern u32 uip_timer;
+
+/* The alarm-message length is a single byte lifted straight out of program
+ * bytecode, so it runs to 255 while message[] holds 94.  Bound the copy here
+ * rather than at each call site, and hand back the number of bytes actually
+ * written so the terminator lands inside the buffer too.  The caller still
+ * advances prog by the original len: the byte is part of the instruction
+ * stream whether or not it was sane, and clamping the step as well would
+ * desynchronise the decoder on the very input this is meant to survive. */
+static S16_T copy_prg_message(U8_T *prog, S16_T len)
+{
+	S16_T room = (S16_T)(sizeof(message) - 1);
+	S16_T n = (len < room) ? len : room;
+
+	if(n < 0)
+		n = 0;
+	memcpy(message, prog, (U16_T)n);
+	message[n] = 0;
+	return n;
+}
+
 S16_T exec_program(S16_T current_prg, U8_T *prog_code)
 {
 	Point p_var;
@@ -604,8 +624,7 @@ S16_T exec_program(S16_T current_prg, U8_T *prog_code)
 								v2 = veval_exp(local);
 								value = veval_exp(local);
 								len = *prog++;
-								memcpy(message, prog, len);
-								message[len] = 0;
+								copy_prg_message(prog, len);
 								prog += len;
 								
 #if 1
@@ -698,8 +717,7 @@ S16_T exec_program(S16_T current_prg, U8_T *prog_code)
 								len = *prog++;								
 								if (cond)         /* test condition*/
 									{
-										memcpy(message, prog, len);
-										message[len]=0;
+										copy_prg_message(prog, len);
 										prog += len;
 										if(just_load)
 											memcpy(prog,&value,4);
@@ -724,8 +742,7 @@ S16_T exec_program(S16_T current_prg, U8_T *prog_code)
 										memcpy(&v1,prog+len,4);
 										if (v1<=0)   /* test for restore*/
 										{
-										 memcpy(message, prog, len);
-										 message[len]=0;
+										 copy_prg_message(prog, len);
 										 dalarmrestore(message,current_prg+1,Station_NUM);
 										 new_alarm_flag |= 0x01;  /* send the alarm to the destination panels*/
 										 //resume(ALARMTASK);
