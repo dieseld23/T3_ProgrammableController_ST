@@ -95,6 +95,49 @@ void Bacnet_Control(void) reentrant;
 	put E2prom data to buffer when start-up 
 */	
 
+/* Name of the task that last overran its stack, and how many times it has
+ * happened this boot.  Both live in RAM only: the reset below wipes them on the
+ * way back up, so they are here to be read from a debugger or a breakpoint at
+ * the moment of the fault, not as a field log.  Persisting the count would need
+ * an EEPROM slot allocating alongside EEP_RAM_ERR. */
+char  stack_overflow_task[configMAX_TASK_NAME_LEN];
+U16_T stack_overflow_count;
+U16_T heap_fail_count;
+
+/* By the time FreeRTOS calls this the stack has already been written past, so
+ * whatever the heap placed below that task is damaged.  Carrying on means
+ * driving outputs from corrupted state, which on a controller is worse than
+ * going away and coming back, so record what happened and reset.  Note this
+ * turns a previously silent fault into a visible restart -- if a board starts
+ * cycling after this change, the overflow was always there and is now being
+ * reported rather than absorbed. */
+/* Reached when pvPortMalloc comes back empty, which on this firmware means a
+ * task was created without a stack and would otherwise have been dropped in
+ * silence.  Count it and reset rather than run with a task missing. */
+void vApplicationMallocFailedHook(void)
+{
+	heap_fail_count++;
+
+	SoftReset();
+	for(;;)
+		;
+}
+
+void vApplicationStackOverflowHook(xTaskHandle pxTask, signed char *pcTaskName)
+{
+	U8_T i;
+
+	(void)pxTask;
+	for(i = 0;i < configMAX_TASK_NAME_LEN - 1 && pcTaskName[i];i++)
+		stack_overflow_task[i] = (char)pcTaskName[i];
+	stack_overflow_task[i] = 0;
+	stack_overflow_count++;
+
+	SoftReset();
+	for(;;)
+		;
+}
+
 void check_flash_changed(void)
 {
 	/* RAM ERR guess: ExtSRAM/bus shows 0xFF while flash still has real config.

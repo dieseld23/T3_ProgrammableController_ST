@@ -69,6 +69,18 @@
 #define configUSE_PREEMPTION		1
 #define configUSE_IDLE_HOOK			0
 #define configUSE_TICK_HOOK			0
+/* Was never defined, so FreeRTOS.h defaulted it to 0 and a task that ran off
+ * the end of its stack quietly chewed through whatever the heap had put below
+ * it.  2 watches the last bytes of the stack for the fill pattern as well as
+ * checking the pointer on every switch, which is what catches a frame that
+ * overshoots in one go rather than creeping.  vApplicationStackOverflowHook
+ * lives in common/main.c. */
+#define configCHECK_FOR_STACK_OVERFLOW	2
+/* Every xTaskCreate in this firmware discards its return value, so a task that
+ * cannot get its stack out of the heap simply never runs and nothing says so.
+ * Raising WifiSTACK_SIZE takes the task stacks to about 64% of the 60 KB heap,
+ * which fits, but the failure mode is silent enough to be worth a hook. */
+#define configUSE_MALLOC_FAILED_HOOK	1
 #define configCPU_CLOCK_HZ			( ( unsigned long ) 72000000 )	
 #define configTICK_RATE_HZ			( ( portTickType ) 1000 )
 #define configMAX_PRIORITIES		( ( unsigned portBASE_TYPE ) 20 )
