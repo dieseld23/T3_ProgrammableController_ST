@@ -334,13 +334,13 @@ Two notes on the toolchain:
 - Building dirties the checked-in artifacts under `arm/OBJ/`. Those are not part
   of any commit on this branch, with one exception:
   `arm/OBJ/Tstat10_arm_revxx.hex` is committed so the branch carries something
-  flashable. It covers `0x08008000`-`0x08054933` with the entry point at
+  flashable. It covers `0x08008000`-`0x08054a30` with the entry point at
   `0x08008131` — the application only. The bootloader lives below `0x08008000`,
   is not in this repository and is not touched by flashing this file, so a bad
   application still leaves the device recoverable through the ISP window.
   Re-run the build before trusting it after any source change.
 
-Current state of the `Tstat10_wifi` target: **0 errors, 485 warnings**.
+Current state of the `Tstat10_wifi` target: **0 errors, 482 warnings**.
 
 | Region | Used | Of | Free |
 | --- | --- | --- | --- |
@@ -429,16 +429,27 @@ Task stacks currently take 39,616 bytes of the 60 KB heap (64.5%), leaving about
 which is survivable only because every task here is created once at startup and
 never deleted.
 
-Four unbounded copies reachable from the network were closed at the same time:
-three in `decode.c`, where a one-byte length from program bytecode was memcpy'd
-into a 94-byte buffer, and one in `ptransfer.c`, where a 16-bit `total_length`
-off the wire sized a copy into a 300-byte frame. Two format buffers that could
-not hold their own output were resized (`alarm.c`, `scan.c`), and a
-`memcpy(..., 0, ...)` reading from address 0 became the `memset` it was meant to
-be. The `decode.c` clamp deliberately leaves `prog += len` using the original
+Unbounded copies reachable from the network were closed at the same time: three
+in `decode.c`, where a one-byte length from program bytecode was memcpy'd into a
+94-byte buffer; two in `ptransfer.c`, where a 16-bit `total_length` off the wire
+sized copies into 300-byte buffers; and a `strcpy` in `alarm.c` that put that
+94-byte message into a 59-byte field. Two format buffers that could not hold
+their own output were resized (`alarm.c`, `scan.c`); a `memcpy(..., 0, ...)`
+reading from address 0 became the `memset` it was meant to be; `GET_PANEL_INFO`
+stopped dereferencing a pointer one line before assigning it; two call sites
+stopped indexing `remote_points_list[128]` with the `0xff` "idle" sentinel; and
+an `if(count >= 0)` on an unsigned count stopped guarding a division by it.
+
+The `decode.c` clamp deliberately leaves `prog += len` using the original
 length: that byte is part of the instruction stream whether or not it was sane,
 and clamping the step too would desynchronise the decoder on exactly the input
 the fix exists to survive.
+
+One of those fixes was wrong the first time, in a way worth repeating. The
+`ptransfer.c` guard was put inside `Get_Pkt_Bac_to_Modbus`, which is called
+*after* the caller has already filled `bacnet_to_modbus` — so it ran after the
+overflow it was meant to stop. A bounds check is only a bounds check if it
+precedes the write it guards.
 
 ## Not done yet
 
