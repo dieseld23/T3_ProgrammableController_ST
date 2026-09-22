@@ -71,10 +71,22 @@
 #define configUSE_TICK_HOOK			0
 /* Was never defined, so FreeRTOS.h defaulted it to 0 and a task that ran off
  * the end of its stack quietly chewed through whatever the heap had put below
- * it.  2 watches the last bytes of the stack for the fill pattern as well as
- * checking the pointer on every switch, which is what catches a frame that
- * overshoots in one go rather than creeping.  vApplicationStackOverflowHook
- * lives in common/main.c. */
+ * it.
+ *
+ * In this version of StackMacros.h the two settings are alternatives, not
+ * cumulative: 1 compares pxTopOfStack against the end of the stack at each
+ * switch, while >1 instead checks the four words at the low end for the
+ * 0xa5a5a5a5 fill.  2 is the better of the two here because it still shows a
+ * task that ran deep and came back before the switch happened, which the
+ * pointer comparison cannot see.
+ *
+ * Note the fallback at the bottom of that header: if this value names a
+ * combination it does not implement, taskCHECK_FOR_STACK_OVERFLOW quietly
+ * becomes empty.  Verified not to be the case here -- portSTACK_GROWTH is -1,
+ * so the >1 branch at StackMacros.h:120 is the one that compiles, and
+ * vApplicationStackOverflowHook is present in the linked image.
+ *
+ * The hook lives in common/main.c. */
 #define configCHECK_FOR_STACK_OVERFLOW	2
 /* Every xTaskCreate in this firmware discards its return value, so a task that
  * cannot get its stack out of the heap simply never runs and nothing says so.
