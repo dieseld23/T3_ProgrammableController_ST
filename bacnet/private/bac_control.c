@@ -64,8 +64,6 @@ void pid_controller( S16_T p_number )   // 10s
 	else
 		op = -erp; /* - */
 
-	erp = 0L;
-	
 /* integral term	*/
 	/* sample_time = 10s */
 	l1 = ( conx->old_err + err ) * (con->sample_time / 2); /* 5 = sample_time / 2 */
@@ -94,11 +92,30 @@ void pid_controller( S16_T p_number )   // 10s
 			oi /= 3600L;
 	}
 /* differential term	*/
-	if( con->rate > 0)
+	/* This needs the CHANGE in error.  The original expression, preserved in
+	 * the comments below, is ( erp - old_err * 100 / prop ) with erp the
+	 * current error normalised by the proportional band -- current minus
+	 * previous.  But erp is set back to zero above, between the proportional
+	 * and integral terms, so what reached here was ( 0 - old_err * 100 / prop ):
+	 * the negated *previous* error rather than the difference.  A loop holding
+	 * a steady offset therefore got a constant derivative contribution, where
+	 * the correct term falls to zero once the error stops moving.
+	 *
+	 * The current error is recomputed here rather than carried in erp, so that
+	 * another assignment to erp cannot quietly break this again.
+	 *
+	 * prop is in the condition because nothing else guarded it: the
+	 * proportional term skips its own divide when prop is zero, but rate and
+	 * proportional are independent settings, and "od /= prop" ran regardless. */
+	if( con->rate > 0 && prop > 0 )
 	{
+		S32_T ern = 100L * err / prop;		/* current error, normalised */
+
+		if( ern > 100000L ) ern = 100000L;
+
 		od = conx->old_err * 100;
 		od /= prop;
-		od = erp - od;
+		od = ern - od;
 		if(con->action > 0)
 		{
 /*			od = ( erp - conx->old_err * 100 / prop ) * con->rate / 600L;
