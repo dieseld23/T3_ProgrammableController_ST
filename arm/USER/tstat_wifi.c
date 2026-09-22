@@ -1111,7 +1111,10 @@ void inpust_scan(void)
 	
 	if(Check_sensor_exist(E_FLAG_VOICE))
 	{
-		if(count >= 0)
+		/* count is unsigned, so ">= 0" was always true -- the compiler had been
+		 * saying so as #186-D.  When no microphone sample passes the carrier
+		 * thresholds count stays 0 and this divides by it. */
+		if(count > 0)
 		{
 			temp5 = check_voice_table(mic_sum /count);
 			if(Modbus.mini_type == MINI_T10P)

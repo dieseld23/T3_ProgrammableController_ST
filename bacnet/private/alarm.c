@@ -41,8 +41,21 @@ S16_T putmessage(S8_T *mes, S16_T prg, S16_T panel, S16_T type, S8_T alarmatall,
 		ptr->type         = type;
 		//	ptr->panel_type   = panel_net_info.panel_type;
 
-		ptr->alarm_count = strlen(mes);
-		strcpy(ptr->alarm_message,mes);
+		/* alarm_message is ALARM_MESSAGE_SIZE+1, but callers hand this the
+		 * global message[] from the Control Basic interpreter, which is
+		 * ALARM_MESSAGE_SIZE+26+10 and can legitimately be that full.  strcpy
+		 * ran the difference straight into the neighbouring fields of the
+		 * Alarm_point.  Truncate, and record the length actually stored rather
+		 * than the one that was offered. */
+		{
+			U16_T mes_len = (U16_T)strlen(mes);
+
+			if(mes_len > ALARM_MESSAGE_SIZE)
+				mes_len = ALARM_MESSAGE_SIZE;
+			memcpy(ptr->alarm_message,mes,mes_len);
+			ptr->alarm_message[mes_len] = 0;
+			ptr->alarm_count = (U8_T)mes_len;
+		}
 		if(alarmatall)
 		{
 			ptr->where1  = 255;
