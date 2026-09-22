@@ -14,6 +14,7 @@ bgcolor.  Four tables:
     chlib        48x96, 4 bpp, '0'..'9','-',' '     the big top number
     char_16_24   16x24, 2 bpp, ASCII 32..122        the top-area label
     char_12_24   12x24, 2 bpp, ASCII 32..126        the three row labels
+    char_10_24   10x24, 2 bpp, ASCII 32..126        the corner readout
 
 The big number carries 4 bpp because it is the text the eye goes to and it is
 only twelve glyphs; the rest carry 2 bpp, where nearly all of the benefit is.
@@ -57,18 +58,34 @@ THRESHOLD = 110   # coverage, 0..255, at which a 1 bpp pixel turns on
 ASCII = [chr(c) for c in range(32, 127)]
 DIGITS = list('0123456789') + ['-', ' ']
 
-# name -> (w, h, chars, ink columns, cap height, cap top row, bits per pixel)
+# name -> (w, h, chars, ink columns, cap height, cap top row, bits per pixel,
+#          characters that set the width)
+#
+# The last field is optional.  Condensing is driven by the widest glyph in the
+# table, so a face that only ever draws a handful of characters is squeezed by
+# ones it will never show: char_10_24 at full ASCII condenses to 0.54 and clips
+# the ink off '%', which is the one glyph it exists to draw.  Naming the
+# characters that matter lets the rest clip, since nothing renders them.
 TABLES = {
     'chlibsmall': (24, 36, ASCII,  22, 24, 4, 2),
     'chlib':      (48, 96, DIGITS, 46, 74, 9, 4),
     'char_16_24': (16, 24, [chr(c) for c in range(32, 123)], 14, 17, 4, 2),
     'char_12_24': (12, 24, ASCII,  10, 17, 4, 2),
+    'char_10_24': (10, 24, ASCII,   9, 17, 4, 2, '0123456789%RH'),
 }
 
 
 def geom(name):
-    w, h, chars, ink_w, cap, cap_top, bpp = TABLES[name]
+    t = TABLES[name]
+    w, h, chars, ink_w, cap, cap_top, bpp = t[:7]
     return w, h, chars, ink_w, cap, cap_top, bpp
+
+
+def measured(name):
+    """The characters whose widths set the condense factor."""
+    t = TABLES[name]
+    chars = t[7] if len(t) > 7 else t[2]
+    return [c for c in chars if c != ' ']
 
 
 def nbytes(name, bpp=None):
@@ -155,7 +172,7 @@ def build_table(path, name):
     top = (1 << bpp) - 1
     sz, ft = size_for_cap(path, cap)
 
-    inked = [c for c in chars if c != ' ']
+    inked = measured(name)
     left = min(ft.getbbox(c)[0] for c in inked)
     right = max(ft.getbbox(c)[2] for c in inked)
     condense = min(1.0, (ink_w * SS) / float(right - left))
@@ -166,7 +183,11 @@ def build_table(path, name):
     for ch in chars:
         big = Image.new('L', (w * SS * 3, h * SS), 0)
         if ch != ' ':
-            x_off = (w * SS - (right - left) * condense) / 2.0 - left * condense
+            # Centre the ink inside the columns that are KEPT (1..ink_w), not
+            # inside the whole cell.  Column 0 is always cleared, so the two are
+            # only the same when w - ink_w is even; at 10 dots with ink_w 9 the
+            # old formula hung half a column off each end and clipped '%'.
+            x_off = SS + (ink_w * SS - (right - left) * condense) / 2.0 - left * condense
             ImageDraw.Draw(big).text((x_off, y_off), ch, font=ft, fill=255)
             if condense < 0.999:
                 big = big.resize((int(big.width * condense), big.height), Image.LANCZOS)

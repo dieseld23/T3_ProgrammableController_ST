@@ -9,8 +9,12 @@ the fork rather than upstream.
 ![Three pages of the idle screen](docs/idle-pages.png)
 
 Rendered by `tools/screenshot.py` from the firmware's own font tables, icon
-arrays and colour constants — not a mockup. **Nothing here has been verified on
-a physical panel.**
+arrays and colour constants — not a mockup.
+
+`rev68VPF` boots on hardware and draws the screen. What that confirms is that it
+runs and renders; it does not confirm the layout matches these pictures pixel for
+pixel, and the state icons and the corner humidity have not been driven yet
+because nothing writes VAR25-28.
 
 ## Scope
 
@@ -126,9 +130,13 @@ before shifting.
 
 The big number moved left to x=30, which centres a two digit reading on the
 screen and opens a 30 dot strip down the left edge. The strip carries the wifi
-bars, the RS485 arrows under them, and a humidity readout under those. Three
-characters will not fit across 30 dots, so the percent sign sits on its own line
-under the value.
+bars, the RS485 arrows under them, and a humidity readout under those, labelled
+`RH` with the value and its percent sign together on one line.
+
+Three characters do not fit across 30 dots in the 12 dot face: the third cell
+would start at x=36 and the first digit cell repaints from x=30 on every refresh,
+erasing it. `char_10_24` is the same face at 10 dots, where three cells land
+exactly on 0..29.
 
 Moving the number also moved the minus sign. It used to be drawn on its own at
 x=6, which is now underneath the RS485 arrows, so it rides in the cell left of
@@ -139,6 +147,15 @@ digits when the value is negative.
 Humidity comes from `TOP_RH_VAR` (VAR28), following the three icon VARs and
 carrying whole percent in `value/1000`, the same convention. A value outside
 0..99 draws blank rather than a wrong number.
+
+Two things in `fontgen.py` came out of fitting that face. A table can now name
+the characters that set its condense factor, because squeezing a 10 dot cell to
+hold `@` and `W` clipped the ink off `%`, which is the one glyph the readout
+exists to draw. And the ink is centred inside the columns that are kept, 1 to
+`ink_w`, rather than inside the whole cell — column 0 is always cleared, so the
+two only agree when `w - ink_w` is even, and at 10 dots it hung half a column off
+each end. That change is a no-op for the four older tables, which was checked by
+regenerating them against the committed arrays.
 
 ### Three things the layout work uncovered
 
@@ -214,10 +231,11 @@ root and need Python 3 with Pillow.
 | Script | What it does |
 | --- | --- |
 | `lcddata.py` | Shared reader for the arrays and `#define`s. Not run directly. |
-| `fontgen.py` | Regenerates the four bitmap font tables from a TrueType face. |
+| `fontgen.py` | Regenerates the five bitmap font tables from a TrueType face. |
 | `icongen.py` | Generates the ten state icons and their palettes. |
 | `recolour_icons.py` | Recomposites the legacy RGB565 icon bitmaps for a new screen background. |
 | `screenshot.py` | Renders the idle screen to a PNG from the real arrays. |
+| `checkmap.py` | Fails a link that puts data where the stack lives. Run before flashing. |
 
 ```bash
 python tools/fontgen.py                       # report the fit, change nothing
@@ -283,15 +301,44 @@ Two notes on the toolchain:
 - The scatter file is **generated** from the target dialog, not hand written, so
   the memory map is edited through the `OCR_RVCT` entries in the project rather
   than in `arm/OBJ/Tstat10_arm_revxx.sct`. The `<ScatterFile>` entry naming
-  `..\OBJ\test.sct` is a stale leftover; no such file exists and nothing reads it.
-  Both RAM regions were declared larger than the silicon and have been
-  corrected: `RW_IRAM1` to `0x10000`, the STM32F103ZE's internal SRAM, and
-  `RW_RAM1` to `0x80000`, the IS61L5128L on the board. `RW_RAM1` had been
-  declared as `0x800000` — sixteen times the real part — on a region that runs
-  about 92% full, so an overflow would have linked cleanly and corrupted at run
-  time. It now fails the link instead.
+  `..\OBJ	est.sct` is a stale leftover; no such file exists and nothing reads it.
+- **The stack is invisible to the linker, and the memory map has to work around
+  it.** `arm/CORE/startup_stm32f10x_hd.s` builds with `DATA_IN_ExtSRAM EQU 1`
+  and writes an absolute stack pointer rather than using the one the linker
+  placed:
+
+  ```asm
+  __initial_sp EQU 0X20000000 + Stack_Size    ; 0x20002000
+  ```
+
+  Nothing then references `Stack_Mem`, so the linker discards the section --
+  `Removing startup_stm32f10x_hd.o(STACK), (8192 bytes)` in the map -- and stops
+  believing anything occupies internal SRAM. The stack is real: 8 KB growing
+  down from `0x20002000`. The linker just cannot see it.
+
+  This used to be hidden by `RW_RAM1` being declared as `0x800000` against a
+  512 KB part, which swallowed every byte of RW and ZI and left internal SRAM
+  empty by accident. Declaring it at its real size ended the accident: the
+  linker filled `0x20000000`-`0x20005358` straight through the stack, `__main`
+  zeroed live stack frames during its ZI sweep, and the first device flashed
+  with that build never left its bootloader.
+
+  The fix is to reserve the stack rather than to hide it. `RW_IRAM1` is based at
+  `0x20002000` with size `0xE000`, so the 8 KB below it belongs to the stack
+  alone, and `RW_RAM1` carries its real `0x80000` -- which puts the overflow
+  check back, on a region that runs about 92% full.
+
+  **Run `tools/checkmap.py` before handing anyone a hex.** It fails the build
+  configuration that would not boot, by both the region base and the placement
+  addresses, and warns when a region passes 95% full.
 - Building dirties the checked-in artifacts under `arm/OBJ/`. Those are not part
-  of any commit on this branch.
+  of any commit on this branch, with one exception:
+  `arm/OBJ/Tstat10_arm_revxx.hex` is committed so the branch carries something
+  flashable. It covers `0x08008000`-`0x08054933` with the entry point at
+  `0x08008131` — the application only. The bootloader lives below `0x08008000`,
+  is not in this repository and is not touched by flashing this file, so a bad
+  application still leaves the device recoverable through the ISP window.
+  Re-run the build before trusting it after any source change.
 
 Current state of the `Tstat10_wifi` target: **0 errors, 492 warnings** (down from
 510 — the 18 that went were `char*` / `unsigned char*` mismatches removed by
@@ -316,10 +363,14 @@ regression.
 
 ## Not done yet
 
-- **Nothing here has been verified on hardware.** The font packing is proven by
-  round-trip and the layout by rendering from the real arrays and constants, but
-  no physical panel has been driven. The value most likely to need nudging by eye
-  is `LABEL_YOFF`.
+- **Only the boot is confirmed on hardware.** `rev68VPF` starts and draws the
+  screen on a real panel. Nobody has yet checked the layout against these renders
+  by eye, stepped the pages with the RIGHT key, or driven VAR25-28 to see the
+  state icons and the humidity readout change. The value most likely to need
+  nudging by eye is `LABEL_YOFF`.
+- **The first hardware attempt did not boot at all**, and the cause was the
+  memory map rather than anything on screen — see the `RW_RAM1` note under
+  Building. The display code had not run when the device hung.
 - **The icon VARs are a proposal, not a convention.** VAR25-27 were chosen
   because they sit just past the paged range; nothing else in the firmware or in
   T3000 knows about them yet, and a Control Basic program has to be written to
