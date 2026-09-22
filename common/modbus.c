@@ -120,7 +120,7 @@ U16_T far uart1_send_count;
 U16_T far uart2_send_count;
 
 U16_T far uart2_rece_size = 0;
-U16_T far uart2_rece_count;
+volatile U16_T far uart2_rece_count;	/* ISR writes, task reads -- see uart0_rece_count */
 U8_T far uart0_send_buf[MAX_BUF_LEN];
 U8_T far uart1_send_buf[MAX_BUF_LEN];
 U8_T far uart2_send_buf[MAX_BUF_LEN];
@@ -254,8 +254,11 @@ U16_T subnet_rec_package_size;
 
 
 
-U16_T uart0_rece_count;
-U16_T uart1_rece_count;
+/* Written by the USART receive ISRs and read by tasks, so the compiler must not
+ * keep them in a register across a read.  See wait_subnet_response for why
+ * volatile alone is not the whole story. */
+volatile U16_T uart0_rece_count;
+volatile U16_T uart1_rece_count;
 
 
 U16_T uart0_rece_size = 0;
@@ -1004,9 +1007,15 @@ void set_subnet_parameters(U8_T io, U16_T length,U8_T port)
 	subnet_rec_package_size = length;  
 	if(port > 2) return;
 	if(port == 0 )
-	{	
+	{
+		/* Arming a new exchange: the count and the buffer clear have to happen
+		 * together, or a byte arriving between them is counted and then wiped.
+		 * The receive ISR outranks a critical section here -- see
+		 * wait_subnet_response -- so mask RXNE by name. */
+		USART_ITConfig(USART1, USART_IT_RXNE, DISABLE);
 		uart0_rece_count = 0;
 		memset(uart0_data_buffer,0,subnet_rec_package_size);
+		USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
 #if (ARM_MINI || ASIX_MINI)
 		if((Modbus.mini_type == MINI_TINY) 
 			|| (Modbus.mini_type == MINI_NEW_TINY) || (Modbus.mini_type == MINI_TINY_ARM) || (Modbus.mini_type == MINI_TINY_11I)
@@ -1028,8 +1037,11 @@ void set_subnet_parameters(U8_T io, U16_T length,U8_T port)
 #endif
 		
 #if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI )
+		/* Same as port 0 above; uart2 is USART3. */
+		USART_ITConfig(USART3, USART_IT_RXNE, DISABLE);
 		uart2_rece_count = 0;
 		memset(uart2_data_buffer,0,subnet_rec_package_size);
+		USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
 #endif
 		
 #if ARM_MINI || ASIX_MINI
@@ -1085,12 +1097,34 @@ U16_T wait_subnet_response(U16_T nDoubleTick,U8_T port)
 	for(i = 0; i < nDoubleTick; i++)
 	{
 		if(port == 0 )
-		{			
-			if((length = uart0_rece_count) >= subnet_rec_package_size)
-			{	
+		{
+			/* The snapshot and the copy have to be one operation.  The receive
+			 * ISR appends to uart0_data_buffer, and on a complete frame it sets
+			 * uart0_rece_count back to 0 and starts the next frame at index 0 --
+			 * so a copy that straddles that point returns the tail of one frame
+			 * spliced onto the head of the next.  volatile does not help: the
+			 * problem is interleaving, not caching.
+			 *
+			 * taskENTER_CRITICAL does not help either.  USART1 is installed at
+			 * NVIC pre-emption priority 0 (usart.c:129), above
+			 * configMAX_SYSCALL_INTERRUPT_PRIORITY (191), and a critical
+			 * section only raises BASEPRI to that threshold -- which leaves
+			 * this handler free to run.  The receive interrupt has to be masked
+			 * by name.  RXNE only, so transmit interrupts on the shared vector
+			 * keep working, and a byte arriving meanwhile still sets RXNE and
+			 * is taken as soon as it is unmasked.  The copy is a few
+			 * microseconds against a byte period of roughly 87 at 115200. */
+			U8_T got;
+
+			USART_ITConfig(USART1, USART_IT_RXNE, DISABLE);
+			length = uart0_rece_count;
+			got = (U8_T)(length >= subnet_rec_package_size);
+			if(got)
 				memcpy(subnet_response_buf,uart0_data_buffer,length);
+			USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
+
+			if(got)
 				return length;
-			}	
 		}
 		if(port == 2 )
 		{
@@ -1103,12 +1137,22 @@ U16_T wait_subnet_response(U16_T nDoubleTick,U8_T port)
 #endif
 			
 #if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI )
-			if((length = uart2_rece_count) >= subnet_rec_package_size)
-			{	
-				memcpy(subnet_response_buf,uart2_data_buffer,length);				
-				return length;
-			}	
-#endif			
+			/* Same race and same reasoning as port 0 above; uart2 is USART3,
+			 * also at pre-emption priority 0. */
+			{
+				U8_T got;
+
+				USART_ITConfig(USART3, USART_IT_RXNE, DISABLE);
+				length = uart2_rece_count;
+				got = (U8_T)(length >= subnet_rec_package_size);
+				if(got)
+					memcpy(subnet_response_buf,uart2_data_buffer,length);
+				USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
+
+				if(got)
+					return length;
+			}
+#endif
 		}
 		if(port == 1)
 		{	

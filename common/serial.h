@@ -52,9 +52,9 @@ enum
 	F_READ = 1,F_WRITE,F_MUTIPLE
 };
 
-extern U16_T uart0_rece_count;
-extern U16_T uart1_rece_count;
-extern U16_T uart2_rece_count;
+extern volatile U16_T uart0_rece_count;
+extern volatile U16_T uart1_rece_count;
+extern volatile U16_T uart2_rece_count;
 extern U16_T uart0_rece_size;
 extern U16_T uart1_rece_size;
 extern U16_T main_rece_size;
