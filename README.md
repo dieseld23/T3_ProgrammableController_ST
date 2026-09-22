@@ -451,6 +451,38 @@ One of those fixes was wrong the first time, in a way worth repeating. The
 overflow it was meant to stop. A bounds check is only a bounds check if it
 precedes the write it guards.
 
+### A critical section does not mask the UART here
+
+`uart0/1/2_rece_count` are written by the USART receive ISRs and read by tasks,
+and are now `volatile`. That is the smaller half of the problem. The receive ISR
+appends to its buffer and, on a complete frame, sets the count back to zero and
+starts the next frame at index 0 — so a `memcpy` out of that buffer which
+straddles the reset returns the tail of one frame spliced onto the head of the
+next. `volatile` does nothing about interleaving.
+
+Neither does `taskENTER_CRITICAL`. USART1, USART2 and USART3 are all installed at
+**NVIC pre-emption priority 0** (`usart.c:129`, `223`, `321`), while
+`configMAX_SYSCALL_INTERRUPT_PRIORITY` is 191. A critical section only raises
+`BASEPRI` to that threshold, which leaves a priority 0 handler free to run
+straight through it. Anything that must be atomic against a receive ISR has to
+mask that interrupt by name, which `wait_subnet_response` and
+`set_subnet_parameters` now do — `USART_IT_RXNE` only, so transmit interrupts
+sharing the vector keep working, and a byte arriving meanwhile still sets RXNE
+and is taken on unmask.
+
+The same priority arrangement means those ISRs **must not call any FreeRTOS
+`…FromISR` function**. They currently do not. Keep it that way, or lower the
+priority to at or below the threshold first.
+
+### The PID derivative
+
+`pid_controller` zeroed `erp` between the proportional and integral terms, so the
+derivative block — which wants `erp - old_err * 100 / prop` — got
+`0 - old_err * 100 / prop`: the negated previous error rather than the change.
+The term tracked the level of the error instead of its movement, which meant a
+constant push at a steady offset and the wrong sign on a rising error. It also
+divided by `prop` without the guard the proportional term applies to itself.
+
 ## Not done yet
 
 - **Only one image is confirmed on hardware, and it is not the newest.**
@@ -475,15 +507,21 @@ precedes the write it guards.
   that would not boot. Building from `main` and flashing the result will put a
   device in its bootloader. Fixed by the memory-map branch, not yet merged.
 
-- **Found and confirmed, not yet fixed.** An audit of the compiled sources left
-  four defects judged too large to fix without more care: the UART ISR/task
-  races on `uart0_rece_count` and `uart0_data_buffer` in `common/modbus.c`, the
-  power-loss window in `arm/FLASH/flash_user.c` where one sector erase covers
-  several separate writes, the PID derivative term in
-  `bacnet/private/bac_control.c:67`, and the unbounded `veval_exp` recursion
-  described above. The nine `#186-D pointless comparison of unsigned integer
-  with zero` warnings are also worth reading as a group: a vacuous lower-bound
-  check on a network-derived index is how this kind of thing gets interesting.
+- **Tuned PID loops will behave differently.** The derivative term was using the
+  negated previous error instead of the change in error, so a loop holding a
+  steady offset carried a constant derivative push and a rising error was pushed
+  the wrong way. Fixed — see Memory safety — but any controller with `rate > 0`
+  was tuned around the old behaviour and wants revisiting. Controllers with
+  `rate == 0` are unaffected.
+
+- **Found and confirmed, not yet fixed.** Two defects are left, both judged to
+  need design rather than a patch: the power-loss window in
+  `arm/FLASH/flash_user.c`, where one sector erase covers several separate
+  writes so an interruption loses everything after the erase, and the unbounded
+  `veval_exp` recursion described above. The `#186-D pointless comparison of
+  unsigned integer with zero` warnings are worth reading as a group: a vacuous
+  lower-bound check on a network-derived index is how this kind of thing gets
+  interesting, and one of them was already hiding a division by zero.
 - **The first hardware attempt did not boot at all**, and the cause was the
   memory map rather than anything on screen — see the `RW_RAM1` note under
   Building. The display code had not run when the device hung.
