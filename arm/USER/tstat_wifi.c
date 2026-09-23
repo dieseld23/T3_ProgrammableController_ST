@@ -1111,25 +1111,27 @@ void inpust_scan(void)
 	
 	if(Check_sensor_exist(E_FLAG_VOICE))
 	{
-		if(count >= 0)
-		{
-			temp5 = check_voice_table(mic_sum /count);
-			if(Modbus.mini_type == MINI_T10P)
-				inputs[HI_COMMON_CHANNEL + 6].value = temp5 * 1000;
-			else if(Modbus.mini_type == MINI_T3OEM_12I)
-				inputs[HI_COMMON_CHANNEL2 + 6].value = temp5 * 1000;
-			else
-				inputs[COMMON_CHANNEL + 6].value = temp5 * 1000;
-		}
-		else
-		{
-			if(Modbus.mini_type == MINI_T10P)
-				inputs[HI_COMMON_CHANNEL + 6].value = 40000;
-			else if(Modbus.mini_type == MINI_T3OEM_12I)
-				inputs[HI_COMMON_CHANNEL2 + 6].value = 40000;
-			else
-				inputs[COMMON_CHANNEL + 6].value = 40000;
-		}
+        /* count is the number of microphone samples outside the carrier band,
+         * so 0 is a silent room.  The test here used to be "count >= 0", always
+         * true for an unsigned count (the compiler flagged it as #186-D), so
+         * silence divided by zero -- which this core returns as 0, DIV_0_TRP
+         * being clear -- and the table's floor of 50 was reported.  Keep that
+         * reading without the divide.  The 40000 branch that sat under the dead
+         * test never ran on a shipped unit, so it has gone rather than come to
+         * life. */
+        temp5 = check_voice_table(count ? mic_sum / count : 0);
+        if(Modbus.mini_type == MINI_T10P)
+        {
+            inputs[HI_COMMON_CHANNEL + 6].value = temp5 * 1000;
+        }
+        else if(Modbus.mini_type == MINI_T3OEM_12I)
+        {
+            inputs[HI_COMMON_CHANNEL2 + 6].value = temp5 * 1000;
+        }
+        else
+        {
+            inputs[COMMON_CHANNEL + 6].value = temp5 * 1000;
+        }
 	}
 	else
 	{

@@ -193,6 +193,27 @@ U32_T convert_pointer_to_double( U8_T *iAddr )	  // DoulbemGetPointWord
 //}
 
 extern u32 uip_timer;
+
+/* The alarm-message length is a single byte lifted straight out of program
+ * bytecode, so it runs to 255 while message[] holds 94.  Bound the copy here
+ * rather than at each call site, so the terminator lands inside the buffer
+ * too.  This covers message[] only: the callers step prog by the original len
+ * -- the byte is part of the instruction stream whether or not it was sane --
+ * and check that step against the end of the program themselves, because they
+ * write to the program behind it. */
+static void copy_prg_message(U8_T *prog, S16_T len)
+{
+    S16_T room = (S16_T)(sizeof(message) - 1);
+    S16_T n = (len < room) ? len : room;
+
+    if(n < 0)
+    {
+        n = 0;
+    }
+    memcpy(message, prog, (U16_T)n);
+    message[n] = 0;
+}
+
 S16_T exec_program(S16_T current_prg, U8_T *prog_code)
 {
 	Point p_var;
@@ -216,7 +237,8 @@ S16_T exec_program(S16_T current_prg, U8_T *prog_code)
 	U16_T local_len;
 	U16_T time_len;
 	U16_T base_len;
-	
+    U8_T *prog_end = prog_code + sizeof(prg_code[0]);   /* callers pass one row of prg_code */
+
 	u32 t1,t2;
 	// S16_T r_ind_remote;
 //	Program_remote_points /**r_remote,*/ *remote_local_list;
@@ -599,13 +621,25 @@ S16_T exec_program(S16_T current_prg, U8_T *prog_code)
 								else
 									if((p=(char *)memchr(prog,GT,30)) != NULL)
 										i = GT;
+                                /* Neither operator in reach means this is not
+                                 * an ALARM we can decode, and p is NULL. */
+                                if(p == NULL)
+                                {
+                                    return -1;
+                                }
 								*p = 0xFF;
 								v1 = veval_exp(local);
 								v2 = veval_exp(local);
 								value = veval_exp(local);
 								len = *prog++;
-								memcpy(message, prog, len);
-								message[len] = 0;
+                                /* The message, then the state byte written back
+                                 * below: both have to be inside the program. */
+                                if(prog + len + 1 > prog_end)
+                                {
+                                    *p = i;
+                                    return -1;
+                                }
+                                copy_prg_message(prog, len);
 								prog += len;
 								
 #if 1
@@ -695,11 +729,20 @@ S16_T exec_program(S16_T current_prg, U8_T *prog_code)
 								value = swap_double(value);	 
 
 								prog += 4;
-								len = *prog++;								
+                                len = *prog++;
+                                /* len is a byte out of the bytecode, and both
+                                 * arms below step over it and then write the
+                                 * 4-byte delay counter that follows.  Near the
+                                 * end of the buffer that write would land past
+                                 * prg_code[], and from there go to flash on the
+                                 * next save. */
+                                if(prog + len + 4 > prog_end)
+                                {
+                                    return -1;
+                                }
 								if (cond)         /* test condition*/
 									{
-										memcpy(message, prog, len);
-										message[len]=0;
+                                        copy_prg_message(prog, len);
 										prog += len;
 										if(just_load)
 											memcpy(prog,&value,4);
@@ -724,8 +767,7 @@ S16_T exec_program(S16_T current_prg, U8_T *prog_code)
 										memcpy(&v1,prog+len,4);
 										if (v1<=0)   /* test for restore*/
 										{
-										 memcpy(message, prog, len);
-										 message[len]=0;
+                                         copy_prg_message(prog, len);
 										 dalarmrestore(message,current_prg+1,Station_NUM);
 										 new_alarm_flag |= 0x01;  /* send the alarm to the destination panels*/
 										 //resume(ALARMTASK);

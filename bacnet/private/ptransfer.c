@@ -147,7 +147,19 @@ void Get_Pkt_Bac_to_Modbus(Str_user_data_header * header)
 {  
 	uint8_t buf[300];
 	uint16_t len;
-	uint16_t crc_check; 
+    uint16_t crc_check;
+
+    /* total_length comes straight off the wire.  The multi-write branch copies
+     * total_length - 7 bytes to &buf[7] and then lays the CRC at buf[len] and
+     * buf[len + 1] with len == total_length, so any length past
+     * sizeof(buf) - 2 writes off the end of this frame.  bacnet_to_modbus is
+     * itself only 300 bytes, so an oversized length over-reads the source too.
+     * A short length is already safe -- total_length - 7 promotes to int, so
+     * 0..6 fails the > 2 test below and takes the single-register branch
+     * instead of wrapping -- but a long one had nothing stopping it. */
+    if(header->total_length > sizeof(buf) - 2)
+        return;
+
 	//  for read command
 	buf[0] = Modbus.address;
 	if(header->command == READ_BACNET_TO_MDOBUS)
@@ -733,6 +745,13 @@ void Handler_Complex_Ack(
 							{													
 								val_ptr = (float)((U32_T)(apdu[17 + vendorid_len] << 24) + (U32_T)(apdu[18 + vendorid_len] << 16) +
 						(U16_T)(apdu[19 + vendorid_len] << 8) + apdu[20 + vendorid_len]) / 1000;
+                                /* main.c parks remote_bacnet_index at 0xff to mean
+                                 * "not reading a remote point just now", and
+                                 * remote_points_list only has MAXREMOTEPOINTS (128)
+                                 * entries, so the sentinel indexed 127 elements past
+                                 * the end and fed whatever it found to
+                                 * add_remote_point as a panel, object and instance. */
+                                if(remote_bacnet_index < MAXREMOTEPOINTS)
 								add_remote_point(remote_points_list[remote_bacnet_index].tb.RP_bacnet.panel,
 								remote_points_list[remote_bacnet_index].tb.RP_bacnet.object + 
 								(U8_T)((remote_points_list[remote_bacnet_index].tb.RP_bacnet.instance & 0xff00) >> 3),
@@ -759,8 +778,10 @@ void Handler_Complex_Ack(
 						val_ptr = apdu[12];
 					}
 					
+                    /* Same 0xff sentinel as the site above. */
+                    if(remote_bacnet_index < MAXREMOTEPOINTS)
 					add_remote_point(remote_points_list[remote_bacnet_index].tb.RP_bacnet.panel,
-					remote_points_list[remote_bacnet_index].tb.RP_bacnet.object + 
+                    remote_points_list[remote_bacnet_index].tb.RP_bacnet.object +
 					(U8_T)((remote_points_list[remote_bacnet_index].tb.RP_bacnet.instance & 0xff00) >> 3),
 					0,
 					remote_points_list[remote_bacnet_index].tb.RP_bacnet.instance & 0xff,
@@ -1157,14 +1178,22 @@ void handler_conf_private_trans_ack(
 		U8_T remote_i;
 		U32_T device_id;
 		
-#if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI )		
-		device_id = ptr->reg.instance * 65536L + ptr->reg.instance_hi;
+        /* This assignment used to sit below the device_id calculation, so ptr
+         * was dereferenced while still uninitialised and device_id came from
+         * whatever the stack slot happened to hold.  Both branches read through
+         * ptr, so both were affected. */
+        ptr = (Str_Panel_Info *)&MSTP_Send_buffer[9];
+
+#if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI )
+        /* instance is the low 16 bits and instance_hi the high 16, as the
+         * sender fills them (user_data.c) and as the branch below reads them.
+         * This had the halves the other way round, so instance 1234 came out
+         * as 1234 * 65536 and never matched a panel. */
+        device_id = ((U32_T)ptr->reg.instance_hi << 16) | ptr->reg.instance;
 #else
 		device_id = swap_word(ptr->reg.instance_hi) * 65536L + swap_word(ptr->reg.instance);
-#endif		
-		
-		ptr = (Str_Panel_Info *)&MSTP_Send_buffer[9];
-		
+#endif
+
 		// get remote_index by device_id
 		
 		if(Get_remote_index_by_device_id(device_id,&remote_i) != -1)
@@ -1832,7 +1861,25 @@ void handler_private_transfer(
 #if 1//(ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI )
 				if(command == WRITE_BACNET_TO_MDOBUS)
 				{
-					memcpy(ptr,&Temp_CS.value[header_len],private_header.total_length - header_len);
+                    /* ptr is bacnet_to_modbus, 300 bytes, and total_length is a
+                     * 16-bit field off the wire, so this copy needs the same cap
+                     * the OUT/IN/VAR branch below already applies.  The guard
+                     * inside Get_Pkt_Bac_to_Modbus does not help here: it runs
+                     * after this memcpy, and protects that function's own frame
+                     * rather than this buffer.  Source is Temp_CS.value, which is
+                     * MAX_OCTET_STRING_BYTES (594), so the destination is what
+                     * binds.  An undersized length would wrap the subtraction, so
+                     * take that first. */
+                    U16_T copy_len;
+
+                    if(private_header.total_length < header_len)
+                        copy_len = 0;
+                    else
+                        copy_len = (U16_T)(private_header.total_length - header_len);
+                    if(copy_len > sizeof(bacnet_to_modbus))
+                        copy_len = sizeof(bacnet_to_modbus);
+
+                    memcpy(ptr,&Temp_CS.value[header_len],copy_len);
 					// WRITE_BACNET_TO_MDOBUS
 					Get_Pkt_Bac_to_Modbus(&private_header);
 				}

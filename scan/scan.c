@@ -2664,7 +2664,12 @@ void check_cov_data(BACNET_COV_DATA* cov,uint16_t instance, int32_t value)
 // send out UCOV_Notify
 void Update_Value_List(uint8_t type, uint32_t instance)
 {
-	char text[10];
+    /* The three sprintf calls below use "%f", which always prints six decimal
+     * places, so anything from 100.0 upwards needed more than the ten bytes
+     * this held -- a CO2 reading of 1200 wrote "1200.000000" and ran two bytes
+     * past the end of the frame.  Sized for the widest a float can print so no
+     * value, sensible or garbage, can overrun it. */
+    char text[48];
 	uint8_t flag;
 	cov_data_value_list_link(&cov_data, &value_list, 1);
 	value_list.propertyIdentifier = PROP_PRESENT_VALUE;

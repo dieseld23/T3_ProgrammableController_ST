@@ -334,40 +334,251 @@ Two notes on the toolchain:
 - Building dirties the checked-in artifacts under `arm/OBJ/`. Those are not part
   of any commit on this branch, with one exception:
   `arm/OBJ/Tstat10_arm_revxx.hex` is committed so the branch carries something
-  flashable. It covers `0x08008000`-`0x08054933` with the entry point at
+  flashable. It covers `0x08008000`-`0x08054a30` with the entry point at
   `0x08008131` — the application only. The bootloader lives below `0x08008000`,
   is not in this repository and is not touched by flashing this file, so a bad
   application still leaves the device recoverable through the ISP window.
   Re-run the build before trusting it after any source change.
 
-Current state of the `Tstat10_wifi` target: **0 errors, 492 warnings** (down from
-510 — the 18 that went were `char*` / `unsigned char*` mismatches removed by
-explicit casts).
+Current state of the `Tstat10_wifi` target: **0 errors, 482 warnings**.
 
 | Region | Used | Of | Free |
 | --- | --- | --- | --- |
-| `ER_IROM1` flash | `0x4ae68` | `0x60000` | ~84 KB |
-| `RW_RAM1` external SRAM | `0x75368` | `0x80000` | ~43 KB |
-| `RW_IRAM1` internal SRAM | `0x5358` | `0x10000` | ~43 KB |
+| `ER_IROM1` flash | `0x4c6f0` | `0x60000` | ~78 KB |
+| `RW_RAM1` external SRAM | `0x76360` | `0x80000` | ~39 KB |
+| `RW_IRAM1` internal SRAM | `0x4370` | `0xe000` | ~39 KB |
+
+`RW_IRAM1`'s `Of` column is `0xe000` rather than the `0x10000` the chip carries,
+because the 8 KB below `0x20002000` is reserved for the stack the linker cannot
+see. See the note above.
 
 Flash went down about 25 KB across the icon change: the twelve literal RGB565
 icons that nothing draws any more came to roughly 41 KB, against 16 KB for the
 ten indexed ones that replaced them. They were deleted from the source rather
 than left to the linker, which does not reliably strip unreferenced const data.
 
-Capping `RW_RAM1` at the real 512 KB had a side effect worth knowing: the linker
-now spills about 21 KB into internal SRAM, which had been sitting entirely unused
-because `.ANY` swept everything into the oversized external region. Internal SRAM
-is single cycle where the FSMC part is not, so that is free speed rather than a
-regression.
+Internal SRAM is in use again, and that part is a genuine win: about 17 KB now
+lands there, on a region that had been sitting entirely empty because `.ANY`
+swept everything into the oversized external one. Internal SRAM is single cycle
+where the FSMC part is not.
+
+What matters is *where* it lands. An earlier revision of this file said the same
+thing about simply capping `RW_RAM1`, and that advice was wrong in a way that
+cost a device: capping it alone let the linker fill from `0x20000000` upward,
+straight through the invisible stack, and the board never left its bootloader.
+The speed was never the problem; the placement was. Basing `RW_IRAM1` at
+`0x20002000` keeps the benefit and puts the data above the stack instead of on
+top of it.
+
+## Things that are not what they look like
+
+Four traps in this tree have each cost real time, and none of them announce
+themselves.
+
+**A sizing constant in a header may not reach the binary.** `tsm.o` and
+`address.o` come from `bacnet/bacnet_ARM_revXX_T10.lib`, a prebuilt 29 MB static
+library whose sources are not in this repository. Editing `MAX_TSM_TRANSACTIONS`
+in `bacnet/bacnet.h` does not change its RAM, and somebody has already tried.
+Before quoting any `bacnet.h` constant as though it describes the image, check
+the actual symbol size in `arm/OBJ/Tstat10_arm_revxx.map`.
+
+**Task stack sizes are in words, not bytes.** `portSTACK_TYPE` is `uint32_t`, so
+`xTaskCreate(..., 1000, ...)` asks for 4,000 bytes. `sTaskCreate` is just
+`xTaskCreate` (`common/product.h:170`). `WifiSTACK_SIZE` was set to 1000 with
+2048 commented out beside it, which left `WIFI_task` 344 bytes short of the
+deepest chain the linker can trace through it.
+
+**The Keil call graph holds the stack analysis, and it is checked in.**
+`arm/OBJ/Tstat10_arm_revxx.htm` carries `Maximum Stack Usage` plus a per-root
+`[Stack]Max Depth` for every entry point, so each task can be measured against
+its own stack:
+
+```bash
+sed 's/<[^>]*>//g' arm/OBJ/Tstat10_arm_revxx.htm > cg.txt
+grep -iE 'Maximum Stack Usage|Mutually Recursive' cg.txt
+grep -oE '\[Stack\]Max Depth = [0-9]+Call Chain = [A-Za-z_][A-Za-z_0-9]*' cg.txt
+```
+
+Read the `+ Unknown(Cycles, Untraceable Function Pointers)` on that figure
+seriously. `operand`/`veval_exp` and `get_ay_elem`/`veval_exp` in the Control
+Basic interpreter are mutually recursive, with depth set by how deeply a
+user-authored program nests its expressions. Nothing bounds it.
+
+**Half the tree is not compiled.** The project builds 93 files. The whole `asix/`
+directory, `arm/uIP*`, `common/comm.c` and `arm/USER/TestTool_MiniT/` are not
+among them, and `asix/` in particular holds near-copies of `modbus.c`,
+`flash_user.c` and others that are easy to edit by mistake. The compiled set is
+whatever `<FilePath>` entries appear in `arm/USER/Tstat10_wifi.uvprojx`; resolve
+them relative to `arm/USER/`.
+
+## Memory safety
+
+FreeRTOS now reports rather than absorbs two classes of failure.
+`configCHECK_FOR_STACK_OVERFLOW` is `2` and `configUSE_MALLOC_FAILED_HOOK` is
+`1`; both hooks are in `common/main.c` and both `SoftReset()`. They record
+nothing, because RAM does not survive the reset: to see which task overran, set a
+breakpoint in `vApplicationStackOverflowHook` and read `pcTaskName`. Neither
+check was enabled before, so a task that ran off its stack
+corrupted whatever the heap had placed below it and carried on, and a task that
+could not get a stack simply never ran — every `xTaskCreate` here discards its
+return value.
+
+**This converts silent faults into visible restarts.** A board that starts
+cycling after this change is reporting a fault it always had.
+
+Twelve tasks are linked into this build, and their stacks take 51,232 bytes of
+the 60 KB heap (83.4%). TCBs, queues and semaphores come out of the other
+10,208 — roughly 2 KB of it — which leaves about 8 KB. `heap_2` cannot coalesce
+freed blocks, which is survivable only because every task here is created once
+at startup and never deleted. The heap is only drawn on at boot, so a stack that
+does not fit shows up as a reset loop on the first power-up rather than later.
+
+| task | stack (bytes) | deepest traced call chain | margin |
+| --- | ---: | ---: | ---: |
+| `main_dealwithData` | 8,192 | 4,160 | 2.0× |
+| `WIFI_task` | 8,192 | 4,344 | 1.9× |
+| `Master_Node_task` | 8,192 | 4,312 | 1.9× |
+| `Bacnet_Control` | 8,192 | 3,088 | 2.7× |
+| `ScanTask` | 8,192 | 476 | 17× |
+| `Monitor_Task_task` | 4,000 | 388 | 10× |
+| `refresh_Input_Task` | 2,000 | 312 | 6.4× |
+| `MenuTask` | 1,536 | 144 | 11× |
+| `Common_task` | 1,024 | 136 | 7.5× |
+| `refresh_Output_Task` | 800 | 80 | 10× |
+| idle | 512 | 88 | 5.8× |
+| `Key_Process` | 400 | 128 | 3.1× |
+
+Depths are the `[Stack]Max Depth` figures from Keil's call graph
+(`arm/OBJ/Tstat10_arm_revxx.htm`), which cannot see through function pointers
+or recursion, so they are floors. Each interrupt taken while a task runs also
+pushes 32 bytes onto that task's stack. Find the tasks from the callers of
+`xTaskGenericCreate` in the same file rather than by grepping the source: an
+earlier count from the source missed five of them, and one of the five,
+`main_dealwithData`, had 4,096 bytes for a 4,160-byte chain. It now has 2048
+words.
+
+Unbounded copies reachable from the network were closed at the same time: three
+in `decode.c`, where a one-byte length from program bytecode was memcpy'd into a
+94-byte buffer; two in `ptransfer.c`, where a 16-bit `total_length` off the wire
+sized copies into 300-byte buffers; and a `strcpy` in `alarm.c` that put that
+94-byte message into a 59-byte field. Two format buffers that could not hold
+their own output were resized (`alarm.c`, `scan.c`); a `memcpy(..., 0, ...)`
+reading from address 0 became the `memset` it was meant to be; `GET_PANEL_INFO`
+stopped dereferencing a pointer one line before assigning it, and now assembles
+the device instance with its two halves the right way round; three places
+stopped indexing `remote_points_list[128]` with the `0xff` "idle" sentinel, two
+reads in `ptransfer.c` and a block of writes in `main.c` that landed ~3.5 KB past
+the end of the table after every panel scan; and an
+`if(count >= 0)` on an unsigned count stopped guarding a division by it. The
+sound level still reads the table's floor of 50 in a silent room, as it always
+has; it just no longer gets there by dividing by zero.
+
+The `decode.c` clamp covers the copy into `message[]` only. `prog += len` still
+steps by the original length, because that byte is part of the instruction
+stream whether or not it was sane, and `ALARM` and `DALARM` write to the program
+just past the message — a state byte and a 4-byte delay counter. Both now check
+that step against the end of the program's 2,000-byte row and abandon the scan
+with `-1`, the decoder's existing answer to malformed code, rather than write
+past it. `ALARM` also stopped writing through a `NULL` when its comparison
+operator is missing.
+
+Alarm messages are stored truncated to 58 characters, so the lookups that find
+an existing alarm (`checkforalarm`, `dalarmrestore`) now compare on the same 58.
+Against the full text a long message never matched its own stored copy: it was
+filed again on every scan until the table filled, and could never be restored.
+
+One of those fixes was wrong the first time, in a way worth repeating. The
+`ptransfer.c` guard was put inside `Get_Pkt_Bac_to_Modbus`, which is called
+*after* the caller has already filled `bacnet_to_modbus` — so it ran after the
+overflow it was meant to stop. A bounds check is only a bounds check if it
+precedes the write it guards.
+
+### A critical section does not mask the UART here
+
+`uart0/1/2_rece_count` are written by the USART receive ISRs and read by tasks,
+and are now `volatile`. That is the smaller half of the problem. The receive ISR
+appends to its buffer and, on a complete frame, sets the count back to zero and
+starts the next frame at index 0 — so a `memcpy` out of that buffer which
+straddles the reset returns the tail of one frame spliced onto the head of the
+next. `volatile` does nothing about interleaving.
+
+Neither does `taskENTER_CRITICAL`. USART1, USART2 and USART3 are all installed at
+**NVIC pre-emption priority 0** (`usart.c:129`, `223`, `321`), while
+`configMAX_SYSCALL_INTERRUPT_PRIORITY` is 191. A critical section only raises
+`BASEPRI` to that threshold, which leaves a priority 0 handler free to run
+straight through it. Anything that must be atomic against a receive ISR has to
+mask that interrupt by name, which `wait_subnet_response` and
+`set_subnet_parameters` now do for all three ports through `uart_rx_take` and
+`uart_rx_arm` in `common/modbus.c`. A byte arriving meanwhile waits in the data
+register and is taken on unmask.
+
+Mask it **at the NVIC** (`NVIC_DisableIRQ`/`NVIC_EnableIRQ`), not by clearing
+`RXNEIE` with `USART_ITConfig`. The first version of this fix did the latter,
+and `USART_ITConfig` is a read-modify-write of `CR1`. The USART1 ISR clears
+`TXEIE` in that same register when it finishes sending a frame, so if it lands
+between the task's read and write, the task writes the stale `TXEIE` back, the
+ISR fires again and puts a stray byte on the RS-485 bus just as the slave starts
+to answer. `ICER` and `ISER` are write-one-to-clear and write-one-to-set, so
+there is nothing to lose.
+
+The same priority arrangement means those ISRs **must not call any FreeRTOS
+`…FromISR` function**. They currently do not. Keep it that way, or lower the
+priority to at or below the threshold first.
+
+### The PID derivative
+
+`pid_controller` zeroed `erp` between the proportional and integral terms, so the
+derivative block — which wants `erp - old_err * 100 / prop` — got
+`0 - old_err * 100 / prop`: the negated previous error rather than the change.
+The term tracked the level of the error instead of its movement, which meant a
+constant push at a steady offset and the wrong sign on a rising error. It also
+divided by `prop` without the guard the proportional term applies to itself.
+
+It now works from the change in the **measurement**, not the change in error.
+With a fixed setpoint the two are the same, but a setpoint step (an
+occupied/unoccupied schedule switch, say) moves the error in one sample and
+would kick the output for a whole 10 s period; the measurement does not jump.
+The loop's history is also re-seeded on the first sample after power-up and
+after any spell in manual, so returning to auto does not see the whole drift
+while it was off as a single step. The integral's trapezoid uses the same
+re-seeded history.
 
 ## Not done yet
 
-- **Only the boot is confirmed on hardware.** `rev68VPF` starts and draws the
-  screen on a real panel. Nobody has yet checked the layout against these renders
-  by eye, stepped the pages with the RIGHT key, or driven VAR25-28 to see the
-  state icons and the humidity readout change. The value most likely to need
-  nudging by eye is `LABEL_YOFF`.
+- **Only one image is confirmed on hardware, and it is not the newest.**
+
+  | image | what it adds | hardware |
+  | --- | --- | --- |
+  | `rev68VPF` | the display work | **boots and draws** |
+  | `rev68VPF2` | `RW_IRAM1` based at `0x20002000` | untested |
+  | `rev68VPF3` | the memory-safety fixes | untested |
+
+  Each builds on the one above, so `rev68VPF3` carries two unproven changes at
+  once and a failure would not say which. Prove `rev68VPF2` first. `rev68VPF` is
+  the fallback.
+
+  Nobody has yet checked the layout against these renders by eye, stepped the
+  pages with the RIGHT key, or driven VAR25-28 to see the state icons and the
+  humidity readout change. The value most likely to need nudging by eye is
+  `LABEL_YOFF`.
+
+- **Tuned PID loops will behave differently.** The derivative term was using the
+  negated previous error instead of the change in error, so a loop holding a
+  steady offset carried a constant derivative push and a rising error was pushed
+  the wrong way. Fixed — see Memory safety — but any controller with `rate > 0`
+  was tuned around the old behaviour and wants revisiting. Controllers with
+  `rate == 0` are unaffected by the derivative change. Every controller sees one
+  smaller change: the first integral step after boot or after leaving manual now
+  uses the current error twice rather than a stale one.
+
+- **Found and confirmed, not yet fixed.** Two defects are left, both judged to
+  need design rather than a patch: the power-loss window in
+  `arm/FLASH/flash_user.c`, where one sector erase covers several separate
+  writes so an interruption loses everything after the erase, and the unbounded
+  `veval_exp` recursion described above. The `#186-D pointless comparison of
+  unsigned integer with zero` warnings are worth reading as a group: a vacuous
+  lower-bound check on a network-derived index is how this kind of thing gets
+  interesting, and one of them was already hiding a division by zero.
 - **The first hardware attempt did not boot at all**, and the cause was the
   memory map rather than anything on screen — see the `RW_RAM1` note under
   Building. The display code had not run when the device hung.
@@ -386,16 +597,38 @@ regression.
 
   Flash is not the binding constraint. The scatter file claims `0x60000` at
   `0x08008000`, while the device holds `0x80000` from `0x08000000` — so on top
-  of the ~84 KB free inside the region there is another 96 KB that is not
+  of the ~78 KB free inside the region there is another 96 KB that is not
   allocated at all, out of the 480 KB the bootloader leaves.
 
   RAM is a different story, and it is the real argument for a bigger part. The
   board carries one IS61L5128L, which is 512K x 8 — 512 KB, byte wide. RW and ZI
   come to about 501 KB, so the external SRAM runs at roughly 92% full with
-  around 44 KB spare. The largest consumers are `tsm.o` (~169 KB, the BACnet
-  transaction state machine at `MAX_TSM_TRANSACTIONS 20`), `user_data.o`
-  (~71 KB, the point database) and the 60 KB FreeRTOS heap. Internal SRAM cannot
-  substitute: the heap alone would take 94% of the 64 KB on chip.
+  around 39 KB spare. The largest consumers are `tsm.o` (169 KB, the BACnet
+  transaction state machine), `user_data.o` (~71 KB, the point database) and the
+  60 KB FreeRTOS heap. Internal SRAM cannot substitute: the heap alone would take
+  94% of the 64 KB on chip.
+
+  Before reaching for a bigger part, note that **a third of the RAM is in a
+  prebuilt library and is not being used.** `TSM_List` is exactly
+  `255 x 662 = 168,810` bytes, while `bacnet/bacnet.h:75` says
+
+  ```c
+  #define MAX_TSM_TRANSACTIONS  20//255 //????????????? changed by chelsea
+  ```
+
+  Someone already cut 255 to 20 and it changed nothing, because `tsm.o` comes
+  from `bacnet/bacnet_ARM_revXX_T10.lib` and the map records its source as
+  `bacnet\src\tsm.c`, which is not in this repository. The header only steers
+  code compiled *here*. So about 155 KB is transaction slots the firmware's own
+  configuration says should not exist. Recovering it means sourcing an upstream
+  `tsm.c` that matches `MAX_APDU 600` and adding it to the project so the linker
+  prefers it over the library's copy; eleven exported symbols have to match.
+  Recompiled from the repo headers the entry works out at 674-676 bytes rather
+  than the library's 662, so budget roughly 150 KB, not a precise figure.
+
+  `address.o` is in the same library, and `Address_Cache` is `255 x 31 = 7,905`
+  bytes. There `MAX_ADDRESS_CACHE 255` at `bacnet.h:83` does agree with the
+  binary — that one is merely large, not a failed edit.
 
   The real obstacle is the bootloader. It is not in this repository, it is
   flashed below `0x08008000`, and changing silicon needs one that runs on the

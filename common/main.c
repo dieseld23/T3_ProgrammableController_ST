@@ -95,6 +95,38 @@ void Bacnet_Control(void) reentrant;
 	put E2prom data to buffer when start-up 
 */	
 
+/* Reached when pvPortMalloc comes back empty, which on this firmware means a
+ * task was created without a stack and would otherwise have been dropped in
+ * silence.  Reset rather than run with a task missing. */
+void vApplicationMallocFailedHook(void)
+{
+    SoftReset();
+    for(;;)
+    {
+    }
+}
+
+/* By the time FreeRTOS calls this the stack has already been written past, so
+ * whatever the heap placed below that task is damaged.  Carrying on means
+ * driving outputs from corrupted state, which on a controller is worse than
+ * going away and coming back, so reset.  Note this turns a previously silent
+ * fault into a visible restart -- if a board starts cycling after this change,
+ * the overflow was always there and is now being reported rather than absorbed.
+ *
+ * Nothing is recorded on the way out: RAM does not survive the reset, so a
+ * count or a task name kept here could only ever be read by a debugger halted
+ * in this function, where pcTaskName already says which task it was. */
+void vApplicationStackOverflowHook(xTaskHandle pxTask, signed char *pcTaskName)
+{
+    (void)pxTask;
+    (void)pcTaskName;
+
+    SoftReset();
+    for(;;)
+    {
+    }
+}
+
 void check_flash_changed(void)
 {
 	/* RAM ERR guess: ExtSRAM/bus shows 0xFF while flash still has real config.
@@ -1741,7 +1773,17 @@ void Master_Node_task(void) reentrant
 						if((count_start_task % 200 == 0) && (upate_mstp_flag == 0)) // 1.5s
 						{
 							// check whether the device is online or offline
-							if(flag_receive_rmbp == 1)
+                            if(remote_bacnet_index >= MAXREMOTEPOINTS)
+                            {
+                                /* 0xff: the panel-scan branch below parked the
+                                 * index while it waits on a private scan, and
+                                 * find_next_remote_bacnet_point returns it when
+                                 * there are no points.  Either way there is no
+                                 * entry to book the answer against, and these
+                                 * are writes -- remote_points_list[255] is
+                                 * ~3.5 KB past the end of the table. */
+                            }
+                            else if(flag_receive_rmbp == 1)
 							{
 								U8_T remote_panel_index;
 								if(Get_rmp_index_by_panel(remote_points_list[remote_bacnet_index].point.panel,

@@ -34,9 +34,12 @@ void pid_controller( S16_T p_number )   // 10s
 	con = &controllers[p_number];
 	
 
-	if(con->auto_manual == 1)  // manual - 1 , 0 - auto
-		return;
 	conx = &con_aux[p_number];
+    if(con->auto_manual == 1)  // manual - 1 , 0 - auto
+    {
+        conx->primed = 0;   /* history goes stale while in manual */
+        return;
+    }
 	get_point_value( (Point*)&con->input, &con->input_value );
 	get_point_value( (Point*)&con->setpoint, &con->setpoint_value );
 	od = oi = op = 0;
@@ -50,7 +53,19 @@ void pid_controller( S16_T p_number )   // 10s
 	temp_setpoint_value = swap_double(con->setpoint_value); 
 
 	err = temp_input_value - temp_setpoint_value;  /* absolute error */
-		
+
+    /* First sample after power-up (con_aux is zeroed) or after a spell in
+     * manual: there is no previous sample, or it is from before the break, so
+     * take this one as the previous.  Otherwise the derivative sees the whole
+     * input as a single step -- from 0 at boot -- and the integral's trapezoid
+     * is anchored to an error that no longer applies. */
+    if( !conx->primed )
+    {
+        conx->old_err = err;
+        conx->old_input = temp_input_value;
+        conx->primed = 1;
+    }
+
 	erp = 0L;
 
 //	con->reset = 20;
@@ -64,8 +79,6 @@ void pid_controller( S16_T p_number )   // 10s
 	else
 		op = -erp; /* - */
 
-	erp = 0L;
-	
 /* integral term	*/
 	/* sample_time = 10s */
 	l1 = ( conx->old_err + err ) * (con->sample_time / 2); /* 5 = sample_time / 2 */
@@ -94,11 +107,35 @@ void pid_controller( S16_T p_number )   // 10s
 			oi /= 3600L;
 	}
 /* differential term	*/
-	if( con->rate > 0)
+    /* The rate of change of the measurement, normalised by the proportional
+     * band.  With the setpoint constant this is the same as the change in error
+     * -- err = input - setpoint -- but a setpoint step, such as a schedule
+     * switching between occupied and unoccupied, moves err in one sample and
+     * would slam the output for a whole sample period.  The measurement does
+     * not jump, so neither does this.
+     *
+     * What shipped was neither.  The original expression, preserved in the
+     * comments below, is ( erp - old_err * 100 / prop ), but erp was cleared
+     * between the proportional and integral terms, so what reached here was
+     * ( 0 - old_err * 100 / prop ): the negated previous error.  A loop holding
+     * a steady offset got a constant contribution where the term should fall
+     * to zero.
+     *
+     * The clamp is symmetric, so a steady input still gives exactly zero, and
+     * keeps "od *= rate" inside S32_T.  prop is in the condition because
+     * nothing else guarded the divide: rate and proportional are independent
+     * settings. */
+    if( con->rate > 0 && prop > 0 )
 	{
-		od = conx->old_err * 100;
-		od /= prop;
-		od = erp - od;
+        od = 100L * ( temp_input_value - conx->old_input ) / prop;
+        if( od > 100000L )
+        {
+            od = 100000L;
+        }
+        if( od < -100000L )
+        {
+            od = -100000L;
+        }
 		if(con->action > 0)
 		{
 /*			od = ( erp - conx->old_err * 100 / prop ) * con->rate / 600L;
@@ -131,6 +168,7 @@ void pid_controller( S16_T p_number )   // 10s
 		 }
 	}
 	conx->old_err = err;
+    conx->old_input = temp_input_value;
 	con->value = swap_double(out_sum);
 #endif
 

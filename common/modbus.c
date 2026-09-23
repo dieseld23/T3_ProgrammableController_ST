@@ -120,7 +120,7 @@ U16_T far uart1_send_count;
 U16_T far uart2_send_count;
 
 U16_T far uart2_rece_size = 0;
-U16_T far uart2_rece_count;
+volatile U16_T far uart2_rece_count;    /* ISR writes, task reads -- see uart0_rece_count */
 U8_T far uart0_send_buf[MAX_BUF_LEN];
 U8_T far uart1_send_buf[MAX_BUF_LEN];
 U8_T far uart2_send_buf[MAX_BUF_LEN];
@@ -254,8 +254,11 @@ U16_T subnet_rec_package_size;
 
 
 
-U16_T uart0_rece_count;
-U16_T uart1_rece_count;
+/* Written by the USART receive ISRs and read by tasks, so the compiler must not
+ * keep them in a register across a read.  See wait_subnet_response for why
+ * volatile alone is not the whole story. */
+volatile U16_T uart0_rece_count;
+volatile U16_T uart1_rece_count;
 
 
 U16_T uart0_rece_size = 0;
@@ -998,15 +1001,106 @@ void uart_send_string(U8_T *p, U16_T length,U8_T port)
 
 
 
+#if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI)
+/* Receive state for each subnet port: uart0 is USART1, uart1 is USART2 and
+ * uart2 is USART3.
+ *
+ * The task side shares the count and the buffer with the receive ISR.  On a
+ * complete frame the ISR sets the count back to 0 and starts the next frame at
+ * index 0, so a snapshot-then-copy that straddles that point returns the tail
+ * of one frame spliced onto the head of the next; arming a new exchange has the
+ * same problem between clearing the count and clearing the buffer.  volatile
+ * does not help -- the problem is interleaving, not caching -- and neither does
+ * taskENTER_CRITICAL: all three USARTs are at NVIC pre-emption priority 0
+ * (usart.c), above configMAX_SYSCALL_INTERRUPT_PRIORITY, and a critical section
+ * only raises BASEPRI to that threshold.
+ *
+ * So the port's interrupt is masked at the NVIC.  ICER and ISER are write-one-
+ * to-clear and write-one-to-set, which matters: toggling RXNEIE instead is a
+ * read-modify-write of CR1, and if the ISR clears TXEIE at the end of a frame
+ * between that read and write, the stale TXEIE goes back and the ISR sends a
+ * stray byte onto the RS-485 bus.  A byte arriving while masked waits in the
+ * data register and is taken on unmask; the window is one copy or clear of at
+ * most MAX_BUF_LEN bytes. */
+typedef struct
+{
+    IRQn_Type irq;
+    volatile U16_T *count;
+    U8_T *buf;
+} UART_RX_PORT;
+
+static const UART_RX_PORT uart_rx_port[3] =
+{
+    {USART1_IRQn, &uart0_rece_count, uart0_data_buffer},
+    {USART2_IRQn, &uart1_rece_count, uart1_data_buffer},
+    {USART3_IRQn, &uart2_rece_count, uart2_data_buffer},
+};
+
+/* Returns whether the line was enabled, for uart_rx_unmask. */
+static U8_T uart_rx_mask(IRQn_Type irq)
+{
+    U8_T was_on = (U8_T)((NVIC->ISER[(U32_T)irq >> 5] >> ((U32_T)irq & 0x1F)) & 1);
+
+    NVIC_DisableIRQ(irq);
+    __DSB(); /* the disable has reached the NVIC */
+    __ISB(); /* and nothing after it ran first */
+    return was_on;
+}
+
+/* A line that was off before stays off. */
+static void uart_rx_unmask(IRQn_Type irq, U8_T was_on)
+{
+    if(was_on)
+    {
+        NVIC_EnableIRQ(irq);
+    }
+}
+
+/* Start a new exchange: empty the port's count and buffer as one step. */
+static void uart_rx_arm(U8_T port)
+{
+    const UART_RX_PORT *p = &uart_rx_port[port];
+    U16_T n = (subnet_rec_package_size < MAX_BUF_LEN) ? subnet_rec_package_size : MAX_BUF_LEN;
+    U8_T was_on = uart_rx_mask(p->irq);
+
+    *p->count = 0;
+    memset(p->buf, 0, n);
+    uart_rx_unmask(p->irq, was_on);
+}
+
+/* If a whole response has arrived, copy it to subnet_response_buf and return 1
+ * with its length in *length.  The count is read and the copy made as one
+ * step. */
+static U8_T uart_rx_take(U8_T port, U16_T *length)
+{
+    const UART_RX_PORT *p = &uart_rx_port[port];
+    U8_T was_on = uart_rx_mask(p->irq);
+    U8_T got;
+
+    *length = *p->count;
+    got = (U8_T)(*length >= subnet_rec_package_size);
+    if(got)
+    {
+        memcpy(subnet_response_buf, p->buf, *length);
+    }
+    uart_rx_unmask(p->irq, was_on);
+    return got;
+}
+#endif
+
 void set_subnet_parameters(U8_T io, U16_T length,U8_T port)
 {
 	U16_T temp = 0;
-	subnet_rec_package_size = length;  
+    subnet_rec_package_size = length;
 	if(port > 2) return;
 	if(port == 0 )
-	{	
+    {
+#if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI)
+        uart_rx_arm(0);
+#else
 		uart0_rece_count = 0;
 		memset(uart0_data_buffer,0,subnet_rec_package_size);
+#endif
 #if (ARM_MINI || ASIX_MINI)
 		if((Modbus.mini_type == MINI_TINY) 
 			|| (Modbus.mini_type == MINI_NEW_TINY) || (Modbus.mini_type == MINI_TINY_ARM) || (Modbus.mini_type == MINI_TINY_11I)
@@ -1028,8 +1122,7 @@ void set_subnet_parameters(U8_T io, U16_T length,U8_T port)
 #endif
 		
 #if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI )
-		uart2_rece_count = 0;
-		memset(uart2_data_buffer,0,subnet_rec_package_size);
+        uart_rx_arm(2);
 #endif
 		
 #if ARM_MINI || ASIX_MINI
@@ -1051,10 +1144,14 @@ void set_subnet_parameters(U8_T io, U16_T length,U8_T port)
 	}
 	if(port == 1 )
 	{
+#if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI)
+        uart_rx_arm(1);
+#else
 		uart1_rece_count = 0;
 		memset(uart1_data_buffer,0,subnet_rec_package_size);
+#endif
 	}
-	
+
 }
   
 
@@ -1084,40 +1181,39 @@ U16_T wait_subnet_response(U16_T nDoubleTick,U8_T port)
 #if (ARM_MINI || ASIX_MINI || ARM_CM5 || ARM_TSTAT_WIFI) 
 	for(i = 0; i < nDoubleTick; i++)
 	{
+#if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI)
+        /* All three ports, see uart_rx_port for why this is not a plain
+         * snapshot and copy. */
+        if(uart_rx_take(port, &length))
+        {
+            return length;
+        }
+#else
 		if(port == 0 )
-		{			
+        {
 			if((length = uart0_rece_count) >= subnet_rec_package_size)
-			{	
+            {
 				memcpy(subnet_response_buf,uart0_data_buffer,length);
 				return length;
-			}	
+            }
 		}
 		if(port == 2 )
 		{
-#if ASIX_MINI	
 			if((length = hsurRxCount) >= subnet_rec_package_size)
-			{		
+            {
 				memcpy(subnet_response_buf,hsurRxBuffer,length);
 				return length;
 			}
-#endif
-			
-#if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI )
-			if((length = uart2_rece_count) >= subnet_rec_package_size)
-			{	
-				memcpy(subnet_response_buf,uart2_data_buffer,length);				
-				return length;
-			}	
-#endif			
 		}
 		if(port == 1)
-		{	
+        {
 			if((length = uart1_rece_count) >= subnet_rec_package_size)
-			{	
+            {
 				memcpy(subnet_response_buf,uart1_data_buffer,length);
 				return length;
 			}
-		}	
+        }
+#endif
 		
 #if ASIX_MINI
 		vTaskDelay(1);
