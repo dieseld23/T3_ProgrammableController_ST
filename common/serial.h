@@ -25,7 +25,11 @@
 #define RESPONSERANDVALUE	1
 
 
-#define MainSerialSTACK_SIZE	((unsigned portSHORT)1024)
+/* In words.  The Keil call graph traces 4,160 bytes through main_dealwithData
+ * (a BACnet private transfer that writes a remote point, down to bip_send_pdu),
+ * which 1024 words did not hold -- and that is before the calls it cannot see
+ * through function pointers.  2048 leaves about 4 KB for those. */
+#define MainSerialSTACK_SIZE ((unsigned portSHORT)2048)
 
 
 

@@ -482,6 +482,8 @@ typedef struct
 	int32_t	old_err;
 	int32_t 	error_area;
 	int32_t 	oi;
+    int32_t old_input;  /* last sample's input, for the derivative term */
+    uint8_t primed;     /* 0 until old_err/old_input hold a real sample */
 }	Con_aux;
 
 typedef struct

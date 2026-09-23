@@ -95,47 +95,36 @@ void Bacnet_Control(void) reentrant;
 	put E2prom data to buffer when start-up 
 */	
 
-/* Name of the task that last overran its stack, and how many times it has
- * happened this boot.  Both live in RAM only: the reset below wipes them on the
- * way back up, so they are here to be read from a debugger or a breakpoint at
- * the moment of the fault, not as a field log.  Persisting the count would need
- * an EEPROM slot allocating alongside EEP_RAM_ERR. */
-char  stack_overflow_task[configMAX_TASK_NAME_LEN];
-U16_T stack_overflow_count;
-U16_T heap_fail_count;
+/* Reached when pvPortMalloc comes back empty, which on this firmware means a
+ * task was created without a stack and would otherwise have been dropped in
+ * silence.  Reset rather than run with a task missing. */
+void vApplicationMallocFailedHook(void)
+{
+    SoftReset();
+    for(;;)
+    {
+    }
+}
 
 /* By the time FreeRTOS calls this the stack has already been written past, so
  * whatever the heap placed below that task is damaged.  Carrying on means
  * driving outputs from corrupted state, which on a controller is worse than
- * going away and coming back, so record what happened and reset.  Note this
- * turns a previously silent fault into a visible restart -- if a board starts
- * cycling after this change, the overflow was always there and is now being
- * reported rather than absorbed. */
-/* Reached when pvPortMalloc comes back empty, which on this firmware means a
- * task was created without a stack and would otherwise have been dropped in
- * silence.  Count it and reset rather than run with a task missing. */
-void vApplicationMallocFailedHook(void)
-{
-	heap_fail_count++;
-
-	SoftReset();
-	for(;;)
-		;
-}
-
+ * going away and coming back, so reset.  Note this turns a previously silent
+ * fault into a visible restart -- if a board starts cycling after this change,
+ * the overflow was always there and is now being reported rather than absorbed.
+ *
+ * Nothing is recorded on the way out: RAM does not survive the reset, so a
+ * count or a task name kept here could only ever be read by a debugger halted
+ * in this function, where pcTaskName already says which task it was. */
 void vApplicationStackOverflowHook(xTaskHandle pxTask, signed char *pcTaskName)
 {
-	U8_T i;
+    (void)pxTask;
+    (void)pcTaskName;
 
-	(void)pxTask;
-	for(i = 0;i < configMAX_TASK_NAME_LEN - 1 && pcTaskName[i];i++)
-		stack_overflow_task[i] = (char)pcTaskName[i];
-	stack_overflow_task[i] = 0;
-	stack_overflow_count++;
-
-	SoftReset();
-	for(;;)
-		;
+    SoftReset();
+    for(;;)
+    {
+    }
 }
 
 void check_flash_changed(void)
@@ -1784,7 +1773,17 @@ void Master_Node_task(void) reentrant
 						if((count_start_task % 200 == 0) && (upate_mstp_flag == 0)) // 1.5s
 						{
 							// check whether the device is online or offline
-							if(flag_receive_rmbp == 1)
+                            if(remote_bacnet_index >= MAXREMOTEPOINTS)
+                            {
+                                /* 0xff: the panel-scan branch below parked the
+                                 * index while it waits on a private scan, and
+                                 * find_next_remote_bacnet_point returns it when
+                                 * there are no points.  Either way there is no
+                                 * entry to book the answer against, and these
+                                 * are writes -- remote_points_list[255] is
+                                 * ~3.5 KB past the end of the table. */
+                            }
+                            else if(flag_receive_rmbp == 1)
 							{
 								U8_T remote_panel_index;
 								if(Get_rmp_index_by_panel(remote_points_list[remote_bacnet_index].point.panel,

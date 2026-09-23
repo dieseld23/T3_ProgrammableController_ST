@@ -415,8 +415,10 @@ them relative to `arm/USER/`.
 
 FreeRTOS now reports rather than absorbs two classes of failure.
 `configCHECK_FOR_STACK_OVERFLOW` is `2` and `configUSE_MALLOC_FAILED_HOOK` is
-`1`; both hooks are in `common/main.c` and both record to a global and then
-`SoftReset()`. Neither was enabled before, so a task that ran off its stack
+`1`; both hooks are in `common/main.c` and both `SoftReset()`. They record
+nothing, because RAM does not survive the reset: to see which task overran, set a
+breakpoint in `vApplicationStackOverflowHook` and read `pcTaskName`. Neither
+check was enabled before, so a task that ran off its stack
 corrupted whatever the heap had placed below it and carried on, and a task that
 could not get a stack simply never ran — every `xTaskCreate` here discards its
 return value.
@@ -424,10 +426,36 @@ return value.
 **This converts silent faults into visible restarts.** A board that starts
 cycling after this change is reporting a fault it always had.
 
-Task stacks currently take 39,616 bytes of the 60 KB heap (64.5%), leaving about
-21 KB for TCBs, queues and semaphores. `heap_2` cannot coalesce freed blocks,
-which is survivable only because every task here is created once at startup and
-never deleted.
+Twelve tasks are linked into this build, and their stacks take 51,232 bytes of
+the 60 KB heap (83.4%). TCBs, queues and semaphores come out of the other
+10,208 — roughly 2 KB of it — which leaves about 8 KB. `heap_2` cannot coalesce
+freed blocks, which is survivable only because every task here is created once
+at startup and never deleted. The heap is only drawn on at boot, so a stack that
+does not fit shows up as a reset loop on the first power-up rather than later.
+
+| task | stack (bytes) | deepest traced call chain | margin |
+| --- | ---: | ---: | ---: |
+| `main_dealwithData` | 8,192 | 4,160 | 2.0× |
+| `WIFI_task` | 8,192 | 4,344 | 1.9× |
+| `Master_Node_task` | 8,192 | 4,312 | 1.9× |
+| `Bacnet_Control` | 8,192 | 3,088 | 2.7× |
+| `ScanTask` | 8,192 | 476 | 17× |
+| `Monitor_Task_task` | 4,000 | 388 | 10× |
+| `refresh_Input_Task` | 2,000 | 312 | 6.4× |
+| `MenuTask` | 1,536 | 144 | 11× |
+| `Common_task` | 1,024 | 136 | 7.5× |
+| `refresh_Output_Task` | 800 | 80 | 10× |
+| idle | 512 | 88 | 5.8× |
+| `Key_Process` | 400 | 128 | 3.1× |
+
+Depths are the `[Stack]Max Depth` figures from Keil's call graph
+(`arm/OBJ/Tstat10_arm_revxx.htm`), which cannot see through function pointers
+or recursion, so they are floors. Each interrupt taken while a task runs also
+pushes 32 bytes onto that task's stack. Find the tasks from the callers of
+`xTaskGenericCreate` in the same file rather than by grepping the source: an
+earlier count from the source missed five of them, and one of the five,
+`main_dealwithData`, had 4,096 bytes for a 4,160-byte chain. It now has 2048
+words.
 
 Unbounded copies reachable from the network were closed at the same time: three
 in `decode.c`, where a one-byte length from program bytecode was memcpy'd into a
@@ -436,14 +464,28 @@ sized copies into 300-byte buffers; and a `strcpy` in `alarm.c` that put that
 94-byte message into a 59-byte field. Two format buffers that could not hold
 their own output were resized (`alarm.c`, `scan.c`); a `memcpy(..., 0, ...)`
 reading from address 0 became the `memset` it was meant to be; `GET_PANEL_INFO`
-stopped dereferencing a pointer one line before assigning it; two call sites
-stopped indexing `remote_points_list[128]` with the `0xff` "idle" sentinel; and
-an `if(count >= 0)` on an unsigned count stopped guarding a division by it.
+stopped dereferencing a pointer one line before assigning it, and now assembles
+the device instance with its two halves the right way round; three places
+stopped indexing `remote_points_list[128]` with the `0xff` "idle" sentinel, two
+reads in `ptransfer.c` and a block of writes in `main.c` that landed ~3.5 KB past
+the end of the table after every panel scan; and an
+`if(count >= 0)` on an unsigned count stopped guarding a division by it. The
+sound level still reads the table's floor of 50 in a silent room, as it always
+has; it just no longer gets there by dividing by zero.
 
-The `decode.c` clamp deliberately leaves `prog += len` using the original
-length: that byte is part of the instruction stream whether or not it was sane,
-and clamping the step too would desynchronise the decoder on exactly the input
-the fix exists to survive.
+The `decode.c` clamp covers the copy into `message[]` only. `prog += len` still
+steps by the original length, because that byte is part of the instruction
+stream whether or not it was sane, and `ALARM` and `DALARM` write to the program
+just past the message — a state byte and a 4-byte delay counter. Both now check
+that step against the end of the program's 2,000-byte row and abandon the scan
+with `-1`, the decoder's existing answer to malformed code, rather than write
+past it. `ALARM` also stopped writing through a `NULL` when its comparison
+operator is missing.
+
+Alarm messages are stored truncated to 58 characters, so the lookups that find
+an existing alarm (`checkforalarm`, `dalarmrestore`) now compare on the same 58.
+Against the full text a long message never matched its own stored copy: it was
+filed again on every scan until the table filled, and could never be restored.
 
 One of those fixes was wrong the first time, in a way worth repeating. The
 `ptransfer.c` guard was put inside `Get_Pkt_Bac_to_Modbus`, which is called
@@ -466,9 +508,18 @@ Neither does `taskENTER_CRITICAL`. USART1, USART2 and USART3 are all installed a
 `BASEPRI` to that threshold, which leaves a priority 0 handler free to run
 straight through it. Anything that must be atomic against a receive ISR has to
 mask that interrupt by name, which `wait_subnet_response` and
-`set_subnet_parameters` now do — `USART_IT_RXNE` only, so transmit interrupts
-sharing the vector keep working, and a byte arriving meanwhile still sets RXNE
-and is taken on unmask.
+`set_subnet_parameters` now do for all three ports through `uart_rx_take` and
+`uart_rx_arm` in `common/modbus.c`. A byte arriving meanwhile waits in the data
+register and is taken on unmask.
+
+Mask it **at the NVIC** (`NVIC_DisableIRQ`/`NVIC_EnableIRQ`), not by clearing
+`RXNEIE` with `USART_ITConfig`. The first version of this fix did the latter,
+and `USART_ITConfig` is a read-modify-write of `CR1`. The USART1 ISR clears
+`TXEIE` in that same register when it finishes sending a frame, so if it lands
+between the task's read and write, the task writes the stale `TXEIE` back, the
+ISR fires again and puts a stray byte on the RS-485 bus just as the slave starts
+to answer. `ICER` and `ISER` are write-one-to-clear and write-one-to-set, so
+there is nothing to lose.
 
 The same priority arrangement means those ISRs **must not call any FreeRTOS
 `…FromISR` function**. They currently do not. Keep it that way, or lower the
@@ -482,6 +533,15 @@ derivative block — which wants `erp - old_err * 100 / prop` — got
 The term tracked the level of the error instead of its movement, which meant a
 constant push at a steady offset and the wrong sign on a rising error. It also
 divided by `prop` without the guard the proportional term applies to itself.
+
+It now works from the change in the **measurement**, not the change in error.
+With a fixed setpoint the two are the same, but a setpoint step (an
+occupied/unoccupied schedule switch, say) moves the error in one sample and
+would kick the output for a whole 10 s period; the measurement does not jump.
+The loop's history is also re-seeded on the first sample after power-up and
+after any spell in manual, so returning to auto does not see the whole drift
+while it was off as a single step. The integral's trapezoid uses the same
+re-seeded history.
 
 ## Not done yet
 
@@ -512,7 +572,9 @@ divided by `prop` without the guard the proportional term applies to itself.
   steady offset carried a constant derivative push and a rising error was pushed
   the wrong way. Fixed — see Memory safety — but any controller with `rate > 0`
   was tuned around the old behaviour and wants revisiting. Controllers with
-  `rate == 0` are unaffected.
+  `rate == 0` are unaffected by the derivative change. Every controller sees one
+  smaller change: the first integral step after boot or after leaving manual now
+  uses the current error twice rather than a stale one.
 
 - **Found and confirmed, not yet fixed.** Two defects are left, both judged to
   need design rather than a patch: the power-loss window in

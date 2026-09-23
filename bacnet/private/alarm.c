@@ -16,6 +16,30 @@ extern char send_message[200];
 
 //U8_T Write_ALARM_TO_SD(Alarm_point alarm,U32_T star_pos);
 
+/* An alarm_message holds ALARM_MESSAGE_SIZE characters, and putmessage keeps
+ * only that many of a longer one -- the Control Basic interpreter hands in up
+ * to 93.  Everything that later looks for the stored copy has to compare on the
+ * same terms: matched against the full text, a long message never finds itself,
+ * so checkforalarm files it again on every scan until the table is full and
+ * dalarmrestore can never clear it. */
+static U16_T alarm_text_len(S8_T *mes)
+{
+    U16_T n = (U16_T)strlen(mes);
+
+    if(n > ALARM_MESSAGE_SIZE)
+    {
+        n = ALARM_MESSAGE_SIZE;
+    }
+    return n;
+}
+
+static U8_T alarm_text_matches(Alarm_point *ptr, S8_T *mes)
+{
+    U16_T n = alarm_text_len(mes);
+
+    return (U8_T)(ptr->alarm_count == n && !memcmp(ptr->alarm_message, mes, n));
+}
+
 ///**************************************************
 //// return:  0 - no space; >=1 - alarm index
 ///**************************************************/
@@ -41,21 +65,19 @@ S16_T putmessage(S8_T *mes, S16_T prg, S16_T panel, S16_T type, S8_T alarmatall,
 		ptr->type         = type;
 		//	ptr->panel_type   = panel_net_info.panel_type;
 
-		/* alarm_message is ALARM_MESSAGE_SIZE+1, but callers hand this the
-		 * global message[] from the Control Basic interpreter, which is
-		 * ALARM_MESSAGE_SIZE+26+10 and can legitimately be that full.  strcpy
-		 * ran the difference straight into the neighbouring fields of the
-		 * Alarm_point.  Truncate, and record the length actually stored rather
-		 * than the one that was offered. */
-		{
-			U16_T mes_len = (U16_T)strlen(mes);
+        /* alarm_message is ALARM_MESSAGE_SIZE+1, but callers hand this the
+         * global message[] from the Control Basic interpreter, which is
+         * ALARM_MESSAGE_SIZE+26+10 and can legitimately be that full.  strcpy
+         * ran the difference straight into the neighbouring fields of the
+         * Alarm_point.  Truncate, and record the length actually stored rather
+         * than the one that was offered. */
+        {
+            U16_T mes_len = alarm_text_len(mes);
 
-			if(mes_len > ALARM_MESSAGE_SIZE)
-				mes_len = ALARM_MESSAGE_SIZE;
-			memcpy(ptr->alarm_message,mes,mes_len);
-			ptr->alarm_message[mes_len] = 0;
-			ptr->alarm_count = (U8_T)mes_len;
-		}
+            memcpy(ptr->alarm_message, mes, mes_len);
+            ptr->alarm_message[mes_len] = 0;
+            ptr->alarm_count = (S8_T)mes_len;
+        }
 		if(alarmatall)
 		{
 			ptr->where1  = 255;
@@ -99,9 +121,8 @@ S16_T checkforalarm(S8_T *mes, S16_T prg, S16_T panel, S16_T id, S16_T *free_ent
 			 	if( !id )
 			 	{	
 					if( !ptr->restored )
-				 		if (ptr->alarm_count == strlen(mes) )
-							if( !strcmp(ptr->alarm_message, mes) )
-					{ 	
+                        if( alarm_text_matches(ptr, mes) )
+                    {
 					 return j+1;          /* existing alarm*/
 					}
 			 }
@@ -357,13 +378,13 @@ void generate_common_alarm(U8_T index)
 
 void generate_program_alarm(U8_T type,U8_T prg)
 {
-	/* The longest of the three messages below reaches 32 bytes with a
-	 * three-digit program number, and the truncation further down already
-	 * assumes the buffer runs to ALARM_MESSAGE_SIZE, so size it that way.
-	 * At 20 bytes every branch overran this frame before the strlen check
-	 * downstream ever got to look at it. */
-	S8_T far str[ALARM_MESSAGE_SIZE + 1];
-	memset(str,0,sizeof(str));
+    /* The longest of the three messages below reaches 32 bytes with a
+     * three-digit program number, and the truncation further down already
+     * assumes the buffer runs to ALARM_MESSAGE_SIZE, so size it that way.
+     * At 20 bytes every branch overran this frame before the strlen check
+     * downstream ever got to look at it. */
+    S8_T far str[ALARM_MESSAGE_SIZE + 1];
+    memset(str,0,sizeof(str));
 
 	//if(index == ALARM_PROGRAM)
 	if(type == 0) // dead cycle
@@ -473,8 +494,7 @@ void dalarmrestore(S8_T *mes, S16_T prg, S16_T panel)
 	 		if( ptr->alarm_panel == panel )
 				if( ptr->prg == prg )
 		 			if( !ptr->restored )
-						if (ptr->alarm_count == strlen(mes) )
-			 				if( !strcmp(ptr->alarm_message, mes) )
+                        if( alarm_text_matches(ptr, mes) )
 							{
 								ptr->restored = 1;
 								ptr->where_state1 = 0;
