@@ -562,11 +562,6 @@ re-seeded history.
   humidity readout change. The value most likely to need nudging by eye is
   `LABEL_YOFF`.
 
-- **`main` cannot currently produce a bootable image.** It still carries
-  `RW_IRAM1 0x20000000 / 0x10000`, the map described under Building as the one
-  that would not boot. Building from `main` and flashing the result will put a
-  device in its bootloader. Fixed by the memory-map branch, not yet merged.
-
 - **Tuned PID loops will behave differently.** The derivative term was using the
   negated previous error instead of the change in error, so a loop holding a
   steady offset carried a constant derivative push and a rising error was pushed
