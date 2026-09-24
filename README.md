@@ -752,7 +752,7 @@ Also, on whichever image boots:
 
 ### Elsewhere
 
-- **The ESP32 port has the bugs fixed here.** In
+- **The ESP32 port still has bugs that are fixed here.** In
   `T3-programmable-controller-on-ESP32/temco_bacnet/private/`, as of 2026-09-24:
   - `decode.c` has the unbounded array-index recursion.
   - `PIDPROP`, `PIDDERIV` and `PIDINT` use an unchecked controller index.
