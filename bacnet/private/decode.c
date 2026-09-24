@@ -7,6 +7,7 @@
 #include "alarm.h"
 #include "define.h"
 #include <math.h>
+#include <setjmp.h>
 
 #if BAC_PRIVATE
 
@@ -214,7 +215,92 @@ static void copy_prg_message(U8_T *prog, S16_T len)
     message[n] = 0;
 }
 
+/* Array indexes are the interpreter's only recursion: operand -> get_ay_elem
+ * -> veval_exp for a local array, operand -> veval_exp for a remote one.
+ * Neither T3000's compiler nor anything here limits how deep they nest, and a
+ * 2,000-byte program row has room for well over a hundred levels.  Each level
+ * costs about 200 bytes of the Bacnet_Control task's 8 KB stack, which already
+ * runs about 3 KB deep without any, so somewhere past 25 the stack overflows.
+ * The overflow hook resets the board, the program runs again once it is back,
+ * and after five of those bac_control.c switches every program off without
+ * saying why.
+ *
+ * So nesting is capped.  8 levels cost under 2 KB, and a program that indexes
+ * an array by an element of an array by an element of an array is already
+ * unusual. */
+#define MAX_INDEX_DEPTH 8
+
+static U8_T index_depth;
+static jmp_buf index_abort;
+static U8_T index_abort_armed;
+
+/* The Alarm statement overwrites its comparison operator with 0xFF while it
+ * evaluates, so an abandoned scan has to put the byte back or the stored
+ * program is damaged. */
+static U8_T *alarm_patch;
+static U8_T alarm_patch_byte;
+
+/* Evaluate an array index, the one place the interpreter recurses. */
+static S32_T eval_index(U8_T *local)
+{
+    S32_T v;
+
+    if(index_depth >= MAX_INDEX_DEPTH)
+    {
+        if(index_abort_armed)
+        {
+            longjmp(index_abort, 1);
+        }
+        return 0; /* not reachable: only exec_program runs the interpreter */
+    }
+    index_depth++;
+    v = veval_exp(local);
+    index_depth--;
+    return v;
+}
+
+static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code);
+
+/* Run one program, abandoning the scan if its array indexes nest past
+ * MAX_INDEX_DEPTH.
+ *
+ * The limit is enforced by jumping back here rather than by returning up
+ * through the interpreter.  A normal return from the middle of an expression
+ * leaves prog pointing into the middle of it, and the statement that asked for
+ * the value would then act on it -- write 0 to an output, raise an alarm with
+ * whatever text prog now points at.  Guarding against that would take a check
+ * after each of the thirty-odd evaluation sites.  Jumping abandons the
+ * statement before it acts.  The frames jumped over are interpreter frames
+ * that hold no locks or other resources; the one piece of state that needs
+ * undoing is the Alarm statement's patched operator byte.
+ *
+ * The statements before the one that nested too deep have already run, as
+ * they do when the decoder meets malformed code, and the program stays on:
+ * the alarm names it, and the next scan tries again. */
 S16_T exec_program(S16_T current_prg, U8_T *prog_code)
+{
+    S16_T r;
+
+    index_depth = 0;
+    alarm_patch = NULL;
+    if(setjmp(index_abort) != 0)
+    {
+        index_abort_armed = 0;
+        if(alarm_patch != NULL)
+        {
+            *alarm_patch = alarm_patch_byte;
+            alarm_patch = NULL;
+        }
+        generate_program_alarm(3, (U8_T)(current_prg + 1));
+        return -1;
+    }
+    index_abort_armed = 1;
+    r = exec_program_code(current_prg, prog_code);
+    index_abort_armed = 0;
+    return r;
+}
+
+static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 {
 	Point p_var;
 	Point_Net point_net;
@@ -628,6 +714,8 @@ S16_T exec_program(S16_T current_prg, U8_T *prog_code)
                                     return -1;
                                 }
 								*p = 0xFF;
+                                alarm_patch = (U8_T *)p;
+                                alarm_patch_byte = (U8_T)i;
 								v1 = veval_exp(local);
 								v2 = veval_exp(local);
 								value = veval_exp(local);
@@ -637,6 +725,7 @@ S16_T exec_program(S16_T current_prg, U8_T *prog_code)
                                 if(prog + len + 1 > prog_end)
                                 {
                                     *p = i;
+                                    alarm_patch = NULL;
                                     return -1;
                                 }
                                 copy_prg_message(prog, len);
@@ -688,9 +777,10 @@ S16_T exec_program(S16_T current_prg, U8_T *prog_code)
 											 }
 									 }
 									*p=i;
+                                    alarm_patch = NULL;
 #endif
 								break;
-		case ALARM_AT:			
+		case ALARM_AT:		
 								if (*prog==0xFF)
 								{
 									 alarm_at_all = ON;
@@ -980,8 +1070,9 @@ S16_T exec_program(S16_T current_prg, U8_T *prog_code)
 // generate a alarm		
 		generate_program_alarm(1,current_prg + 1);
 	}
-	
+
 #endif
+    return 0;
 }
 
 int get_ay_elem(long *value, char *local)
@@ -993,9 +1084,12 @@ int get_ay_elem(long *value, char *local)
 	point_type = (((Point *)(prog))->point_type)-1;
 	num_point = ((Point *)(prog))->number;
 	prog += sizeof(Point);
-	num = veval_exp(local)/1000L;
-	
-	if( ( num < arrays[num_point].length ) & ( num >= 0 ) )
+    num = eval_index((U8_T *)local) / 1000L;
+
+    /* num_point is a byte out of the bytecode and there are MAX_ARRAYS arrays.
+     * Unchecked, it read arrays_address[] past its end and then dereferenced
+     * whatever pointer it found there. */
+    if( num_point < MAX_ARRAYS && num >= 0 && num < arrays[num_point].length )
 	{
 		p = arrays_address[num_point];
 		*value = *(p + num);
@@ -1539,7 +1633,10 @@ S32_T veval_exp(U8_T *local)
 				if(m > 4000) m = 4000;
 				if(m < 0) m = 0;
 				n = m;
-				if(controllers[i - 1].auto_manual == AUTO)
+                /* i is the controller number the program computed, 1-based.
+                 * Unchecked, 0 or anything past MAX_CONS wrote outside
+                 * controllers[]; the same holds for PIDDERIV and PIDINT. */
+                if(i >= 1 && i <= MAX_CONS && controllers[i - 1].auto_manual == AUTO)
 				{
 					controllers[i - 1].proportional = (char)n;
 					controllers[i - 1].prop_high = (char)(n / 256);
@@ -1560,7 +1657,7 @@ S32_T veval_exp(U8_T *local)
 				//							 n=(int)(value*100);
 				n = value;
 
-				if (controllers[i - 1].auto_manual == AUTO)
+                if(i >= 1 && i <= MAX_CONS && controllers[i - 1].auto_manual == AUTO)
 					controllers[i - 1].rate = (char)n;
 				//							 push(((float)n)/100, port);
 				push(swap_double(n * 10));
@@ -1573,7 +1670,7 @@ S32_T veval_exp(U8_T *local)
 				 if(m < 0) 
 					 m = 0;
 				 n = m;
-				 if (controllers[i - 1].auto_manual == AUTO)
+                 if(i >= 1 && i <= MAX_CONS && controllers[i - 1].auto_manual == AUTO)
 					 controllers[i - 1].reset = (char)n;
 				 push(swap_double(n * 1000));
 				 break;
@@ -1797,7 +1894,7 @@ S32_T operand(S8_T **buf,U8_T *local)
 			++prog;
 			p = prog;
 			prog += sizeof(Point_Net);
-			num = veval_exp(local) / 1000L - 1;
+            num = eval_index(local) / 1000L - 1;
 			get_net_point_value( (Point_Net *)p, &value,0,0 );
 		}
 		else

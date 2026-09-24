@@ -393,6 +393,8 @@ void generate_program_alarm(U8_T type,U8_T prg)
 		sprintf(str, "PRG %d error : dead cycle2",(U16_T)prg);
 	else if(type == 2) // run long time
 		sprintf(str, "PRG %d error : takes long time",(U16_T)prg);
+    else if(type == 3) // array indexes nested past MAX_INDEX_DEPTH (decode.c)
+        sprintf((char *)str, "PRG %d error : indexes nest too deep", (U16_T)prg);
 //	else
 //		return;
 		
