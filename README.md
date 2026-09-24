@@ -1,8 +1,34 @@
 # T3 Programmable Controller — STM32
 
-Work to update this firmware for the older STM32 based Temco products, mainly
-around the display. This is a fork; everything here is developed and reviewed on
-the fork rather than upstream.
+Work to update this firmware for the older STM32 based Temco products. It started
+with the display, then became a pass over memory safety, the UART receive paths,
+the PID loop and the Control Basic interpreter. This is a fork; everything here is
+developed and reviewed on the fork rather than upstream.
+
+## Status
+
+As of 2026-09-24, `main` carries all of the work below (PRs #1-#8), and no other
+branches are open.
+
+- **Build:** `Tstat10_wifi`, 0 errors, 474 warnings. `tools/checkmap.py` passes.
+- **Hardware:** only `rev68VPF` has run on a device. Everything after it is built
+  and reviewed but **not yet flashed**.
+
+| image | adds | md5 | hardware |
+| --- | --- | --- | --- |
+| `rev68VPF` | the display work | `03889122…` | **boots and draws** |
+| `rev68VPF2` | `RW_IRAM1` based at `0x20002000` (#5) | `21e7c5cc…` | untested |
+| `rev68VPF3` | memory safety, UART races, PID derivative (#6, #7) | `43889d83…` | untested |
+| `rev68VPF4` | cap on nested array indexes, three index bounds (#8) | `de1f5e18…` | untested — **this is `main`** |
+
+All four are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. Each builds on the one
+above, so a failure in `rev68VPF4` would not say which layer caused it. Flash them
+in order, with `rev68VPF` as the fallback; [To do](#to-do) lists what to check on
+each. The application is linked above the bootloader, so a bad image leaves the
+device recoverable through the bootloader's ISP window at power-on.
+
+The most urgent open item is that **network write commands can overflow the
+point tables**; see [To do](#to-do).
 
 ## The idle screen
 
@@ -11,10 +37,10 @@ the fork rather than upstream.
 Rendered by `tools/screenshot.py` from the firmware's own font tables, icon
 arrays and colour constants — not a mockup.
 
-`rev68VPF` boots on hardware and draws the screen. What that confirms is that it
-runs and renders; it does not confirm the layout matches these pictures pixel for
-pixel, and the state icons and the corner humidity have not been driven yet
-because nothing writes VAR25-28.
+`rev68VPF` boots on hardware and draws the screen. That confirms it runs and
+renders. It does not confirm the layout matches these pictures pixel for pixel.
+The state icons and the corner humidity have not been driven yet, because nothing
+writes VAR25-28.
 
 ## Scope
 
@@ -37,7 +63,7 @@ The screen only runs on a board whose `mini_type` is `MINI_TSTAT10` (9) or
 `MINI_T10P` (11) — see the gate in `common/main.c` around `LCD_Intial()`. T3000
 labels type 11 "T3-OEM".
 
-## What has changed
+## Display changes
 
 ### Paged idle screen
 
@@ -294,8 +320,15 @@ Use `-r` (full rebuild) rather than `-b` when comparing warning counts, or you a
 comparing an incremental build against a full one. Do not pass `-j1`; UV4 does not
 accept it and blocks on a dialog instead of failing.
 
-Two notes on the toolchain:
+Notes on the toolchain:
 
+- The prebuilt BACnet library links from `bacnet/bacnet_ARM_revXX_T10.lib`
+  inside the repository. Temco's projects named it as
+  `..\..\..\BACLIB\bacnet_ARM_revXX_T10.lib`, a folder *next to* the repository,
+  so a fresh clone could not link until someone created that folder by hand.
+  `Tstat10_wifi.uvprojx` now points at the in-repo copy (same md5; the rebuilt hex
+  was byte-identical). `mini_arm.uvprojx` and `CM5_arm.uvprojx` still point at
+  `BACLIB`, and CM5's `bacnet_ARM_rev10_mini.lib` is not in the repository at all.
 - UV4 rewrites `Tstat10_wifi.uvprojx` on build to match the locally installed
   compiler and device pack. That drift should not be committed.
 - The scatter file is **generated** from the target dialog, not hand written, so
@@ -331,22 +364,26 @@ Two notes on the toolchain:
   **Run `tools/checkmap.py` before handing anyone a hex.** It fails the build
   configuration that would not boot, by both the region base and the placement
   addresses, and warns when a region passes 95% full.
-- Building dirties the checked-in artifacts under `arm/OBJ/`. Those are not part
-  of any commit on this branch, with one exception:
-  `arm/OBJ/Tstat10_arm_revxx.hex` is committed so the branch carries something
-  flashable. It covers `0x08008000`-`0x08054a30` with the entry point at
-  `0x08008131` — the application only. The bootloader lives below `0x08008000`,
-  is not in this repository and is not touched by flashing this file, so a bad
-  application still leaves the device recoverable through the ISP window.
-  Re-run the build before trusting it after any source change.
+- The `Tstat10_wifi` build outputs are committed with the source that produced
+  them: `arm/OBJ/Tstat10_arm_revxx.hex`, `.axf`, `.map`, the call graph `.htm` and
+  `.build_log.htm`. So every commit carries its own map and stack analysis, and a
+  change that moves memory or stack shows up in the diff. Rebuild and commit them
+  together with any source change.
 
-Current state of the `Tstat10_wifi` target: **0 errors, 482 warnings**.
+  The hex covers `0x08008000`-`0x08054bdb`, with the entry point at `0x08008131`.
+  That is the application only. The bootloader lives below `0x08008000`, is not
+  in this repository and is not touched by flashing this file, so a bad
+  application still leaves the device recoverable through the ISP window. Images
+  meant for a device are also copied to `Tstat10_arm_rev68VPF*.hex`; see
+  [Status](#status).
+
+Current state of the `Tstat10_wifi` target: **0 errors, 474 warnings**.
 
 | Region | Used | Of | Free |
 | --- | --- | --- | --- |
-| `ER_IROM1` flash | `0x4c6f0` | `0x60000` | ~78 KB |
-| `RW_RAM1` external SRAM | `0x76360` | `0x80000` | ~39 KB |
-| `RW_IRAM1` internal SRAM | `0x4370` | `0xe000` | ~39 KB |
+| `ER_IROM1` flash | `0x4c8f8` (313,592) | `0x60000` | ~78 KB |
+| `RW_RAM1` external SRAM | `0x763d8` (484,312) | `0x80000` | ~39 KB (92.4% full) |
+| `RW_IRAM1` internal SRAM | `0x43dc` (17,372) | `0xe000` | ~39 KB |
 
 `RW_IRAM1`'s `Of` column is `0xe000` rather than the `0x10000` the chip carries,
 because the 8 KB below `0x20002000` is reserved for the stack the linker cannot
@@ -384,9 +421,10 @@ the actual symbol size in `arm/OBJ/Tstat10_arm_revxx.map`.
 
 **Task stack sizes are in words, not bytes.** `portSTACK_TYPE` is `uint32_t`, so
 `xTaskCreate(..., 1000, ...)` asks for 4,000 bytes. `sTaskCreate` is just
-`xTaskCreate` (`common/product.h:170`). `WifiSTACK_SIZE` was set to 1000 with
-2048 commented out beside it, which left `WIFI_task` 344 bytes short of the
-deepest chain the linker can trace through it.
+`xTaskCreate` (`common/product.h:170`). Reading it as bytes is how two tasks ended
+up short: `WifiSTACK_SIZE` was 1000 with 2048 commented out beside it, and
+`MainSerialSTACK_SIZE` was 1024. Both are 2048 now; see
+[Memory safety](#memory-safety).
 
 **The Keil call graph holds the stack analysis, and it is checked in.**
 `arm/OBJ/Tstat10_arm_revxx.htm` carries `Maximum Stack Usage` plus a per-root
@@ -406,9 +444,9 @@ so its depth is set by the program a user downloads. That is now capped — see
 interpreter cycle is `eval_index ⇒ veval_exp`. If another interpreter cycle
 appears there, it is a recursion path that goes around the cap.
 
-**Half the tree is not compiled.** The project builds 93 files. The whole `asix/`
-directory, `arm/uIP*`, `common/comm.c` and `arm/USER/TestTool_MiniT/` are not
-among them, and `asix/` in particular holds near-copies of `modbus.c`,
+**Half the tree is not compiled.** The project compiles 91 source files (89 C,
+2 assembly) and links two prebuilt libraries. The whole `asix/` directory,
+`arm/uIP*`, `common/comm.c` and `arm/USER/TestTool_MiniT/` are not among them, and `asix/` in particular holds near-copies of `modbus.c`,
 `flash_user.c` and others that are easy to edit by mistake. The compiled set is
 whatever `<FilePath>` entries appear in `arm/USER/Tstat10_wifi.uvprojx`; resolve
 them relative to `arm/USER/`.
@@ -474,6 +512,9 @@ the end of the table after every panel scan; and an
 `if(count >= 0)` on an unsigned count stopped guarding a division by it. The
 sound level still reads the table's floor of 50 in a silent room, as it always
 has; it just no longer gets there by dividing by zero.
+
+That pass did not reach every copy the network drives. The private-transfer
+writes into the other point tables are still unbounded; see [To do](#to-do).
 
 The `decode.c` clamp covers the copy into `message[]` only. `prog += len` still
 steps by the original length, because that byte is part of the instruction
@@ -587,97 +628,169 @@ The same pass bounded three indexes that came straight from the program:
   8-bit count wrapped negative, it wrote below the array too. Each `ALARM-AT`
   now replaces the list, keeping the five panels `putmessage` reads.
 
-The ESP32 port's `decode.c` has the same unbounded recursion.
+## To do
 
-## Not done yet
+Ordered by risk to a unit in the field. Checked against `main` on 2026-09-24.
 
-- **Only one image is confirmed on hardware, and it is not the newest.**
+### Code
 
-  | image | what it adds | hardware |
-  | --- | --- | --- |
-  | `rev68VPF` | the display work | **boots and draws** |
-  | `rev68VPF2` | `RW_IRAM1` based at `0x20002000` | untested |
-  | `rev68VPF3` | the memory-safety fixes | untested |
-  | `rev68VPF4` | the cap on nested array indexes | untested |
+1. **Network write commands can overflow the point tables.** This is the most
+   urgent item. `bacnet/private/ptransfer.c` handles the T3000 private-transfer
+   writes, which need no authentication. `WRITEINPUT`, `WRITEOUTPUT` and
+   `WRITEVARIABLE` check both ends of the range and cap the copy. Every other table
+   write does neither: weekly and annual routines, programs, program code,
+   controllers, monitors, groups, remote points, alarms, units and passwords.
+   - It checks only `point_end_instance <= MAX_…`. The `<=` admits one entry past
+     the end of the table, and `point_start_instance` is never checked at all.
+   - The generic copy then writes `total_length - 7` bytes. The only check is that
+     this equals `entitysize × count`, and `entitysize` is a 9-bit field from the
+     same packet. So a request can put up to about 500 bytes past the end of
+     `programs[]`, `controllers[]` and the rest.
+   - `WRITEPROGRAMCODE_T3000` also offsets into the program row by a 7-bit
+     `packet_index`, which puts the copy up to 50 KB past the row. The check on
+     `packet_index` at ~`ptransfer.c:2092` runs after the copy.
 
-  Each builds on the one above, so `rev68VPF4` carries three unproven changes at
-  once and a failure would not say which. Prove `rev68VPF2` first, then the
-  others in order. `rev68VPF` is the fallback.
+   The fix is the `WRITEINPUT` pattern applied to every table: `start < MAX`,
+   `end < MAX`, `start <= end`, and cap the copy at `(MAX - start) × sizeof`.
+   Plus a bound on `packet_index`. Reads use the same headers and want the same
+   check.
+2. **Program code and four settings pages are still lost on a power cut.** The
+   point tables are saved through a shadow page and a commit record
+   (`flash_replace_page`, `flash_finish_pending_commit` in
+   `arm/FLASH/flash_user.c`), so a cut mid-save is recovered at boot. Two kinds of
+   save bypass that:
+   - `Flash_Store_Code` erases each program's page and rewrites it in place.
+   - The `FLASH_OTHER_ADDR…ADDR4` pages are erased and then written directly, in
+     several separate writes for some of them. These hold multi-state values, the
+     device name and SNTP settings, output priority arrays, and email settings.
 
-  Nobody has yet checked the layout against these renders by eye, stepped the
-  pages with the RIGHT key, or driven VAR25-28 to see the state icons and the
-  humidity readout change. The value most likely to need nudging by eye is
-  `LABEL_YOFF`.
+   Routing both through `flash_replace_page` would close it.
+3. **Downloaded program bytecode is not checked when it arrives.** The
+   interpreter now bounds what it can at run time: message lengths, jump targets
+   within the row, nesting depth, table indexes. A malformed program is still
+   stored and saved to flash as sent, though. Checking the row when
+   `WRITEPROGRAMCODE_T3000` receives it would turn a program that fails every
+   scan into a rejected download. The larger half of the job is a parser that
+   agrees exactly with `veval_exp` on operand sizes.
+4. **Eight `#186-D` warnings deserve a read as a group.** Each is an unsigned
+   value compared with zero, and one of them was already hiding a division by
+   zero:
+   - `ptransfer.c:705`, `ptransfer.c:2288`
+   - `user_data.c:1485`
+   - `modbus.c:4488`, `modbus.c:4608`
+   - `tstat_wifi.c:380`, `tstat_wifi.c:401`
+   - `menuSet.c:83`
 
-- **Tuned PID loops will behave differently.** The derivative term was using the
-  negated previous error instead of the change in error, so a loop holding a
-  steady offset carried a constant derivative push and a rising error was pushed
-  the wrong way. Fixed — see Memory safety — but any controller with `rate > 0`
-  was tuned around the old behaviour and wants revisiting. Controllers with
-  `rate == 0` are unaffected by the derivative change. Every controller sees one
-  smaller change: the first integral step after boot or after leaving manual now
-  uses the current error twice rather than a stale one.
+   A useless lower bound on an index that came off the network is how an overflow
+   hides.
+5. **Alarms are never forwarded to other panels.** `sendalarm` and its callers in
+   `bacnet/private/alarm.c` are commented out. The `where1…where5` destinations
+   that `ALARM-AT` sets are stored with each alarm and shown in T3000, but go
+   nowhere. Relatedly, `alarm_at_all` is set by `ALARM-AT ALL` and never cleared.
+   The reset at the top of the scan is commented out, so it stays set until
+   reboot. That is harmless while forwarding is off, and needs deciding before
+   forwarding is turned back on.
+6. **The `mini_arm` and `CM5_arm` targets have not been built since this work
+   began.** They compile the same `decode.c`, `ptransfer.c`, `alarm.c`,
+   `modbus.c` and `main.c`. Nothing here has checked that they still build, or
+   that the memory-map and stack reasoning holds for them. Both still link the
+   BACnet library from `..\BACLIB`, and CM5's library is missing (see
+   [Building](#building)).
 
-- **Found and confirmed, not yet fixed.** One defect is left that needs design
-  rather than a patch: the power-loss window in `arm/FLASH/flash_user.c`, where
-  one sector erase covers several separate writes so an interruption loses
-  everything after the erase. The `#186-D pointless comparison of
-  unsigned integer with zero` warnings are worth reading as a group: a vacuous
-  lower-bound check on a network-derived index is how this kind of thing gets
-  interesting, and one of them was already hiding a division by zero.
-- **The first hardware attempt did not boot at all**, and the cause was the
-  memory map rather than anything on screen — see the `RW_RAM1` note under
-  Building. The display code had not run when the device hung.
+### On the bench
+
+Flash the images in [Status](#status) in order. Each row assumes the one above
+it worked.
+
+| image | check |
+| --- | --- |
+| `rev68VPF2` | Boots and draws, the same as `rev68VPF`. This proves the memory map alone. |
+| `rev68VPF3` | Stays up past a minute. A stack or heap shortfall now shows as a reset loop in the first seconds. RS-485 master polling returns sane values on each port in use, which covers the UART change. Loops with `rate > 0` are watched through a setpoint change (see below). |
+| `rev68VPF4` | A program that reads `AY1[AY1[AY1[…]]]` nine deep raises `PRG n error : indexes nest too deep` instead of resetting the board. A program using `ALARM-AT` with panel numbers runs for several minutes without trouble. |
+
+Also, on whichever image boots:
+
+- Check the layout against the renders by eye. `LABEL_YOFF` is the value most
+  likely to need nudging.
+- Step the pages with RIGHT.
+- Drive VAR25-28 to see the state icons and the humidity readout change.
+
+### In the field
+
+- **Re-tune PID loops that use a derivative.** The derivative term used the
+  negated previous error; it now uses the change in the measurement (see
+  [The PID derivative](#the-pid-derivative)). Any controller with `rate > 0` was
+  tuned around the old behaviour. Every loop also sees one smaller change: the
+  first integral step after boot or after leaving manual uses the current error
+  twice rather than a stale one.
 - **The icon VARs are a proposal, not a convention.** VAR25-27 were chosen
-  because they sit just past the paged range; nothing else in the firmware or in
+  because they sit just past the paged range. Nothing else in the firmware or in
   T3000 knows about them yet, and a Control Basic program has to be written to
   drive them.
 
-- **A possible move to the GD32F103** for more memory and speed. Recorded as an
-  option, with the figures it should be weighed against.
+### Memory
 
-  GigaDevice's part is pin and largely register compatible with the STM32F103
-  and clocks to 108 MHz against 72, so the speed argument is real. It would not
-  do much for the screen, though: the drawing loops are bound by `Write_Data()`
-  and the SPI clock rather than by the core.
-
-  Flash is not the binding constraint. The scatter file claims `0x60000` at
-  `0x08008000`, while the device holds `0x80000` from `0x08000000` — so on top
-  of the ~78 KB free inside the region there is another 96 KB that is not
-  allocated at all, out of the 480 KB the bootloader leaves.
-
-  RAM is a different story, and it is the real argument for a bigger part. The
-  board carries one IS61L5128L, which is 512K x 8 — 512 KB, byte wide. RW and ZI
-  come to about 501 KB, so the external SRAM runs at roughly 92% full with
-  around 39 KB spare. The largest consumers are `tsm.o` (169 KB, the BACnet
-  transaction state machine), `user_data.o` (~71 KB, the point database) and the
-  60 KB FreeRTOS heap. Internal SRAM cannot substitute: the heap alone would take
-  94% of the 64 KB on chip.
-
-  Before reaching for a bigger part, note that **a third of the RAM is in a
-  prebuilt library and is not being used.** `TSM_List` is exactly
-  `255 x 662 = 168,810` bytes, while `bacnet/bacnet.h:75` says
+- **Recover about 150 KB of external SRAM from the BACnet library.** `TSM_List`
+  is `255 × 662 = 168,810` bytes, while `bacnet/bacnet.h:75` asks for 20
+  transactions:
 
   ```c
   #define MAX_TSM_TRANSACTIONS  20//255 //????????????? changed by chelsea
   ```
 
-  Someone already cut 255 to 20 and it changed nothing, because `tsm.o` comes
-  from `bacnet/bacnet_ARM_revXX_T10.lib` and the map records its source as
-  `bacnet\src\tsm.c`, which is not in this repository. The header only steers
-  code compiled *here*. So about 155 KB is transaction slots the firmware's own
-  configuration says should not exist. Recovering it means sourcing an upstream
-  `tsm.c` that matches `MAX_APDU 600` and adding it to the project so the linker
-  prefers it over the library's copy; eleven exported symbols have to match.
-  Recompiled from the repo headers the entry works out at 674-676 bytes rather
-  than the library's 662, so budget roughly 150 KB, not a precise figure.
+  The edit changed nothing, because `tsm.o` comes from the prebuilt library, and
+  the map records its source as `bacnet\src\tsm.c`, which is not in this
+  repository. Recovering it means compiling an upstream `tsm.c` that matches
+  `MAX_APDU 600` into the project, so the linker prefers it over the library's
+  copy. Eleven exported symbols have to match. Recompiled from the repo headers,
+  an entry works out at 674-676 bytes rather than 662, so budget roughly 150 KB.
+  That would take the external SRAM from 92% full to about 63%.
 
-  `address.o` is in the same library, and `Address_Cache` is `255 x 31 = 7,905`
-  bytes. There `MAX_ADDRESS_CACHE 255` at `bacnet.h:83` does agree with the
-  binary — that one is merely large, not a failed edit.
+  `Address_Cache` in the same library is `255 × 31 = 7,905` bytes, and there
+  `MAX_ADDRESS_CACHE 255` at `bacnet.h:83` does agree with the binary. It is
+  merely large.
 
-  The real obstacle is the bootloader. It is not in this repository, it is
-  flashed below `0x08008000`, and changing silicon needs one that runs on the
-  new part. Flash wait states and the clock tree in
-  `arm/USER/system_stm32f10x.c` would need review too. T3000's reported MCU type
-  (`T3_chip_type`) is display only and gates nothing, so it is not a concern.
+### Elsewhere
+
+- **The ESP32 port has the bugs fixed here.** In
+  `T3-programmable-controller-on-ESP32/temco_bacnet/private/`, as of 2026-09-24:
+  - `decode.c` has the unbounded array-index recursion.
+  - `PIDPROP`, `PIDDERIV` and `PIDINT` use an unchecked controller index.
+  - `ALARM-AT` has the appending overflow.
+  - `alarm.c` still `strcpy`s the program's message into its 59-byte field.
+
+## Options considered
+
+### Moving to the GD32F103
+
+Recorded as an option, with the figures it should be weighed against. Not being
+pursued.
+
+GigaDevice's part is pin and largely register compatible with the STM32F103 and
+clocks to 108 MHz against 72, so the speed argument is real. It would not do much
+for the screen, though: the drawing loops are bound by `Write_Data()` and the SPI
+clock rather than by the core.
+
+Flash is not the binding constraint. The scatter file claims `0x60000` at
+`0x08008000`, while the device holds `0x80000` from `0x08000000`. So on top of the
+~78 KB free inside the region, there is another 96 KB that is not allocated at
+all, out of the 480 KB the bootloader leaves.
+
+RAM is a different story, and it is the real argument for a bigger part. The
+board carries one IS61L5128L, which is 512K × 8: 512 KB, byte wide. RW and ZI
+come to about 501 KB. Of that, 484 KB is in the external SRAM, which runs 92.4%
+full with about 39 KB spare, and 17 KB is in internal SRAM. The largest consumers
+are:
+- `tsm.o`: 169 KB, the BACnet transaction state machine.
+- `user_data.o`: about 71 KB, the point database.
+- the FreeRTOS heap: 60 KB.
+
+Internal SRAM cannot substitute: the heap alone would take 94% of the 64 KB on
+chip. And before reaching for a bigger part, a third of that RAM can be recovered
+without one (see [Memory](#memory)).
+
+The real obstacle is the bootloader. It is not in this repository, it is flashed
+below `0x08008000`, and changing silicon needs one that runs on the new part.
+Flash wait states and the clock tree in `arm/USER/system_stm32f10x.c` would need
+review too. T3000's reported MCU type (`T3_chip_type`) is display only and gates
+nothing, so it is not a concern.
