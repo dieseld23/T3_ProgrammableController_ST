@@ -663,7 +663,7 @@
             <File>
               <FileName>bacnet_ARM_revXX_T10.lib</FileName>
               <FileType>4</FileType>
-              <FilePath>..\..\..\BACLIB\bacnet_ARM_revXX_T10.lib</FilePath>
+              <FilePath>..\..\bacnet\bacnet_ARM_revXX_T10.lib</FilePath>
             </File>
           </Files>
         </Group>
