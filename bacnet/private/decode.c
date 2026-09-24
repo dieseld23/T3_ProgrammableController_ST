@@ -788,8 +788,29 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 								}
 								else
 								{
-									 while(*prog)
-										 alarm_panel[ind_alarm_panel++]=*prog++;
+                                    /* The panel list replaces the last one instead
+                                     * of appending to it.  Appending ran on every
+                                     * scan with nothing resetting ind_alarm_panel
+                                     * -- the reset near the top of
+                                     * exec_program_code is commented out -- so
+                                     * alarm_panel[5] overflowed after a few scans
+                                     * of a program with ALARM-AT, and
+                                     * ind_alarm_panel, an S8_T, wrapped negative
+                                     * and wrote below it too.  Panels past the
+                                     * fifth are skipped; putmessage reads five. */
+                                    ind_alarm_panel = 0;
+                                    while(prog < prog_end && *prog)
+                                    {
+                                        if(ind_alarm_panel < (S8_T)sizeof(alarm_panel))
+                                        {
+                                            alarm_panel[ind_alarm_panel++] = *prog;
+                                        }
+                                        prog++;
+                                    }
+                                    if(prog >= prog_end)
+                                    {
+                                        return -1;
+                                    }
 									 prog++;
 								}
 								break;

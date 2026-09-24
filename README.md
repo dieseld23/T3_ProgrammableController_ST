@@ -400,9 +400,11 @@ grep -oE '\[Stack\]Max Depth = [0-9]+Call Chain = [A-Za-z_][A-Za-z_0-9]*' cg.txt
 ```
 
 Read the `+ Unknown(Cycles, Untraceable Function Pointers)` on that figure
-seriously. `operand`/`veval_exp` and `get_ay_elem`/`veval_exp` in the Control
-Basic interpreter are mutually recursive, with depth set by how deeply a
-user-authored program nests its expressions. Nothing bounds it.
+seriously. The Control Basic interpreter recurses once per nested array index,
+so its depth is set by the program a user downloads. That is now capped — see
+[Nested array indexes](#nested-array-indexes) — and the call graph's only
+interpreter cycle is `eval_index ⇒ veval_exp`. If another interpreter cycle
+appears there, it is a recursion path that goes around the cap.
 
 **Half the tree is not compiled.** The project builds 93 files. The whole `asix/`
 directory, `arm/uIP*`, `common/comm.c` and `arm/USER/TestTool_MiniT/` are not
@@ -438,7 +440,7 @@ does not fit shows up as a reset loop on the first power-up rather than later.
 | `main_dealwithData` | 8,192 | 4,160 | 2.0× |
 | `WIFI_task` | 8,192 | 4,344 | 1.9× |
 | `Master_Node_task` | 8,192 | 4,312 | 1.9× |
-| `Bacnet_Control` | 8,192 | 3,088 | 2.7× |
+| `Bacnet_Control` | 8,192 | 3,104 + 208 per nested index, 4,768 at the cap | 1.7× at the cap |
 | `ScanTask` | 8,192 | 476 | 17× |
 | `Monitor_Task_task` | 4,000 | 388 | 10× |
 | `refresh_Input_Task` | 2,000 | 312 | 6.4× |
@@ -543,6 +545,50 @@ after any spell in manual, so returning to auto does not see the whole drift
 while it was off as a single step. The integral's trapezoid uses the same
 re-seeded history.
 
+### Nested array indexes
+
+The Control Basic interpreter in `bacnet/private/decode.c` evaluates postfix
+bytecode on a bounded value stack, so ordinary expressions do not recurse
+however many brackets they have. Array indexes do: reading `AY1[expr]` evaluates
+`expr` in a fresh `veval_exp`, and an index can itself contain an array read.
+Nothing limited how deep that goes. T3000's compiler accepts any depth, and
+`WRITEPROGRAMCODE_T3000` stores whatever bytes it is sent. A 2,000-byte program
+row has room for well over a hundred levels.
+
+Each level costs 208 bytes of the `Bacnet_Control` task's 8 KB stack, which
+already runs 3,104 deep without any, so somewhere past 25 levels it overflows.
+With the overflow hook that means a reset, the program runs again once the
+board is back, and after five such resets `bac_control.c` switches every program
+off — a unit that has quietly stopped running its programs.
+
+Nesting is now capped at `MAX_INDEX_DEPTH` (8), about 1.7 KB. Both recursion
+edges go through `eval_index`, which counts. At the cap it `longjmp`s back to
+`exec_program`, which abandons the scan and raises
+`PRG n error : indexes nest too deep`. The statements before the one that nested
+too deep have already run that scan, as they do when the decoder meets malformed
+code, and the program stays on.
+
+It jumps rather than returning because a normal return from the middle of an
+expression leaves `prog` pointing into the middle of it. The statement that
+asked for the value would then act on it: write 0 to an output, or raise an
+alarm with whatever text `prog` now points at. The frames jumped over are
+interpreter frames holding no locks. The one piece of state to undo is the
+`Alarm` statement's habit of overwriting its comparison operator with `0xFF`
+while it evaluates; the byte is recorded and put back.
+
+The same pass bounded three indexes that came straight from the program:
+- `PIDPROP`, `PIDDERIV` and `PIDINT` wrote `controllers[i - 1]` for any
+  controller number the program computed.
+- `get_ay_elem` read `arrays_address[]` with an unchecked byte out of the
+  bytecode and then dereferenced what it found.
+- `ALARM-AT` appended its panel list to the 5-byte `alarm_panel[]` on every scan.
+  Nothing reset the count (the reset at the top of the scan is commented out), so
+  a program using it wrote past the array within a few scans. Once the signed
+  8-bit count wrapped negative, it wrote below the array too. Each `ALARM-AT`
+  now replaces the list, keeping the five panels `putmessage` reads.
+
+The ESP32 port's `decode.c` has the same unbounded recursion.
+
 ## Not done yet
 
 - **Only one image is confirmed on hardware, and it is not the newest.**
@@ -552,10 +598,11 @@ re-seeded history.
   | `rev68VPF` | the display work | **boots and draws** |
   | `rev68VPF2` | `RW_IRAM1` based at `0x20002000` | untested |
   | `rev68VPF3` | the memory-safety fixes | untested |
+  | `rev68VPF4` | the cap on nested array indexes | untested |
 
-  Each builds on the one above, so `rev68VPF3` carries two unproven changes at
-  once and a failure would not say which. Prove `rev68VPF2` first. `rev68VPF` is
-  the fallback.
+  Each builds on the one above, so `rev68VPF4` carries three unproven changes at
+  once and a failure would not say which. Prove `rev68VPF2` first, then the
+  others in order. `rev68VPF` is the fallback.
 
   Nobody has yet checked the layout against these renders by eye, stepped the
   pages with the RIGHT key, or driven VAR25-28 to see the state icons and the
@@ -571,11 +618,10 @@ re-seeded history.
   smaller change: the first integral step after boot or after leaving manual now
   uses the current error twice rather than a stale one.
 
-- **Found and confirmed, not yet fixed.** Two defects are left, both judged to
-  need design rather than a patch: the power-loss window in
-  `arm/FLASH/flash_user.c`, where one sector erase covers several separate
-  writes so an interruption loses everything after the erase, and the unbounded
-  `veval_exp` recursion described above. The `#186-D pointless comparison of
+- **Found and confirmed, not yet fixed.** One defect is left that needs design
+  rather than a patch: the power-loss window in `arm/FLASH/flash_user.c`, where
+  one sector erase covers several separate writes so an interruption loses
+  everything after the erase. The `#186-D pointless comparison of
   unsigned integer with zero` warnings are worth reading as a group: a vacuous
   lower-bound check on a network-derived index is how this kind of thing gets
   interesting, and one of them was already hiding a division by zero.
