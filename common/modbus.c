@@ -2771,6 +2771,25 @@ void main_responseData(void)
 }
 
 
+#if ARM_TSTAT_WIFI
+/* Register MODBUS_VALUE_DECIMALS exists on a T3-OEM only. On a Tstat10, 737 is
+ * left to the remote-input range it has always fallen in. A value that is not
+ * a mode is ignored rather than stored. */
+static U8_T value_decimals_register(void)
+{
+	return Modbus.mini_type == MINI_T10P;
+}
+
+static void set_value_decimals(U8_T hi, U8_T lo)
+{
+	if(hi == 0 && lo <= VALUE_DECIMALS_WHOLE)
+	{
+		Modbus.value_decimals = lo;
+		E2prom_Write_Byte(EEP_VALUE_DECIMALS, lo);
+	}
+}
+#endif
+
 /* reponse READ command*/
 #if (ASIX_MINI || ASIX_CM5)
 void responseCmd(U8_T type,U8_T* pData,MODBUSTCP_SERVER_CONN * pHttpConn)  
@@ -3215,7 +3234,7 @@ void responseCmd(U8_T type,U8_T* pData)
 						sendbuf[HeadLen + 3 + loop * 2] = 0;	
 						sendbuf[HeadLen + 3 + loop * 2 + 1] = (U8_T)Modbus.disable_tstat10_display;
 					}
-					else if(StartAdd + loop == MODBUS_VALUE_DECIMALS)
+					else if(StartAdd + loop == MODBUS_VALUE_DECIMALS && value_decimals_register())
 					{
 						sendbuf[HeadLen + 3 + loop * 2] = 0;
 						sendbuf[HeadLen + 3 + loop * 2 + 1] = Modbus.value_decimals;
@@ -5243,14 +5262,9 @@ void responseCmd(U8_T type,U8_T* pData)
 			Modbus.disable_tstat10_display = pData[HeadLen + 5];
 			E2prom_Write_Byte(EEP_DISABLE_T10_DIS,pData[HeadLen + 5]);
 		}
-		else if(StartAdd == MODBUS_VALUE_DECIMALS)
+		else if(StartAdd == MODBUS_VALUE_DECIMALS && value_decimals_register())
 		{
-			/* a value that is not a mode is ignored rather than stored */
-			if(pData[HeadLen + 4] == 0 && pData[HeadLen + 5] <= VALUE_DECIMALS_WHOLE)
-			{
-				Modbus.value_decimals = pData[HeadLen + 5];
-				E2prom_Write_Byte(EEP_VALUE_DECIMALS,pData[HeadLen + 5]);
-			}
+			set_value_decimals(pData[HeadLen + 4], pData[HeadLen + 5]);
 		}		
 		else if(StartAdd >= MODBUS_LCD_CONFIG_FIRST && StartAdd <= MODBUS_LCD_CONFIG_END)
 		{
@@ -6456,6 +6470,14 @@ void responseCmd(U8_T type,U8_T* pData)
 			ChangeFlash = 1;					
 				
 		} 
+#if ARM_TSTAT_WIFI
+		/* the same register written with function 16: byte count, then the value */
+		else if(StartAdd == MODBUS_VALUE_DECIMALS && value_decimals_register())
+		{
+			if(pData[HeadLen + 6] >= 2)
+				set_value_decimals(pData[HeadLen + 7], pData[HeadLen + 8]);
+		}
+#endif
 #if 1//!(ARM_TSTAT_WIFI )
 		else if(StartAdd == MODBUS_OUTPUT_1V)
 		{
