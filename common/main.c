@@ -607,6 +607,13 @@ void Read_ALL_Data(void)
 	{
 		Modbus.icon_config = 0;
 	}	
+	/* never written on a unit that predates the option (0xFF), so anything
+	 * that is not a mode means the default */
+	E2prom_Read_Byte(EEP_VALUE_DECIMALS,&Modbus.value_decimals);
+	if(Modbus.value_decimals > VALUE_DECIMALS_WHOLE)
+	{
+		Modbus.value_decimals = VALUE_DECIMALS_DEFAULT;
+	}
 #endif
 	
 	E2prom_Read_Byte(EEP_COM0_CONFIG,&Modbus.com_config[0]);
@@ -1309,6 +1316,8 @@ void set_default_parameters(void)
 	
 #if ARM_TSTAT_WIFI
 	E2prom_Write_Byte(EEP_DISABLE_T10_DIS, 0 );	
+	E2prom_Write_Byte(EEP_VALUE_DECIMALS, VALUE_DECIMALS_DEFAULT);
+	Modbus.value_decimals = VALUE_DECIMALS_DEFAULT;
 #endif
 	
 #if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI )

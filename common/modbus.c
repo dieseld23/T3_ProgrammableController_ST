@@ -3215,6 +3215,11 @@ void responseCmd(U8_T type,U8_T* pData)
 						sendbuf[HeadLen + 3 + loop * 2] = 0;	
 						sendbuf[HeadLen + 3 + loop * 2 + 1] = (U8_T)Modbus.disable_tstat10_display;
 					}
+					else if(StartAdd + loop == MODBUS_VALUE_DECIMALS)
+					{
+						sendbuf[HeadLen + 3 + loop * 2] = 0;
+						sendbuf[HeadLen + 3 + loop * 2 + 1] = Modbus.value_decimals;
+					}
 #endif
 					else if(StartAdd + loop == MODBUS_TOTAL_NO)
 					{
@@ -5237,6 +5242,15 @@ void responseCmd(U8_T type,U8_T* pData)
 		{
 			Modbus.disable_tstat10_display = pData[HeadLen + 5];
 			E2prom_Write_Byte(EEP_DISABLE_T10_DIS,pData[HeadLen + 5]);
+		}
+		else if(StartAdd == MODBUS_VALUE_DECIMALS)
+		{
+			/* a value that is not a mode is ignored rather than stored */
+			if(pData[HeadLen + 4] == 0 && pData[HeadLen + 5] <= VALUE_DECIMALS_WHOLE)
+			{
+				Modbus.value_decimals = pData[HeadLen + 5];
+				E2prom_Write_Byte(EEP_VALUE_DECIMALS,pData[HeadLen + 5]);
+			}
 		}		
 		else if(StartAdd >= MODBUS_LCD_CONFIG_FIRST && StartAdd <= MODBUS_LCD_CONFIG_END)
 		{
