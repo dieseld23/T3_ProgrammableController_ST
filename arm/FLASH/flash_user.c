@@ -17,6 +17,9 @@ uint8_t write_page_en[26]  = {0} ;  //fandu ???? 25??26 ??????msv???
 static uint8_t tempbuf[20000] = {0};
 /* Compare buffer: skip erase/write when flash page already matches RAM */
 static uint8_t flash_page_cmp[2048];
+/* The page being assembled for a save, or recovered at boot. Only touched while
+ * holding flash_lock(). */
+static uint8_t flash_page_img[2048];
 
 STR_Flash_POS xdata Flash_Position[24];
 STR_flag_flash 	far bac_flash;
@@ -30,6 +33,7 @@ STR_flag_flash 	far bac_flash;
 #define FLASH_BASE_ADDR	0x8068000  // - 8078000 len 64k
 // CODE ADDR for code
 #define FLASH_CODE_ADDR	0x8060000  // - 8068000 code len 32k
+#define FLASH_CODE_LEN_AT	2000   // a program's length, in its page after the code
 
 // miscllion
 #define FLASH_OTHER_ADDR 	0x8078000 // - other 2k
@@ -380,6 +384,63 @@ static void flash_feed_iwdg(void)
 	IWDG_ReloadCounter();
 }
 
+/* Every flash write runs under this lock. Saves are started from several tasks,
+ * and the flash controller, the shadow page, tempbuf and flash_page_img are each
+ * one of a kind: a save that ran while another was part way through could lock
+ * the controller under it, overwrite the shadow copy it depends on, or refill
+ * the buffer it was writing from.
+ *
+ * It is a mutex rather than a suspended scheduler so that only other saves wait:
+ * every other task still runs between the halfword writes of a save, as it
+ * always has. It is recursive because a table save holds it while
+ * Flash_Store_Code takes it per program.
+ *
+ * Flash_Lock_Init() creates it just before the scheduler starts. Until then
+ * there is only main() and the lock does nothing, which also keeps FreeRTOS out
+ * of Flash_Read_Mass(): it runs before any other FreeRTOS call, and on this port
+ * the first one leaves interrupts masked by BASEPRI until the scheduler starts. */
+static xSemaphoreHandle flash_mutex = NULL;
+
+void Flash_Lock_Init(void)
+{
+	flash_mutex = xQueueCreateMutex(queueQUEUE_TYPE_RECURSIVE_MUTEX);
+}
+
+static U8_T flash_lock_active(void)
+{
+	return (flash_mutex != NULL) && (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED);
+}
+
+static void flash_lock(void)
+{
+	if(flash_lock_active())
+		cSemaphoreTake(flash_mutex, portMAX_DELAY);
+}
+
+static void flash_unlock(void)
+{
+	if(flash_lock_active())
+		cSemaphoreGive(flash_mutex);
+}
+
+/* Pages other than the point tables are laid out as fields at fixed addresses.
+ * A save builds the whole page here, as it would read after the old erase and
+ * field-by-field writes: unused bytes 0xFF, and fields that overlap resolved in
+ * favour of the one written later. */
+static void flash_image_start(void)
+{
+	memset(flash_page_img, 0xff, sizeof(flash_page_img));
+}
+
+static void flash_image_put(u32 addr, const void *src, U16_T len)
+{
+	U16_T off = (U16_T)(addr & 0x7ff);
+
+	if(len > sizeof(flash_page_img) - off)
+		len = sizeof(flash_page_img) - off;
+	memcpy(&flash_page_img[off], src, len);
+}
+
 static U8_T flash_page_matches(u32 addr, const u8 *src)
 {
 	U16_T i;
@@ -432,20 +493,23 @@ static void flash_mark_shadow_pending(u32 live_addr)
  * NEW image — copy it to live and clear NEED. Unlike the old "backup old
  * data" scheme, this finishes the save instead of rolling it back.
  */
-static void flash_finish_pending_commit(void)
+static void flash_finish_commit_locked(void)
 {
 	u16 magic, need;
 	u32 live_addr;
-	static u8 shadow[2048];
+	u8 *shadow = flash_page_img;
 
 	magic = STMFLASH_ReadHalfWord(FLASH_SHADOW_META);
 	need = STMFLASH_ReadHalfWord(FLASH_SHADOW_META + 2);
 	if(magic != FLASH_SH_MAGIC || need != FLASH_SH_NEED)
 		return;
 
+	/* Program code (from FLASH_CODE_ADDR) is saved through the shadow page too.
+	 * The shadow pages themselves are never a destination. */
 	live_addr = (u32)STMFLASH_ReadHalfWord(FLASH_SHADOW_META + 4)
 		| ((u32)STMFLASH_ReadHalfWord(FLASH_SHADOW_META + 6) << 16);
-	if(live_addr < FLASH_BASE_ADDR || live_addr > 0x807F800 || (live_addr & 0x7ff) != 0)
+	if(live_addr < FLASH_CODE_ADDR || live_addr > 0x807F800 || (live_addr & 0x7ff) != 0
+		|| live_addr == FLASH_SHADOW_DATA || live_addr == FLASH_SHADOW_META)
 	{
 		STMFLASH_Unlock();
 		flash_clear_shadow_need();
@@ -473,6 +537,13 @@ static void flash_finish_pending_commit(void)
 	STMFLASH_Lock();
 }
 
+static void flash_finish_pending_commit(void)
+{
+	flash_lock();
+	flash_finish_commit_locked();
+	flash_unlock();
+}
+
 /*
  * Safe page replace (avoids erase-then-lose):
  *  1) Write NEW data to shadow page (live still intact)
@@ -482,7 +553,7 @@ static void flash_finish_pending_commit(void)
  * Power loss after step 2/3 -> flash_finish_pending_commit() copies shadow to live.
  * No long IRQ-disable; feed IWDG throughout.
  */
-static U8_T flash_replace_page(u32 page_addr, u8 *newdata)
+static U8_T flash_replace_page_locked(u32 page_addr, u8 *newdata)
 {
 	flash_feed_iwdg();
 	STMFLASH_MUL_Read(page_addr, flash_page_cmp, 2048);
@@ -524,6 +595,14 @@ static U8_T flash_replace_page(u32 page_addr, u8 *newdata)
 	return flash_page_matches(page_addr, newdata) ? 1 : 0;
 }
 
+/* Replace a page that is built in flash_page_img. The caller holds flash_lock()
+ * from the first flash_image_put() to here, so the image cannot change under it. */
+static void flash_replace_image(u32 page_addr)
+{
+	if(!flash_replace_page_locked(page_addr, flash_page_img))
+		Test[41]++; /* page replace / verify failed */
+}
+
 void Flash_Write_Mass(void)
 {
 	STR_flag_flash ptr_flash;
@@ -543,6 +622,13 @@ void Flash_Write_Mass(void)
 		if(write_page_en[loop] != 1)
 			continue;
 
+		/* Held from the copy into tempbuf until the table's pages are saved:
+		 * tempbuf is shared, and a save started from another task meanwhile
+		 * would refill it with its own table before this one's pages were out.
+		 * The flag is cleared before the copy, so a change another task makes
+		 * during the save marks the table again and is saved next time. */
+		flash_lock();
+		write_page_en[loop] = 0;
 		ptr_flash.table = loop;	
 		ptr_flash.len = Flash_Position[loop].len;
 		base_addr = Flash_Position[loop].addr;
@@ -629,29 +715,45 @@ void Flash_Write_Mass(void)
 
 			if(loop == 15)  // store code
 			{
-				__disable_irq();
-				STMFLASH_Unlock();
 				Flash_Store_Code();
-				STMFLASH_Lock();
-				__enable_irq();
 			}
 			else 
 			{
 				for(page = 0;page < ptr_flash.len / 2048;page++)
 				{
 					page_addr = FLASH_BASE_ADDR + base_addr + 2048 * page;
-					if(!flash_replace_page(page_addr, &tempbuf[2048 * page]))
+					if(!flash_replace_page_locked(page_addr, &tempbuf[2048 * page]))
 						Test[41]++; /* page replace / verify failed */
 				}				
 			}
-			
-			write_page_en[loop] = 0 ;	
 		}
+		flash_unlock();
 	}	
 	Flash_Write_Other();
 
 	Flash_Write_Other_Page2();
 	
+}
+
+/* Factory reset: erase everything this file stores to (program code, the point
+ * tables, the settings pages and the shadow pages) before it is all saved again
+ * from defaults. Interrupts stay off through the erase as they always have; the
+ * lock is taken first, so a save in progress in another task finishes before
+ * its pages go, and cannot find the controller locked under it. */
+void Flash_Erase_User_Pages(void)
+{
+	U8_T loop;
+
+	flash_lock();
+	__disable_irq();
+	STMFLASH_Unlock();
+	for(loop = 0;loop < 64;loop++)
+	{
+		STMFLASH_ErasePage(FLASH_CODE_ADDR + 2048 * loop);
+	}
+	STMFLASH_Lock();
+	__enable_irq();
+	flash_unlock();
 }
 
 void Flash_Read_Mass(void)
@@ -823,54 +925,57 @@ void Flash_Read_Mass(void)
 //    Flash_Read_Other_Page2();
 }
 
+/* Each program has a page: its code, then its length as a halfword at
+ * FLASH_CODE_LEN_AT. A program with no code keeps a length of 0 and a blank code
+ * area. Only pages that changed are written, and they go through the shadow page,
+ * so a power cut mid-save leaves either the old program or the new one. This used
+ * to erase and rewrite all 16 pages in place on every save, with interrupts off
+ * throughout. */
 void Flash_Store_Code(void)
 {
 	U8_T i;
-//	U16_T temp = 0;
-//	U32_T base_addr = 0;
-//	U16_T loop;
-//  U8_T page;
+	U16_T len;
 
 	for(i = 0;i < MAX_PRGS;i++)
 	{
-		flash_feed_iwdg();
-		STMFLASH_ErasePage(FLASH_CODE_ADDR + 2048 * i);	
-		if(swap_word(programs[i].real_byte) > 0 && swap_word(programs[i].real_byte) <= CODE_ELEMENT * MAX_CODE)	
-		{
-			STMFLASH_WriteHalfWord(FLASH_CODE_ADDR + 2048 * i + 2000,swap_word(programs[i].real_byte));
-			iap_write_appbin(FLASH_CODE_ADDR + 2048 * i,(uint8_t*)(&prg_code[i]), CODE_ELEMENT * MAX_CODE);
-			
-		}
-		else
-		{
-			STMFLASH_WriteHalfWord(FLASH_CODE_ADDR + 2048 * i + 2000,0);
-		}
-		
-	}
+		len = swap_word(programs[i].real_byte);
+		if(len > CODE_ELEMENT * MAX_CODE)
+			len = 0;
 
+		flash_lock();
+		flash_image_start();
+		if(len > 0)
+			flash_image_put(FLASH_CODE_ADDR, prg_code[i], CODE_ELEMENT * MAX_CODE);
+		flash_page_img[FLASH_CODE_LEN_AT] = (u8)len;
+		flash_page_img[FLASH_CODE_LEN_AT + 1] = (u8)(len >> 8);
+		flash_replace_image(FLASH_CODE_ADDR + 2048 * i);
+		flash_unlock();
+	}
 }
 
 
+/* The four settings pages below used to be erased and rewritten in place, with
+ * interrupts off, so a power cut in between lost the page. Each is now built
+ * whole and saved like a point table page, and only when it changed. */
 void Flash_Write_Other_Page2(void)
 {
     if (write_page_en[25] == 1)
-    {		
-			__disable_irq();
-			STMFLASH_Unlock();
-			
-				STMFLASH_ErasePage(FLASH_OTHER_ADDR2);
-				iap_write_appbin(BASE_MSV_DATA, (u8 *)(msv_data), 3 * STR_MSV_MULTIPLE_COUNT * sizeof(multiple_struct));
-				iap_write_appbin(BASE_MSV_DATA2, (u8 *)(&msv_data[3]), STR_MSV_MULTIPLE_COUNT * sizeof(multiple_struct));
-				iap_write_appbin(BASE_OUT_RELINQUISH, (u8 *)(output_relinquish), 4 * MAX_OUTS);
-				iap_write_appbin(BASE_VENDOR_INFO,(void *)(&bacnet_vendor_name),20);
-				iap_write_appbin(BASE_VENDOR_INFO + 20,(void *)(&bacnet_vendor_product),20);
-				iap_write_appbin(BASE_VAR_UNIT,(void *)(&var_unit),MAX_VAR_UNIT*VAR_UNIT_SIZE);
-#if ARM_TSTAT_WIFI
-			iap_write_appbin(BASE_DIS_CONFIG,Modbus.display_lcd.lcddisplay,sizeof(lcdconfig));
-#endif				
-			STMFLASH_Lock();			
-			__enable_irq();
+    {
+			flash_lock();
+			/* cleared first, so a change made after the image is built is saved next time */
 			write_page_en[25] = 0;
+			flash_image_start();
+				flash_image_put(BASE_MSV_DATA, msv_data, 3 * STR_MSV_MULTIPLE_COUNT * sizeof(multiple_struct));
+				flash_image_put(BASE_MSV_DATA2, &msv_data[3], STR_MSV_MULTIPLE_COUNT * sizeof(multiple_struct));
+				flash_image_put(BASE_OUT_RELINQUISH, output_relinquish, 4 * MAX_OUTS);
+				flash_image_put(BASE_VENDOR_INFO, &bacnet_vendor_name, 20);
+				flash_image_put(BASE_VENDOR_INFO + 20, &bacnet_vendor_product, 20);
+				flash_image_put(BASE_VAR_UNIT, &var_unit, MAX_VAR_UNIT*VAR_UNIT_SIZE);
+#if ARM_TSTAT_WIFI
+			flash_image_put(BASE_DIS_CONFIG, Modbus.display_lcd.lcddisplay, sizeof(lcdconfig));
+#endif
+			flash_replace_image(FLASH_OTHER_ADDR2);
+			flash_unlock();
     }
 }
 
@@ -882,79 +987,85 @@ void Flash_Write_Other(void)
  // name  20
 	if(write_page_en[24] == 1)
 	{
-			__disable_irq();
-			STMFLASH_Unlock();
-			STMFLASH_ErasePage(FLASH_OTHER_ADDR);
-			
-		//	iap_write_appbin(BASE_SNTP_SERVER,(u8 *)(&sntp_server), 30);
-			
-			iap_write_appbin(BASE_PANEL_NAME,(u8 *)(&panelname),20);
-#if ARM_MINI
-			iap_write_appbin(BASE_DYNDNS_DONAME,dyndns_domain_name,MAX_DOMAIN_SIZE);
+			flash_lock();
+			write_page_en[24] = 0;
+			flash_image_start();
 
-			iap_write_appbin(BASE_DYNDNS_USER,dyndns_username,MAX_USERNAME_SIZE);
-			iap_write_appbin(BASE_DYNDNS_PASS,dyndns_password,MAX_PASSWORD_SIZE);
+		//	iap_write_appbin(BASE_SNTP_SERVER,(u8 *)(&sntp_server), 30);
+
+			flash_image_put(BASE_PANEL_NAME, &panelname, 20);
+#if ARM_MINI
+			flash_image_put(BASE_DYNDNS_DONAME, dyndns_domain_name, MAX_DOMAIN_SIZE);
+
+			flash_image_put(BASE_DYNDNS_USER, dyndns_username, MAX_USERNAME_SIZE);
+			flash_image_put(BASE_DYNDNS_PASS, dyndns_password, MAX_PASSWORD_SIZE);
 
 			// store name of tstat
-			iap_write_appbin(BASE_TST_NAME,(u8 *)(&tstat_name),40/*MAX_ID*/ * 16);
-			
-			// store time of operating monitor 
-			iap_write_appbin(BASE_MON_OPERATE_TIME,(u8 *)(&MISC_Info.reg.operate_time),MAX_MONITORS * 4);
+			flash_image_put(BASE_TST_NAME, &tstat_name, 40/*MAX_ID*/ * 16);
+
+			// store time of operating monitor
+			flash_image_put(BASE_MON_OPERATE_TIME, &MISC_Info.reg.operate_time, MAX_MONITORS * 4);
 
 			// store sntp
-			iap_write_appbin(BASE_SNTP_SERVER,(u8 *)(&sntp_server), 30);
-#endif		
-			iap_write_appbin(BASE_WEEKLY_ONOFF,(u8 *)(&wr_time_on_off),576);
-			
-			//iap_write_appbin(BASE_EMAIL_SETTING,(u8 *)(&Email_Setting),sizeof(Str_Email_point));
-#if (ARM_MINI || ARM_TSTAT_WIFI)			
-			iap_write_appbin(BASE_WIFI_SETTING,(u8 *)(&SSID_Info),sizeof(STR_SSID));
+			flash_image_put(BASE_SNTP_SERVER, &sntp_server, 30);
 #endif
-			STMFLASH_Lock();			
-			__enable_irq();	
-		write_page_en[24] = 0;
+			flash_image_put(BASE_WEEKLY_ONOFF, &wr_time_on_off, 576);
+
+			//iap_write_appbin(BASE_EMAIL_SETTING,(u8 *)(&Email_Setting),sizeof(Str_Email_point));
+#if (ARM_MINI || ARM_TSTAT_WIFI)
+			flash_image_put(BASE_WIFI_SETTING, &SSID_Info, sizeof(STR_SSID));
+#endif
+			flash_replace_image(FLASH_OTHER_ADDR);
+			flash_unlock();
 	}
 
 }
 
 
+/* The priority arrays are saved on every BACnet command to a binary output, so
+ * this page changes far more often than any other. It used to be erased and
+ * rewritten on every command, changed or not. It is now written only when it
+ * changed, but still in place: through the shadow page each change would also
+ * cost the shadow page and the commit record an erase, and once those wear out
+ * every other save fails with them. A power cut mid-rewrite leaves no stored
+ * commands, so the outputs start at their relinquish defaults. */
 void Flash_Write_Output_PriArray(void)
 {
    // if(write_priotry_array == 1)
-    {		
-			__disable_irq();
-			STMFLASH_Unlock();
-			
-			STMFLASH_ErasePage(FLASH_OTHER_ADDR3);
-
-			iap_write_appbin(BASE_PRI_ARRAY, (u8 *)(output_priority), 4 * 24 * 16);
-							
+    {
+			flash_lock();
+			flash_image_start();
+			flash_image_put(BASE_PRI_ARRAY, output_priority, 4 * 24 * 16);
+			if(!flash_page_matches(FLASH_OTHER_ADDR3, flash_page_img))
+			{
+				flash_feed_iwdg();
+				STMFLASH_Unlock();
+				STMFLASH_ErasePage(FLASH_OTHER_ADDR3);
+				flash_feed_iwdg();
+				flash_program_page(FLASH_OTHER_ADDR3, flash_page_img);
+				STMFLASH_Lock();
+			}
 			//write_priotry_array = 0;
-			STMFLASH_Lock();
-			__enable_irq();
+			flash_unlock();
     }
 }
 
 void Flash_Write_Email(void)
 {
 
-		__disable_irq();
-		STMFLASH_Unlock();
-		
-		STMFLASH_ErasePage(FLASH_OTHER_ADDR4);
-	
-		iap_write_appbin(BASE_EMAIL_SETTING,(u8 *)(&Email_Setting),sizeof(Str_Email_point));
+		flash_lock();
+		flash_image_start();
+		flash_image_put(BASE_EMAIL_SETTING, &Email_Setting, sizeof(Str_Email_point));
+		flash_replace_image(FLASH_OTHER_ADDR4);
+		flash_unlock();
 #if ARM_UART_DEBUG
 	uart1_init(115200);
 	DEBUG_EN = 1;
 	printf("write email\r\n");
 	printf("server :%u %u %u %u\n",Email_Setting.reg.smtp_ip[0],Email_Setting.reg.smtp_ip[1],Email_Setting.reg.smtp_ip[2],Email_Setting.reg.smtp_ip[3]);	
 	printf("smtp_domain :%s\n",Email_Setting.reg.smtp_domain);
-	printf("user_name :%s\n",Email_Setting.reg.user_name);	
-#endif				
-		STMFLASH_Lock();
-		__enable_irq();
-    
+	printf("user_name :%s\n",Email_Setting.reg.user_name);
+#endif
 }
 
 void Flash_Read_Other(void)
@@ -1119,23 +1230,16 @@ void Flash_Read_Other(void)
 			&& ((output_priority[0][0] != 0xffff)  &&(output_priority[0][2] != 0xffff)))
 			
 		{
-			// clear 
-			__disable_irq();
-		STMFLASH_Unlock();
-		
-		STMFLASH_ErasePage(FLASH_OTHER_ADDR3);	
+			// clear
 		for(loop = 0;loop < 24;loop++)
-		{	
+		{
 			for (loop1 = 0;loop1 < 16; loop1++)
-			{		
-				output_priority[loop][loop1] = 0xffff;	
+			{
+				output_priority[loop][loop1] = 0xffff;
 			}
-		}		
-		iap_write_appbin(BASE_PRI_ARRAY, (u8 *)(output_priority), 4 * 24 * 16);				
-		//write_priotry_array = 0;
-		STMFLASH_Lock();
-		__enable_irq();
-			
+		}
+		Flash_Write_Output_PriArray();
+
 		}
 	}
 
@@ -1166,7 +1270,7 @@ void Flash_Read_Code(void)
 	Code_total_length = 0;
 	for(i = 0;i < MAX_PRGS;i++)
 	{	
-		temp = STMFLASH_ReadHalfWord(FLASH_CODE_ADDR + 2048 * i + 2000);
+		temp = STMFLASH_ReadHalfWord(FLASH_CODE_ADDR + 2048 * i + FLASH_CODE_LEN_AT);
 		
 		if(temp > CODE_ELEMENT * MAX_CODE)
 			temp = 0;
