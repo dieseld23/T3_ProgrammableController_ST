@@ -28,7 +28,7 @@ As of 2026-09-25, `main` carries all of the work below.
 | `rev68VPF6` | the top-area unit no longer blinks | `b142d299…` | untested |
 | `rev68VPF7` | private-transfer reads and writes bounded to their tables | `5f3bcb45…` | untested |
 | `rev68VPF8` | program code and settings saves survive a power cut | `69f28185…` | untested |
-| `rev68VPF9` | T3-OEM value boxes drop the `.0` from whole values | `6c444015…` | untested — **this is `main`** |
+| `rev68VPF9` | T3-OEM value boxes drop the `.0` from whole values | `4cfb9408…` | untested — **this is `main`** |
 
 All nine are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF9` carries
 everything; `rev68VPF4` is the newest one confirmed on the unit and the fallback.
@@ -191,12 +191,13 @@ EEPROM byte 239:
 | `1` (default) | drops a fraction that is all zeros | `72` | `21.5` | `-3` |
 | `2` | whole numbers only | `72` | `22` | `-3` |
 
-Write it with a single-register write (function 06) from T3000's Modbus Poll or
-register-write tool, or any Modbus master; any other value is ignored. A unit
+Write it with function 06 or 16 from T3000's Modbus Poll or register-write
+tool, or any Modbus master; any other value is ignored. A unit
 that predates the option reads the unwritten EEPROM byte as `0xFF` and gets the
 default, and a factory reset restores it. The register sits beside the
 display-disable option at 729. It applies to the value boxes only; the big
-top-area number was already whole degrees. A Tstat10 always shows mode `0`.
+top-area number was already whole degrees. A Tstat10 always shows mode `0`,
+and on a Tstat10 register 737 is still the remote-input register it always was.
 
 In mode `1` a reading that changes, rather than a setpoint, jumps a column when
 it lands on a whole number: `71.9`, then `  72`, then `72.1`. Mode `0` keeps it
