@@ -48,7 +48,7 @@
 "..\obj\delay.o"
 "..\obj\bac_interface.o"
 "..\obj\bip.o"
-"..\..\..\BACLIB\bacnet_ARM_revXX_T10.lib"
+"..\..\bacnet\bacnet_ARM_revXX_T10.lib"
 "..\obj\alarm.o"
 "..\obj\bac_control.o"
 "..\obj\decode.o"
