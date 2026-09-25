@@ -30,6 +30,9 @@ extern uint16_t count_suspend_mstp;
  * pages -- it did nothing on this screen before -- while LEFT still picks a
  * row within the page and LEFT+RIGHT together still opens the menu.
  *
+ * A T3-OEM uses the keys as arrows instead (see arrow_keycope): UP/DOWN move
+ * the highlight, LEFT/RIGHT page, and RIGHT on a highlighted row edits it.
+ *
  * Pages past the last VAR that carries a label are left out, so a panel that
  * labels VAR1-VAR6 gets two pages rather than eight.
  */
@@ -38,6 +41,13 @@ extern uint16_t count_suspend_mstp;
 
 #define IDLE_PAGE_ROWS		3
 static uint8 page_index = 0;
+
+/* T3-OEM edit mode: 1 while UP/DOWN change the highlighted value. framed_row is
+ * the row whose value box is drawn in EDIT_FRAME_COLOR, 0 for none. */
+static uint8 editing = 0;
+static uint8 framed_row = 0;
+#define HIGHLIGHT_TIMEOUT	5		/* display refreshes, about half a second each */
+#define EDIT_TIMEOUT		20
 
 /* First VAR on the page showing: page 0 -> vars[0], page 1 -> vars[3]. */
 static uint8 page_var_base(void)
@@ -156,6 +166,31 @@ static void show_page_rows(void)
 	display_top_rh(page_index);
 }
 
+/* Top of the value box on row 1-3, as MenuIdle_init draws it. */
+static uint16 row_box_y(uint8 row)
+{
+	if(row == 1)
+		return SETPOINT_POS - VALUE_BOX_YOFF;
+	if(row == 2)
+		return FAN_MODE_POS - VALUE_BOX_YOFF;
+	return SYS_MODE_POS - VALUE_BOX_YOFF;
+}
+
+/* Keep the edit frame on the row being edited and on no other. The top area
+ * has no box, so editing it shows only the highlight. */
+static void frame_edited_row(void)
+{
+	uint8 want = (editing && disp_index >= 1 && disp_index <= 3) ? disp_index : 0;
+
+	if(want == framed_row)
+		return;
+	if(framed_row != 0)
+		frame_value_box(VALUE_BOX_XPOS, row_box_y(framed_row), VALUE_BOX_W, TANGLE_COLOR);
+	if(want != 0)
+		frame_value_box(VALUE_BOX_XPOS, row_box_y(want), VALUE_BOX_W, EDIT_FRAME_COLOR);
+	framed_row = want;
+}
+
 void MenuIdle_init(void)
 {
 	uint8 i,j;
@@ -163,6 +198,8 @@ void MenuIdle_init(void)
 	//LCDtest();
 	ClearScreen(TSTAT8_BACK_COLOR);
 	page_index = 0;
+	editing = 0;
+	framed_row = 0;		// draw_tangle below repaints every frame in TANGLE_COLOR
 	flag_digital_top_area = 0;
 	digital_top_area_type = 0;
   digital_top_area_num = 0;
@@ -591,8 +628,11 @@ void MenuIdle_display(void)
 			
 		}
 		
-		if(count_left_key > 5) 
+		if(count_left_key > (editing ? EDIT_TIMEOUT : HIGHLIGHT_TIMEOUT))
+		{
 			disp_index = 0;
+			editing = 0;
+		}
 		else
 			count_left_key++;
 
@@ -636,6 +676,9 @@ void MenuIdle_display(void)
 			disp_str_12_24(LABEL_XPOS, FAN_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE2, SCH_COLOR, TSTAT8_BACK_COLOR);
 			disp_str_12_24(LABEL_XPOS, SYS_MODE_POS + LABEL_YOFF, (uint8 *)UI_DIS_LINE3, SCH_COLOR, TSTAT8_BACK_COLOR);
 		}
+
+		if(ARROW_KEYS())
+			frame_edited_row();
 
         //sprintf(test_char, "%d", SSID_Info.IP_Wifi_Status); //for testing: show the wifi status value in the top left of the screen;
         //disp_str(FORM15X30, 0, 0, test_char, SCH_COLOR, TSTAT8_BACK_COLOR);
@@ -732,11 +775,194 @@ uint8_t check_msv_data_len(uint8_t index)
 }
 
 
+/* A named state is one T3000 has written: a NUL or erased flash (0xff) in the
+ * first byte means the slot is empty. */
+static uint8 msv_named(uint8 set, uint8 i)
+{
+	uint8 c = (uint8)msv_data[set][i].msv_name[0];
+
+	return (c != 0) && (c != 0xff);
+}
+
+/* T3-OEM edit mode: UP (up = 1) or DOWN on the highlighted row does what UP or
+ * DOWN always did in Temco's scheme. A multi-state VAR steps to the next or
+ * previous named state, a digital VAR or the top-area point flips, an analog
+ * VAR moves by step thousandths. A held key repeats a step but not a flip, so
+ * that holding it does not make the point flicker. */
+static void adjust_highlighted(uint8 up, S32_T step, uint8 held)
+{
+	Str_variable_point *v;
+	uint8 i, set, len, now = 0;
+
+	if(disp_index == 4)
+	{
+		if(held || flag_digital_top_area != 1)
+			return;
+		digital_top_area_changed = 1;
+		if(digital_top_area_type == IN)
+			inputs[digital_top_area_num].control = inputs[digital_top_area_num].control ? 0 : 1;
+		else if(digital_top_area_type == VAR)
+			vars[digital_top_area_num].control = vars[digital_top_area_num].control ? 0 : 1;
+		else if(digital_top_area_type == OUT)
+		{
+			outputs[digital_top_area_num].control = outputs[digital_top_area_num].control ? 0 : 1;
+			set_output_raw(digital_top_area_num, outputs[digital_top_area_num].control ? 1000 : 0);
+		}
+	}
+	else if(disp_index >= 1 && disp_index <= 3)
+	{
+		v = &vars[page_var_base() + disp_index - 1];
+		if(v->range >= 101 && v->range <= 103)
+		{
+			set = (uint8)(v->range - 101);
+			len = check_msv_data_len(set);
+			for(i = 0;i < len;i++)
+			{
+				if(v->value / 1000 == msv_data[set][i].msv_value)
+				{
+					now = i;
+					break;
+				}
+			}
+			if(up)
+			{
+				for(i = (uint8)(now + 1);i < STR_MSV_MULTIPLE_COUNT;i++)
+				{
+					if(msv_named(set, i))
+					{
+						v->value = msv_data[set][i].msv_value * 1000;
+						break;
+					}
+				}
+			}
+			else
+			{
+				for(i = now;i > 0;i--)
+				{
+					if(msv_named(set, (uint8)(i - 1)))
+					{
+						v->value = msv_data[set][i - 1].msv_value * 1000;
+						break;
+					}
+				}
+			}
+		}
+		else if(v->digital_analog == 0)
+		{
+			if(held)
+				return;
+			v->control = v->control ? 0 : 1;
+		}
+		else if(up)
+			v->value = (v->value < 999 * 1000) ? v->value + step : 0;
+		else
+			v->value -= step;
+	}
+	else
+		return;
+
+	write_page_en[VAR] = 1;
+	ChangeFlash = 1;
+}
+
+/* T3-OEM highlight order, top to bottom: the top area when it shows a digital
+ * point (disp_index 4), then rows 1-3. Moving off either end wraps round, and
+ * from no highlight UP starts at the bottom and DOWN at the top. */
+static uint8 row_above(uint8 row)
+{
+	if(row == 0 || row == 4)
+		return 3;
+	if(row == 1)
+		return flag_digital_top_area ? 4 : 3;
+	return (uint8)(row - 1);
+}
+
+static uint8 row_below(uint8 row)
+{
+	if(row == 0 || row == 3)
+		return flag_digital_top_area ? 4 : 1;
+	if(row == 4)
+		return 1;
+	return (uint8)(row + 1);
+}
+
+/* T3-OEM: the four keys as arrows.
+ *   no highlight     UP/DOWN highlight a row, LEFT/RIGHT page back and forward
+ *   row highlighted  UP/DOWN move it, RIGHT edits the row, LEFT drops the highlight
+ *   editing          UP/DOWN change the value, LEFT or RIGHT finishes
+ *   LEFT+RIGHT       the menu, as on every board
+ * A held LEFT or RIGHT keeps paging but never starts, ends or drops anything. */
+static void arrow_keycope(uint16 key_value)
+{
+	uint8 held = (key_value & KEY_REPEAT) ? 1 : 0;
+	S32_T step = ((key_value & 0x0300) == KEY_SPEED_10) ? 10000 : 1000;
+	uint8 pages;
+
+	count_left_key = 0;
+	// the top area stops being a stop on the way when its point is no longer digital
+	if(disp_index == 4 && flag_digital_top_area != 1)
+	{
+		disp_index = 0;
+		editing = 0;
+	}
+	switch(key_value & KEY_SPEED_MASK)
+	{
+		case KEY_UP_MASK:
+			if(editing)
+				adjust_highlighted(1, step, held);
+			else
+				disp_index = row_above(disp_index);
+			break;
+		case KEY_DOWN_MASK:
+			if(editing)
+				adjust_highlighted(0, step, held);
+			else
+				disp_index = row_below(disp_index);
+			break;
+		case KEY_RIGHT_MASK:
+			if(disp_index == 0)
+			{
+				page_index++;
+				show_page_rows();	// wraps back to page 0 past the last one
+			}
+			else if(!held)
+				editing = editing ? 0 : 1;
+			break;
+		case KEY_LEFT_MASK:
+			if(disp_index == 0)
+			{
+				pages = idle_page_count();
+				page_index = (page_index == 0 || page_index >= pages) ? (uint8)(pages - 1) : (uint8)(page_index - 1);
+				show_page_rows();
+			}
+			else if(!held)
+			{
+				if(editing)
+					editing = 0;
+				else
+					disp_index = 0;
+			}
+			break;
+		case KEY_LEFT_RIGHT_MASK:
+			editing = 0;
+			update_menu_state(MenuMain);
+			break;
+		default:
+			break;
+	}
+}
+
 void MenuIdle_keycope(uint16 key_value)
 {
     uint8 i;
     uint8 temp_value = 0;
     uint8 base = page_var_base();
+
+	if(ARROW_KEYS())
+	{
+		arrow_keycope(key_value);
+		return;
+	}
 	switch(key_value /*& KEY_SPEED_MASK*/)
 	{
 		case 0:

@@ -7,23 +7,25 @@ developed and reviewed on the fork rather than upstream.
 
 ## Status
 
-As of 2026-09-25, `main` carries all of the work below (PRs #1-#9), and no other
-branches are open.
+As of 2026-09-25, `main` carries all of the work below.
 
 - **Build:** `Tstat10_wifi`, 0 errors, 474 warnings. `tools/checkmap.py` passes.
-- **Hardware:** all four images run on the unit. `rev68VPF2`, `rev68VPF3` and
-  `rev68VPF4` were flashed and confirmed working on 2026-09-25. The targeted
-  checks in [On the bench](#on-the-bench) are still open.
+- **Hardware:** `rev68VPF` to `rev68VPF4` run on the unit. `rev68VPF2`,
+  `rev68VPF3` and `rev68VPF4` were flashed and confirmed working on 2026-09-25.
+  `rev68VPF5`, the T3-OEM key scheme, is built but **not yet flashed**. The
+  targeted checks in [On the bench](#on-the-bench) are still open.
 
 | image | adds | md5 | hardware |
 | --- | --- | --- | --- |
 | `rev68VPF` | the display work | `03889122…` | boots and draws |
 | `rev68VPF2` | `RW_IRAM1` based at `0x20002000` (#5) | `21e7c5cc…` | works |
 | `rev68VPF3` | memory safety, UART races, PID derivative (#6, #7) | `43889d83…` | works |
-| `rev68VPF4` | cap on nested array indexes, three index bounds (#8) | `de1f5e18…` | **works — this is `main`** |
+| `rev68VPF4` | cap on nested array indexes, three index bounds (#8) | `de1f5e18…` | works |
+| `rev68VPF5` | the keys as arrows on a T3-OEM | `8eec914c…` | untested — **this is `main`** |
 
-All four are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF4` carries
-everything and is the one to put on a unit; the older three stay as fallbacks. The
+All five are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF5` carries
+everything; `rev68VPF4` is the newest one confirmed on the unit and the fallback.
+The
 md5s are of a Windows checkout, where `core.autocrlf` gives the hex files CRLF
 line endings. The blobs in git have LF and hash differently. The application is
 linked above the bootloader, so a bad image leaves the device recoverable through
@@ -77,10 +79,50 @@ VAR1-VAR3. Each page shows the next three VARs, so a program can drive up to
 - **RIGHT** steps to the next page and wraps. This key did nothing on the idle
   screen before.
 - **LEFT** still picks a row within the page; **LEFT+RIGHT** still opens the menu.
+- That is the Tstat10. A T3-OEM uses the keys as arrows instead; see
+  [Keys on a T3-OEM](#keys-on-a-t3-oem).
 - Pages past the last VAR that carries a label are not offered, so a panel that
   labels VAR1-VAR6 gets two pages rather than eight.
 - A column of marks in the top right corner shows which page is up, one per
   page that exists. It is hidden when there is only one page.
+
+### Keys on a T3-OEM
+
+On a T3-OEM the Tstat10 scheme read as broken: LEFT walked the highlight down the
+rows, so it "acted as down", and UP/DOWN changed a value rather than moving
+anything, so they "did nothing". A diagnostic image showed on the unit which pin
+each key pulls: PA15 LEFT, PA13 UP, PA14 DOWN, PA12 RIGHT. That is exactly what
+`key/key.c` expects, so the keys were never miswired. What was wrong was the
+scheme.
+
+So on a T3-OEM (`ARROW_KEYS()` in `arm/MENU/Menu.h`, which tests for
+`MINI_T10P`), the keys work as arrows:
+
+| state | UP / DOWN | RIGHT | LEFT |
+| --- | --- | --- | --- |
+| nothing highlighted | highlight the bottom / top row | next page | previous page |
+| row highlighted | move the highlight, wrapping | edit the row | drop the highlight |
+| editing | change the value | done | done |
+
+- **Editing** frames the value box in amber. UP/DOWN do what they always did to
+  a value: step a multi-state VAR to the next or previous named state, flip a
+  digital one, or add or take away 1 from an analog one, 10 once the key has
+  been held for three seconds.
+- **The highlight** passes through the top area when it shows a digital point,
+  as LEFT did. It clears after about three seconds without a key. An edit ends
+  after about ten.
+- **A held key** repeats as before, but the key task marks the repeats
+  `KEY_REPEAT` on a T3-OEM. Holding RIGHT therefore keeps paging but cannot
+  flicker an edit on and off. Holding UP on a digital point does not toggle it
+  over and over. Every other screen masks the bit off with `KEY_SPEED_MASK`.
+- **LEFT+RIGHT** still opens the menu. Unless both keys land in the same scan,
+  the first one is acted on alone and the pair only arrives as a held repeat
+  after about two seconds. That has always been so.
+- **In the menu**, DOWN goes to the next item and UP back, like a list.
+
+A Tstat10 keeps Temco's scheme exactly. The one thing this fixes only on a
+T3-OEM is that UP/DOWN with nothing highlighted silently toggled the top-area
+point; see [To do](#to-do).
 
 ### Dark palette
 
@@ -699,6 +741,16 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-24.
    that the memory-map and stack reasoning holds for them. Both still link the
    BACnet library from `..\BACLIB`, and CM5's library is missing (see
    [Building](#building)).
+7. **On a Tstat10, UP/DOWN with nothing highlighted toggle the top-area point.**
+   In `MenuIdle_keycope` a `disp_index` outside 1-3 falls into the branch meant
+   for the top area, and `disp_index` is 0 whenever no row is highlighted, which
+   is most of the time. So a stray UP or DOWN flips the `control` of whatever
+   point the top area shows, and for an output also drives it with
+   `set_output_raw`, whether or not the top area is showing it as a digital
+   point. This is Temco's code, and it is fixed only on a T3-OEM, where the arrow
+   scheme gives UP/DOWN no such path (see
+   [Keys on a T3-OEM](#keys-on-a-t3-oem)). On a Tstat10 the fix is to require
+   `disp_index == 4 && flag_digital_top_area` before touching the point.
 
 ### On the bench
 
@@ -721,8 +773,19 @@ These checks are still open. Run them on `rev68VPF4`, which carries everything:
   trouble.
 - Check the layout against the renders by eye. `LABEL_YOFF` is the value most
   likely to need nudging.
-- Step the pages with RIGHT.
+- Step the pages with RIGHT (and back with LEFT on a T3-OEM).
 - Drive VAR25-28 to see the state icons and the humidity readout change.
+
+`rev68VPF5` has not been flashed. On a T3-OEM, check the keys against the table in
+[Keys on a T3-OEM](#keys-on-a-t3-oem):
+
+- UP and DOWN move the highlight both ways and wrap, and it clears by itself
+  after a few seconds.
+- RIGHT on a highlighted row frames its box in amber. UP/DOWN then change the
+  value, and LEFT or RIGHT puts the frame back to its usual colour.
+- LEFT and RIGHT page back and forward with nothing highlighted, and holding
+  RIGHT on a highlighted row does not make the frame flicker.
+- LEFT+RIGHT opens the menu, where DOWN goes to the next item.
 
 ### In the field
 

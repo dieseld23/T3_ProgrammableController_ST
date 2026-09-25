@@ -274,6 +274,8 @@
 #define TANGLE_COLOR        0xbe9c	/* frame round each value; left light on
 									   purpose, and draw_tangle()'s corner
 									   bitmaps carry this same colour */
+#define EDIT_FRAME_COLOR    0xf524	/* #F5A623 amber: the frame of a value
+									   being edited from the keypad (T3-OEM) */
 
 #define FAN_OFF 	0
 #define FAN_AUTO 	4
@@ -299,6 +301,7 @@
 #define KEY_SPEED_10		(0x0100)
 #define KEY_SPEED_50		(0x0200)
 #define KEY_SPEED_100		(0x0300)
+#define KEY_REPEAT			(0x0400)	/* T3-OEM only: sent because the key is held */
 #define KEY_SPEED_MASK		(0x00ff)
 #define KEY_FUNCTION_MASK	(0xff00)
 
@@ -429,6 +432,7 @@ typedef struct
 extern DISP_CHANGE icon;
 //extern uint16 const angle[];
 void draw_tangle(uint8 xpos, uint16 ypos, uint8 w);
+void frame_value_box(uint8 xpos, uint16 ypos, uint8 w, uint16 colour);
 void ClearScreen(unsigned int bColor);
 void disp_ch(uint8 form, uint16 x, uint16 y,uint8 value,uint16 dcolor,uint16 bgcolor);		
 void disp_icon(uint16 cp, uint16 pp, uint16 const *icon_name, uint16 x,uint16 y,uint16 dcolor, uint16 bgcolor);

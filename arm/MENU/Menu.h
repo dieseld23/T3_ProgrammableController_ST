@@ -9,6 +9,11 @@
 #include "menuSet.h"
 #include "menuDaySet.h"
 
+/* A T3-OEM (mini_type MINI_T10P) uses its four keys as arrows: on the idle
+ * screen UP/DOWN move the highlight and LEFT/RIGHT page, and in the menu DOWN
+ * goes to the next item. A Tstat10 keeps Temco's scheme. */
+#define ARROW_KEYS()	(Modbus.mini_type == MINI_T10P)
+
 #define MENU_BLOCK_SECONDS_DEFAULT	    250  //	15 //60  dufan changed it to 15 seconds idle
 #define BACKLIGHT_KEEP_SECONDS_DEFAULT	30
 #define SWTIMER_COUNT_SECOND	 configTICK_RATE_HZ   
