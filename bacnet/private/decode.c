@@ -231,14 +231,69 @@ static void copy_prg_message(U8_T *prog, S16_T len)
 #define MAX_INDEX_DEPTH 8
 
 static U8_T index_depth;
-static jmp_buf index_abort;
-static U8_T index_abort_armed;
+
+/* Why a scan was abandoned; each has its own program alarm (alarm.c). */
+#define ABANDON_INDEX_DEPTH 3   /* array indexes nested past MAX_INDEX_DEPTH */
+#define ABANDON_BAD_CODE    4   /* the bytecode pointed outside its own row */
+
+static jmp_buf scan_abort;
+static U8_T scan_abort_armed;
+static U8_T abandon_reason;
 
 /* The Alarm statement overwrites its comparison operator with 0xFF while it
  * evaluates, so an abandoned scan has to put the byte back or the stored
  * program is damaged. */
 static U8_T *alarm_patch;
 static U8_T alarm_patch_byte;
+
+/* The row of prg_code being run.  A program is the whole of its row: code,
+ * local variables and time table all live in it, and the interpreter writes to
+ * all three.  But the places it reads and writes come from offsets in the
+ * bytecode -- the section lengths, jump targets, local-variable offsets -- so a
+ * damaged program could send it anywhere in RAM.  Everything written through
+ * such an offset is checked against the row first. */
+static U8_T *row_start;
+#define ROW_BYTES ((S32_T)sizeof(prg_code[0]))
+
+static void abandon_scan(U8_T reason)
+{
+    if(scan_abort_armed)
+    {
+        abandon_reason = reason;
+        longjmp(scan_abort, 1);
+    }
+}
+
+/* Whether the n bytes at base + off lie inside the row.  If they do not, the
+ * scan is abandoned and this does not return; the 0 is for callers that would
+ * otherwise run on when nothing is armed, which only exec_program does. */
+static U8_T in_row(const U8_T *base, S32_T off, S32_T n)
+{
+    S32_T at = (S32_T)(base - row_start) + off;
+
+    if(at >= 0 && n >= 0 && at <= ROW_BYTES - n)
+    {
+        return 1;
+    }
+    abandon_scan(ABANDON_BAD_CODE);
+    return 0;
+}
+
+/* A jump.  Every jump in the bytecode is written as p_buf + i - 2, with p_buf
+ * two bytes into the row, so i is an offset from the start of the row.  The
+ * target may be the 0xFE after the last line, where an IF with no ELSE on the
+ * last line lands.  Out of the row, the scan is abandoned; the static 0xFE is
+ * only for the unarmed case and ends the scan. */
+static U8_T *jump_to(S8_T *p_buf, S32_T i)
+{
+    static U8_T end_of_program = 0xFE;
+
+    if(in_row((U8_T *)p_buf, i - 2, 1))
+    {
+        return (U8_T *)p_buf + i - 2;
+    }
+    return &end_of_program;
+}
 
 /* Evaluate an array index, the one place the interpreter recurses. */
 static S32_T eval_index(U8_T *local)
@@ -247,10 +302,7 @@ static S32_T eval_index(U8_T *local)
 
     if(index_depth >= MAX_INDEX_DEPTH)
     {
-        if(index_abort_armed)
-        {
-            longjmp(index_abort, 1);
-        }
+        abandon_scan(ABANDON_INDEX_DEPTH);
         return 0; /* not reachable: only exec_program runs the interpreter */
     }
     index_depth++;
@@ -262,41 +314,42 @@ static S32_T eval_index(U8_T *local)
 static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code);
 
 /* Run one program, abandoning the scan if its array indexes nest past
- * MAX_INDEX_DEPTH.
+ * MAX_INDEX_DEPTH or its bytecode points outside its row.
  *
- * The limit is enforced by jumping back here rather than by returning up
- * through the interpreter.  A normal return from the middle of an expression
- * leaves prog pointing into the middle of it, and the statement that asked for
- * the value would then act on it -- write 0 to an output, raise an alarm with
+ * Both are enforced by jumping back here rather than by returning up through
+ * the interpreter.  A normal return from the middle of an expression leaves
+ * prog pointing into the middle of it, and the statement that asked for the
+ * value would then act on it -- write 0 to an output, raise an alarm with
  * whatever text prog now points at.  Guarding against that would take a check
  * after each of the thirty-odd evaluation sites.  Jumping abandons the
  * statement before it acts.  The frames jumped over are interpreter frames
  * that hold no locks or other resources; the one piece of state that needs
  * undoing is the Alarm statement's patched operator byte.
  *
- * The statements before the one that nested too deep have already run, as
- * they do when the decoder meets malformed code, and the program stays on:
- * the alarm names it, and the next scan tries again. */
+ * The statements before the one that failed have already run, as they do when
+ * the decoder meets malformed code, and the program stays on: the alarm names
+ * it, and the next scan tries again. */
 S16_T exec_program(S16_T current_prg, U8_T *prog_code)
 {
     S16_T r;
 
     index_depth = 0;
     alarm_patch = NULL;
-    if(setjmp(index_abort) != 0)
+    row_start = prog_code;
+    if(setjmp(scan_abort) != 0)
     {
-        index_abort_armed = 0;
+        scan_abort_armed = 0;
         if(alarm_patch != NULL)
         {
             *alarm_patch = alarm_patch_byte;
             alarm_patch = NULL;
         }
-        generate_program_alarm(3, (U8_T)(current_prg + 1));
+        generate_program_alarm(abandon_reason, (U8_T)(current_prg + 1));
         return -1;
     }
-    index_abort_armed = 1;
+    scan_abort_armed = 1;
     r = exec_program_code(current_prg, prog_code);
-    index_abort_armed = 0;
+    scan_abort_armed = 0;
     return r;
 }
 
@@ -323,7 +376,7 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 	U16_T local_len;
 	U16_T time_len;
 	U16_T base_len;
-    U8_T *prog_end = prog_code + sizeof(prg_code[0]);   /* callers pass one row of prg_code */
+	U16_T resume;
 
 	u32 t1,t2;
 	// S16_T r_ind_remote;
@@ -349,11 +402,26 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 	
 	if(nbytes == 0) return 0;
 
+	/* The row is: length, code, 0xFE, WAIT's 2-byte resume offset, then the
+	 * local table and the time table, each behind a 2-byte length: nine bytes
+	 * of framing and three parts whose lengths are all bytecode.  Everything
+	 * below reads and writes through them, so each is checked before it is
+	 * used, and together they have to fit the row. */
+	if(base_len > ROW_BYTES - 9)
+	{
+		abandon_scan(ABANDON_BAD_CODE);
+		return -1;
+	}
 	prog += nbytes+2+3;
 
 	memcpy(&nbytes, prog, 2);       /*LOCAL VARIABLES*/	
 	nbytes = swap_word(nbytes);  // add by chelsea	
 	local_len = nbytes;
+	if(local_len > ROW_BYTES - 9 - base_len)
+	{
+		abandon_scan(ABANDON_BAD_CODE);
+		return -1;
+	}
 	
 	local = (prog + 2);
 	prog += 2 + nbytes;
@@ -365,6 +433,11 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 	
 	nbytes = swap_word(nbytes);	// add by chelsea 
 	time_len = nbytes;
+	if(time_len > ROW_BYTES - 9 - base_len - local_len)
+	{
+		abandon_scan(ABANDON_BAD_CODE);
+		return -1;
+	}
 	prog += 2;	
 	p_buf = (S8_T*)prog + nbytes;
 	
@@ -384,6 +457,11 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 	while( ((S8_T*)prog < p_buf) && (temp++ < 2000))
 	{
 		cond = (int)veval_exp( local );
+		/* each entry ends in a state byte and a 4-byte counter, written below */
+		if(!in_row(prog, 0, 5))
+		{
+			return -1;
+		}
 		pn = (S32_T *)(prog + 1);
 		if(cond)
 		{
@@ -430,10 +508,9 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 	// these are attached with 0xfe, if need WAIT, jumpe to end
 	// fixed it by chelsea
 	
-	if(*(prog + nbytes + 1) + *(prog + nbytes + 2) * 256 > 2000) 
-	// offset is too bigger, it is wrong
-		return 0;
-	prog = prog + *(prog + nbytes + 1) + *(prog + nbytes + 2) * 256;
+	// WAIT keeps the offset of the line to resume at, from p_buf, here
+	resume = *(prog + nbytes + 1) + *(prog + nbytes + 2) * 256;
+	prog = jump_to(p_buf, resume + 2);
 //	alarm_at_all = OFF;
 //	ind_alarm_panel = 0;
 //	timeout = 0;
@@ -445,7 +522,9 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 #else	// tbd: for asix
 	t1 = (U16_T)SWTIMER_Tick();
 #endif
-	while((*prog != 0xfe) && (temp++ < 2000))
+	/* prog has to be in the row before anything reads it: a jump or a
+	 * statement that runs to the end can leave it anywhere */
+	while(in_row(prog, 0, 1) && (*prog != 0xfe) && (temp++ < 2000))
 	{
 #if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI)		
 		t2 = uip_timer;		
@@ -637,7 +716,13 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 						 break;
 		case ENDPRG:	return 1;      /* end program*/
 		case RETURN:	          r = poplong();
-								prog = (S8_T *)r;
+								/* A RETURN with no GOSUB behind it pops 0 from the
+								 * empty stack, which has always ended the scan.
+								 * Anything else came from a GOSUB or ON, and has
+								 * to be in the row. */
+								if(r == 0 || !in_row((U8_T *)r, 0, 1))
+									return -1;
+								prog = (U8_T *)r;
 								break;
 		case HANGUP:
 //								handup();      /* end phone call*/
@@ -650,7 +735,8 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 								nitem = veval_exp(local);
 								if (nitem < 1 || nitem > *(prog+1))
 										{
-										 while(*prog!='\x1') prog++;
+										 /* on to the next 0x01, but not out of the row */
+										 while(in_row(prog, 0, 1) && *prog!='\x1') prog++;
 										 break;
 										}
 								if (*prog==GOSUB)   /*gosub*/
@@ -660,14 +746,14 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 									 }
 								memcpy(&i, prog + 2 + (nitem-1)*2, 2);
 								i = swap_word(i);
-								prog = (U8_T *)p_buf + i - 2;
+								prog = jump_to(p_buf, i);
 								break;
 		case GOSUB:
 	
 								return_pointer =  (S8_T*)prog + 2 ;
 								memcpy(&i, prog, 2);
 								i = swap_word(i);
-								prog = (U8_T *)p_buf + i - 2;
+								prog = jump_to(p_buf, i);
 								pushlong((S32_T)return_pointer);
 								break;
 	
@@ -677,7 +763,7 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 								{
 									memcpy(&i, prog, 2);
 									i = swap_word(i);
-									prog = (U8_T *)p_buf + i - 2;
+									prog = jump_to(p_buf, i);
 									alarm_flag=0;
 								}
 								else
@@ -698,7 +784,7 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 		case GOTO:
 								memcpy(&i, prog, 2);
 								i = swap_word(i);
-								prog = (U8_T *)p_buf + i - 2;
+								prog = jump_to(p_buf, i);
 								
 								break;
 		case Alarm:		
@@ -713,6 +799,11 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
                                 {
                                     return -1;
                                 }
+                                /* 30 bytes on can be past the end of the row */
+                                if(!in_row((U8_T *)p, 0, 1))
+                                {
+                                    return -1;
+                                }
 								*p = 0xFF;
                                 alarm_patch = (U8_T *)p;
                                 alarm_patch_byte = (U8_T)i;
@@ -722,7 +813,7 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 								len = *prog++;
                                 /* The message, then the state byte written back
                                  * below: both have to be inside the program. */
-                                if(prog + len + 1 > prog_end)
+                                if(!in_row(prog, 0, len + 1))
                                 {
                                     *p = i;
                                     alarm_patch = NULL;
@@ -799,7 +890,7 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
                                      * and wrote below it too.  Panels past the
                                      * fifth are skipped; putmessage reads five. */
                                     ind_alarm_panel = 0;
-                                    while(prog < prog_end && *prog)
+                                    while(in_row(prog, 0, 1) && *prog)
                                     {
                                         if(ind_alarm_panel < (S8_T)sizeof(alarm_panel))
                                         {
@@ -807,7 +898,7 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
                                         }
                                         prog++;
                                     }
-                                    if(prog >= prog_end)
+                                    if(!in_row(prog, 0, 1))
                                     {
                                         return -1;
                                     }
@@ -847,7 +938,7 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
                                  * end of the buffer that write would land past
                                  * prg_code[], and from there go to flash on the
                                  * next save. */
-                                if(prog + len + 4 > prog_end)
+                                if(!in_row(prog, 0, len + 4))
                                 {
                                     return -1;
                                 }
@@ -917,14 +1008,15 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 								{
 								 memcpy(&lvar, prog, 2);
 								 lvar = swap_word(lvar);
-								 prog = p_buf + lvar - 2;
+								 prog = jump_to(p_buf, lvar);
 								}
 								break;
 		case NEXT:
 							 {
 									memcpy(&lvar, prog, 2);
 									lvar = swap_word(lvar);
-									prog = p_buf + lvar - 2 + 4;
+									/* to the FOR's variable, past its 0x01, line number and opcode */
+									prog = jump_to(p_buf, lvar + 4);
 									p = prog;
 									prog += 3;
 									val1 = veval_exp(local);
@@ -944,7 +1036,7 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 									{
 										memcpy(&lvar, prog, 2);
 										lvar = swap_word(lvar);
-										prog = p_buf + lvar - 2;
+										prog = jump_to(p_buf, lvar);
 									}
 							 }
 							 break;
@@ -960,13 +1052,16 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 								}
 								else
 								{	
-									prog = (U8_T *)p_buf + swap_word(*((S16_T *)prog)) -2;
+									prog = jump_to(p_buf, swap_word(*((S16_T *)prog)));
 									if( *prog == 0x01 || *prog == 0xFE)      /*TEST DACA EXISTA ELSE*/
 										then_else = 0;
 								}
 								break;
 		case IFP:
 								cond = veval_exp(local);
+								/* the edge state written below, then the offset */
+								if(!in_row(prog, 0, 3))
+									return -1;
 								if (cond)
 								 if (!*prog++)
 								 {
@@ -976,12 +1071,12 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 								 }
 								else
 								 {
-									prog = (U8_T *)p_buf + swap_word(*((S16_T *)prog)) -2;
+									prog = jump_to(p_buf, swap_word(*((S16_T *)prog)));
 								 }
 								else
 								 {
 									*prog++ = 0;
-									prog = (U8_T *)p_buf + swap_word(*((S16_T *)prog)) -2;
+									prog = jump_to(p_buf, swap_word(*((S16_T *)prog)));
 								 }
 	
 								then_else = 1;
@@ -990,6 +1085,9 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 								break;
 		case IFM:
 								cond = veval_exp(local);
+								/* the edge state written below, then the offset */
+								if(!in_row(prog, 0, 3))
+									return -1;
 								if (!cond)
 								 if (*prog++)
 								 {
@@ -998,12 +1096,12 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 								 }
 								else
 								 {
-									prog = (U8_T *)p_buf + swap_word(*((S16_T *)prog)) -2;
+									prog = jump_to(p_buf, swap_word(*((S16_T *)prog)));
 								 }
 								else
 								 {
 									*prog++ = 1;
-									prog = (U8_T *)p_buf + swap_word(*((S16_T *)prog)) -2;
+									prog = jump_to(p_buf, swap_word(*((S16_T *)prog)));
 								 }
 								then_else = 1;
 								if( *prog == 0x01 || *prog == 0xFE)      /*TEST DACA EXISTA ELSE*/
@@ -1013,7 +1111,7 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 								/*prog++;
 								prog = (U8_T *)p_buf + *((S16_T *)prog) -2;*/
 								prog++;								
-								prog = (U8_T *)p_buf + swap_word(*((S16_T *)prog)) -2;
+								prog = jump_to(p_buf, swap_word(*((S16_T *)prog)));
 								break;
 		case WAIT:
 								return_pointer = (S8_T *)prog - 4;
@@ -1028,7 +1126,9 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 								{
 									r = (U32_T)veval_exp(local);									
 								}
-								
+								/* the counter, written back below */
+								if(!in_row(prog, 0, 4))
+									return -1;
 								memcpy(&value,prog,4);
 								value = swap_double(value);
 								value += miliseclast_cur;
@@ -1426,6 +1526,9 @@ S32_T veval_exp(U8_T *local)
 							}
 							 break;
 		case INTERVAL:
+							/* its 4-byte counter, written back below */
+							if(!in_row(prog, 0, 4))
+								break;
 							if(just_load)
 							{
 								n = swap_double((U32_T)pop());
@@ -2041,9 +2144,14 @@ uint8_t check_point_stucture(U8_T * prog)
  */
 S16_T put_local_array(U8_T *p, S32_T value, S32_T v1, S32_T v2, U8_T *local )
 {
-	S16_T k, i, j;
+	S16_T k, j;
+	S32_T i;
 
   	j = *((S16_T *)(p+1));
+	/* The array's two dimensions sit just before it, at local[j-4] and
+	 * local[j-2], and decide where the element goes.  j is bytecode. */
+	if(!in_row(local, (S32_T)j - 4, 4))
+		return 1;
 	if( *((S16_T *)&local[ j - 4]) )
 	{
 		if ( v1<=0 || v1 > *((S16_T *)&local[ j - 4]) || v2<=0 || v2 > *((S16_T *)&local[ j - 2]))
@@ -2067,12 +2175,17 @@ S16_T put_local_array(U8_T *p, S32_T value, S32_T v1, S32_T v2, U8_T *local )
 /*		case STRING_TYPE_ARRAY: */
 				k=1;
 				break;
+		default:
+				return 1;
 	}
 
+	/* in S32_T: dimensions up to 32767 overflowed S16_T here */
 	i =  *((S16_T *)&local[((j)-2)]);
 	i *= (v1-1);
 	i += v2 - 1;
 	i *= k;
+	if(!in_row(local, j + i, k))
+		return 1;
 	k = j + i;
 
 	switch(*p)
@@ -2135,8 +2248,10 @@ void put_local_var(U8_T *p, S32_T value, U8_T *local)
 {
 	S16_T i;
 	i = *((S16_T *)(p+1));
-	/* Local block lives inside prg_code; bad index overwrites code / neighbors */
-	if(i < 0 || i > 500)
+	/* The offset is bytecode.  This used to refuse anything past 500, which
+	 * kept a bad one inside prg_code but also dropped writes to real locals
+	 * past 500 bytes into a large table; the bound is the row instead. */
+	if(!in_row(local, i, (*p == FLOAT_TYPE || *p == LONG_TYPE) ? 4 : (*p == INTEGER_TYPE) ? 2 : 1))
 		return;
 	
 	switch(*p)
