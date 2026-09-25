@@ -154,7 +154,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 F (.\system_stm32f10x.c)(0x6AAFDB80)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\system_stm32f10x.o --omf_browse ..\obj\system_stm32f10x.crf --depend ..\obj\system_stm32f10x.d)
 I (stm32f10x.h)(0x6AAFFF0B)
@@ -790,7 +790,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 F (..\HARDWARE\FLASH\flash.c)(0x6AAFFF0B)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\flash.o --omf_browse ..\obj\flash.crf --depend ..\obj\flash.d)
 I (..\HARDWARE\FLASH\flash.h)(0x6AAFFF0B)
@@ -1023,7 +1023,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 F (..\HARDWARE\ENC28J60\enc28j60.c)(0x6AAFFF0B)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\enc28j60.o --omf_browse ..\obj\enc28j60.crf --depend ..\obj\enc28j60.d)
 I (C:\Keil_v5\ARM\ARMCC\include\stdio.h)(0x6025CC34)
@@ -1240,7 +1240,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 F (..\HARDWARE\EMMC\SdioEmmcDrive.c)(0x6AAFFF0B)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\sdioemmcdrive.o --omf_browse ..\obj\sdioemmcdrive.crf --depend ..\obj\sdioemmcdrive.d)
 I (..\HARDWARE\EMMC\SdioEmmcDrive.h)(0x6AAFDB7F)
@@ -1395,7 +1395,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 F (..\HARDWARE\SDCARD\sdcard.c)(0x6AAFFF0B)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\sdcard.o --omf_browse ..\obj\sdcard.crf --depend ..\obj\sdcard.d)
 I (C:\Keil_v5\ARM\ARMCC\include\string.h)(0x6025CC3E)
@@ -1549,7 +1549,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 F (..\HARDWARE\HUMIDITY\i2c_hal.c)(0x6AAFFF0B)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\i2c_hal.o --omf_browse ..\obj\i2c_hal.crf --depend ..\obj\i2c_hal.d)
 I (..\..\common\define.h)(0x6AAFFF0B)
@@ -1983,7 +1983,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 F (..\SYSTEM\delay\delay.c)(0x6AAFFF0B)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\delay.o --omf_browse ..\obj\delay.crf --depend ..\obj\delay.d)
 I (..\SYSTEM\delay\delay.h)(0x6AAFDB80)
@@ -2171,7 +2171,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 I (..\..\IO_control\controls.h)(0x6AAFFF0B)
 I (..\..\bacnet\include\bactimevalue.h)(0x6AAFDB81)
@@ -2446,7 +2446,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 F (..\..\bacnet\private\bac_control.c)(0x6AB43B2B)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\bac_control.o --omf_browse ..\obj\bac_control.crf --depend ..\obj\bac_control.d)
 I (..\..\IO_control\controls.h)(0x6AAFFF0B)
@@ -2601,7 +2601,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 F (..\..\bacnet\private\decode.c)(0x6AB46EEB)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\decode.o --omf_browse ..\obj\decode.crf --depend ..\obj\decode.d)
 I (..\..\bacnet\bacnet.h)(0x6AAFDB80)
@@ -2843,7 +2843,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 F (..\..\bacnet\private\POINT.C)(0x6AAFFF0B)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\point.o --omf_browse ..\obj\point.crf --depend ..\obj\point.d)
 I (..\..\bacnet\bacnet.h)(0x6AAFDB80)
@@ -2997,7 +2997,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 F (..\..\bacnet\private\ptransfer.c)(0x6AB43B2B)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\ptransfer.o --omf_browse ..\obj\ptransfer.crf --depend ..\obj\ptransfer.d)
 I (C:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x6025CC3E)
@@ -3280,7 +3280,7 @@ I (..\..\display\lcd.h)(0x6AAFDB81)
 I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 I (..\USER\wifi.h)(0x6AAFFF0B)
 F (..\..\IO_control\io.c)(0x6AAFFF0B)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\io.o --omf_browse ..\obj\io.crf --depend ..\obj\io.d)
@@ -3435,7 +3435,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 I (..\..\IO_control\controls.h)(0x6AAFFF0B)
 F (..\..\IO_control\IO_control_ARM_revx.lib)(0x6AAFDB7F)()
@@ -3592,9 +3592,9 @@ I (..\..\display\lcd.h)(0x6AAFDB81)
 I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
-F (..\HARDWARE\LCD\ER-TFT024-3_4-Wire_SPI.c)(0x6AB0524D)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\er-tft024-3_4-wire_spi.o --omf_browse ..\obj\er-tft024-3_4-wire_spi.crf --depend ..\obj\er-tft024-3_4-wire_spi.d)
+F (..\HARDWARE\LCD\ER-TFT024-3_4-Wire_SPI.c)(0x6AB6CD02)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\er-tft024-3_4-wire_spi.o --omf_browse ..\obj\er-tft024-3_4-wire_spi.crf --depend ..\obj\er-tft024-3_4-wire_spi.d)
 I (..\..\common\main.h)(0x6AAFDB81)
 I (..\..\common\product.h)(0x6AAFFF0B)
 I (..\USER\types.h)(0x6AAFDB80)
@@ -3746,11 +3746,11 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 I (..\MENU\constcode.h)(0x6AAFDB7F)
 I (..\USER\wifi.h)(0x6AAFFF0B)
-F (..\..\key\key.c)(0x6AAFFF0B)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\key.o --omf_browse ..\obj\key.crf --depend ..\obj\key.d)
+F (..\..\key\key.c)(0x6AB6CD67)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\key.o --omf_browse ..\obj\key.crf --depend ..\obj\key.d)
 I (..\..\common\main.h)(0x6AAFDB81)
 I (..\..\common\product.h)(0x6AAFFF0B)
 I (..\USER\types.h)(0x6AAFDB80)
@@ -3902,7 +3902,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 I (..\..\key\key.h)(0x6AAFDB81)
 F (..\..\scan\commsub.c)(0x6AAFFF0B)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\commsub.o --omf_browse ..\obj\commsub.crf --depend ..\obj\commsub.d)
@@ -4057,7 +4057,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 F (..\..\scan\scan.c)(0x6AB43B2B)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\scan.o --omf_browse ..\obj\scan.crf --depend ..\obj\scan.d)
 I (C:\Keil_v5\ARM\ARMCC\include\stdlib.h)(0x6025CC34)
@@ -4211,7 +4211,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 I (..\TCPIP\tcpip.h)(0x6AAFDB80)
 I (..\HARDWARE\ENC28J60\enc28j60.h)(0x6AAFFF0B)
@@ -4372,7 +4372,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 I (..\USER\wifi.h)(0x6AAFFF0B)
 I (..\..\bacnet\include\fifo.h)(0x6AAFDB81)
@@ -4532,7 +4532,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 F (..\..\common\range.c)(0x6AAFDB81)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\range.o --omf_browse ..\obj\range.crf --depend ..\obj\range.d)
 I (..\..\common\main.h)(0x6AAFDB81)
@@ -4686,7 +4686,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 F (..\..\common\MINI_revison.TXT)(0x00000000)()
 F (.\tstat_wifi.c)(0x6AB439CF)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\tstat_wifi.o --omf_browse ..\obj\tstat_wifi.crf --depend ..\obj\tstat_wifi.d)
@@ -4841,7 +4841,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 I (..\..\IO_control\controls.h)(0x6AAFFF0B)
 I (..\MENU\constcode.h)(0x6AAFDB7F)
@@ -5000,7 +5000,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 I (..\TCPIP\tcpip.h)(0x6AAFDB80)
 I (..\HARDWARE\ENC28J60\enc28j60.h)(0x6AAFFF0B)
@@ -5245,7 +5245,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 I (wifi.h)(0x6AAFFF0B)
 I (..\HARDWARE\ESP8266\bsp_esp8266.h)(0x6AAFFF0B)
@@ -5402,7 +5402,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 I (..\USER\wifi.h)(0x6AAFFF0B)
 I (C:\Keil_v5\ARM\ARMCC\include\stdarg.h)(0x6025CC36)
@@ -5620,14 +5620,14 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
-I (..\MENU\menu.h)(0x6AAFFF0B)
+I (..\MENU\menu.h)(0x6AB6CD05)
 I (..\MENU\menuIdle.h)(0x6AAFDB7F)
 I (..\MENU\menuMain.h)(0x6AAFDB7F)
 I (..\MENU\menuSet.h)(0x6AAFDB7F)
 I (..\MENU\menuDaySet.h)(0x6AAFDB7F)
-F (..\MENU\menuIdle.c)(0x6AB05058)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\menuidle.o --omf_browse ..\obj\menuidle.crf --depend ..\obj\menuidle.d)
+F (..\MENU\menuIdle.c)(0x6AB6CDA3)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\menuidle.o --omf_browse ..\obj\menuidle.crf --depend ..\obj\menuidle.d)
 I (..\..\common\main.h)(0x6AAFDB81)
 I (..\..\common\product.h)(0x6AAFFF0B)
 I (..\USER\types.h)(0x6AAFDB80)
@@ -5779,9 +5779,9 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
-I (..\MENU\menu.h)(0x6AAFFF0B)
+I (..\MENU\menu.h)(0x6AB6CD05)
 I (..\MENU\menuIdle.h)(0x6AAFDB7F)
 I (..\MENU\menuMain.h)(0x6AAFDB7F)
 I (..\MENU\menuSet.h)(0x6AAFDB7F)
@@ -5939,9 +5939,9 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
-I (..\MENU\menu.h)(0x6AAFFF0B)
+I (..\MENU\menu.h)(0x6AB6CD05)
 I (..\MENU\menuIdle.h)(0x6AAFDB7F)
 I (..\MENU\menuMain.h)(0x6AAFDB7F)
 I (..\MENU\menuSet.h)(0x6AAFDB7F)
@@ -5950,7 +5950,7 @@ I (..\MENU\Constcode.h)(0x6AAFDB7F)
 F (..\MENU\Constcode.c)(0x6AAFDB7F)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\constcode.o --omf_browse ..\obj\constcode.crf --depend ..\obj\constcode.d)
 I (..\MENU\constcode.h)(0x6AAFDB7F)
 I (..\USER\types.h)(0x6AAFDB80)
-F (..\MENU\menuMain.c)(0x6AAFFF0B)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\menumain.o --omf_browse ..\obj\menumain.crf --depend ..\obj\menumain.d)
+F (..\MENU\menuMain.c)(0x6AB6CD09)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\menumain.o --omf_browse ..\obj\menumain.crf --depend ..\obj\menumain.d)
 I (..\..\common\main.h)(0x6AAFDB81)
 I (..\..\common\product.h)(0x6AAFFF0B)
 I (..\USER\types.h)(0x6AAFDB80)
@@ -6102,9 +6102,9 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
-I (..\MENU\menu.h)(0x6AAFFF0B)
+I (..\MENU\menu.h)(0x6AB6CD05)
 I (..\MENU\menuIdle.h)(0x6AAFDB7F)
 I (..\MENU\menuMain.h)(0x6AAFDB7F)
 I (..\MENU\menuSet.h)(0x6AAFDB7F)
@@ -6262,9 +6262,9 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
-I (..\MENU\menu.h)(0x6AAFFF0B)
+I (..\MENU\menu.h)(0x6AB6CD05)
 I (..\MENU\menuIdle.h)(0x6AAFDB7F)
 I (..\MENU\menuMain.h)(0x6AAFDB7F)
 I (..\MENU\menuSet.h)(0x6AAFDB7F)
@@ -6426,7 +6426,7 @@ I (..\HARDWARE\LCD\display.h)(0x6AAFDB7F)
 I (..\..\bacnet\include\key.h)(0x6AAFDB81)
 I (..\..\common\pic.h)(0x6AAFDB81)
 I (..\..\SNTP\sntpc.h)(0x6AAFDB7F)
-I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB0524D)
+I (..\HARDWARE\LCD\LCD_TSTAT.h)(0x6AB6CD65)
 I (..\HARDWARE\VOC\voc.h)(0x6AAFFF0B)
 F (..\..\SD\FATFS\src\diskio.c)(0x6AAFFF0B)(--c99 -c --cpu Cortex-M3 -D__MICROLIB -g -O2 --apcs=interwork -I ..\CORE -I ..\USER -I ..\STM32F10x_FWLib\inc -I ..\HARDWARE\LED -I ..\HARDWARE\LCD -I ..\FreeRTOS\include -I ..\FreeRTOS\portable\RVDS\ARM_CM3 -I ..\SYSTEM\delay -I ..\SYSTEM\usart -I ..\SYSTEM -I ..\HARDWARE\KEY -I ..\HARDWARE\IIC -I ..\HARDWARE\24CXX -I ..\HARDWARE\SPI -I ..\HARDWARE\TOUCH -I ..\HARDWARE\FLASH -I ..\HARDWARE\STMFLASH -I ..\HARDWARE\DMA -I ..\HARDWARE\SDCARD -I ..\FATFS\src -I ..\FATFS\exfuns -I ..\VMALLOC -I ..\HARDWARE\TIMER -I ..\HARDWARE\ENC28J60 -I ..\uIP-1.0\uip -I ..\uIP-1.0\apps\dhcpc -I ..\uIP-1.0\apps\resolv -I ..\uIP-1.0\apps\webserver -I ..\uIP-APP -I ..\HARDWARE\RTC -I ..\USB\CONFIG\inc -I ..\USB\LIB\inc -I ..\USB\APP -I ..\MODBUS -I ..\TCPIP -I ..\..\bacnet -I ..\..\bacnet\include -I ..\..\bacnet\private -I ..\KEY -I ..\FILTER -I ..\..\IO_control -I ..\..\common -I ..\..\scan -I ..\..\SD -I ..\..\SD\FATFS\exfuns -I ..\..\SD\FATFS\src -I ..\FLASH -I ..\..\key -I ..\..\display -I ..\..\SNTP -I ..\..\RM -I ..\HARDWARE\EMMC -I ..\HARDWARE\ESP8266 -I ..\HARDWARE\LCD -I ..\MENU -I ..\HARDWARE\HUMIDITY -I ..\HARDWARE\VOC -I ..\HARDWARE\CO2_I2C-IC:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-D__UVISION_VERSION="536" -DSTM32F10X_HD -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\obj\diskio.o --omf_browse ..\obj\diskio.crf --depend ..\obj\diskio.d)
 I (..\..\common\product.h)(0x6AAFFF0B)

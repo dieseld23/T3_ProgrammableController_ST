@@ -1651,6 +1651,17 @@ void display_menu (uint8 *item1, uint8 *item2)
 	disp_str(FORM15X30, 0,FAN_MODE_POS,item2,TSTAT8_CH_COLOR,TSTAT8_BACK_COLOR);
 }
 
+/* Repaint the four sides of a frame draw_tangle() drew, in another colour:
+ * EDIT_FRAME_COLOR marks the value being edited, TANGLE_COLOR puts it back.
+ * The corners are bitmaps that carry TANGLE_COLOR, so they stay as they are. */
+void frame_value_box(uint8 xpos, uint16 ypos, uint8 w, uint16 colour)
+{
+	disp_null_icon(w-8, 2, 0, xpos+5, ypos+40, TSTAT8_CH_COLOR, colour);
+	disp_null_icon(w-8, 2, 0, xpos+5, ypos, TSTAT8_CH_COLOR, colour);
+	disp_null_icon(2, 32, 0, xpos, ypos+6, TSTAT8_CH_COLOR, colour);
+	disp_null_icon(2, 32, 0, xpos+w-2, ypos+6, TSTAT8_CH_COLOR, colour);
+}
+
 void draw_tangle(uint8 xpos, uint16 ypos, uint8 w)
 {
 		disp_icon(8, 8, leftup, 	xpos,	ypos, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);	

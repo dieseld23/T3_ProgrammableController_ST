@@ -359,6 +359,11 @@ void Key_Process(void ) reentrant
 
 				if(long_press_key_start >= LONG_PRESS_TIMER_SPEED_1)
 				{
+					// A T3-OEM starts and ends an edit with RIGHT, so its idle screen
+					// has to tell a held key from a fresh press. Every other screen
+					// masks this bit off with KEY_SPEED_MASK.
+					if(Modbus.mini_type == MINI_T10P)
+						key_temp |= KEY_REPEAT;
 					xQueueSend(qKey, &key_temp, 0);
 				}
 

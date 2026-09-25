@@ -143,7 +143,17 @@ void MenuMain_display(void)
 
 void MenuMain_keycope(uint16 key_value)
 {
-	switch(key_value & KEY_SPEED_MASK)
+	uint16 key = key_value & KEY_SPEED_MASK;
+
+	// on a T3-OEM the items read as a list: DOWN goes on to the next one
+	if(ARROW_KEYS())
+	{
+		if(key == KEY_UP_MASK)
+			key = KEY_DOWN_MASK;
+		else if(key == KEY_DOWN_MASK)
+			key = KEY_UP_MASK;
+	}
+	switch(key)
 	{
 		case 0:
 			// do nothing
