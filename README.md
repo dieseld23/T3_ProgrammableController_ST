@@ -7,25 +7,27 @@ developed and reviewed on the fork rather than upstream.
 
 ## Status
 
-As of 2026-09-24, `main` carries all of the work below (PRs #1-#8), and no other
+As of 2026-09-25, `main` carries all of the work below (PRs #1-#9), and no other
 branches are open.
 
 - **Build:** `Tstat10_wifi`, 0 errors, 474 warnings. `tools/checkmap.py` passes.
-- **Hardware:** only `rev68VPF` has run on a device. Everything after it is built
-  and reviewed but **not yet flashed**.
+- **Hardware:** all four images run on the unit. `rev68VPF2`, `rev68VPF3` and
+  `rev68VPF4` were flashed and confirmed working on 2026-09-25. The targeted
+  checks in [On the bench](#on-the-bench) are still open.
 
 | image | adds | md5 | hardware |
 | --- | --- | --- | --- |
-| `rev68VPF` | the display work | `03889122…` | **boots and draws** |
-| `rev68VPF2` | `RW_IRAM1` based at `0x20002000` (#5) | `21e7c5cc…` | untested |
-| `rev68VPF3` | memory safety, UART races, PID derivative (#6, #7) | `43889d83…` | untested |
-| `rev68VPF4` | cap on nested array indexes, three index bounds (#8) | `de1f5e18…` | untested — **this is `main`** |
+| `rev68VPF` | the display work | `03889122…` | boots and draws |
+| `rev68VPF2` | `RW_IRAM1` based at `0x20002000` (#5) | `21e7c5cc…` | works |
+| `rev68VPF3` | memory safety, UART races, PID derivative (#6, #7) | `43889d83…` | works |
+| `rev68VPF4` | cap on nested array indexes, three index bounds (#8) | `de1f5e18…` | **works — this is `main`** |
 
-All four are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. Each builds on the one
-above, so a failure in `rev68VPF4` would not say which layer caused it. Flash them
-in order, with `rev68VPF` as the fallback; [To do](#to-do) lists what to check on
-each. The application is linked above the bootloader, so a bad image leaves the
-device recoverable through the bootloader's ISP window at power-on.
+All four are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF4` carries
+everything and is the one to put on a unit; the older three stay as fallbacks. The
+md5s are of a Windows checkout, where `core.autocrlf` gives the hex files CRLF
+line endings. The blobs in git have LF and hash differently. The application is
+linked above the bootloader, so a bad image leaves the device recoverable through
+the bootloader's ISP window at power-on.
 
 The most urgent open item is that **network write commands can overflow the
 point tables**; see [To do](#to-do).
@@ -37,8 +39,9 @@ point tables**; see [To do](#to-do).
 Rendered by `tools/screenshot.py` from the firmware's own font tables, icon
 arrays and colour constants — not a mockup.
 
-`rev68VPF` boots on hardware and draws the screen. That confirms it runs and
-renders. It does not confirm the layout matches these pictures pixel for pixel.
+Every image from `rev68VPF` on boots on hardware and draws the screen. That
+confirms the firmware runs and renders. It does not confirm the layout matches
+these pictures pixel for pixel.
 The state icons and the corner humidity have not been driven yet, because nothing
 writes VAR25-28.
 
@@ -699,17 +702,23 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-24.
 
 ### On the bench
 
-Flash the images in [Status](#status) in order. Each row assumes the one above
-it worked.
+All four images in [Status](#status) were flashed in order and work on the unit
+(2026-09-25). That settles the first question each one raised:
 
-| image | check |
-| --- | --- |
-| `rev68VPF2` | Boots and draws, the same as `rev68VPF`. This proves the memory map alone. |
-| `rev68VPF3` | Stays up past a minute. A stack or heap shortfall now shows as a reset loop in the first seconds. RS-485 master polling returns sane values on each port in use, which covers the UART change. Loops with `rate > 0` are watched through a setpoint change (see below). |
-| `rev68VPF4` | A program that reads `AY1[AY1[AY1[…]]]` nine deep raises `PRG n error : indexes nest too deep` instead of resetting the board. A program using `ALARM-AT` with panel numbers runs for several minutes without trouble. |
+- `rev68VPF2` boots and draws, which proves the new memory map.
+- `rev68VPF3` and `rev68VPF4` run rather than reset. With overflow detection on,
+  a stack or heap shortfall would show as a reset loop in the first seconds.
 
-Also, on whichever image boots:
+These checks are still open. Run them on `rev68VPF4`, which carries everything:
 
+- RS-485 master polling returns sane values on each port in use. This covers the
+  UART change.
+- Loops with `rate > 0` are watched through a setpoint change (see
+  [In the field](#in-the-field)).
+- A program that reads `AY1[AY1[AY1[…]]]` nine deep raises
+  `PRG n error : indexes nest too deep` instead of resetting the board.
+- A program using `ALARM-AT` with panel numbers runs for several minutes without
+  trouble.
 - Check the layout against the renders by eye. `LABEL_YOFF` is the value most
   likely to need nudging.
 - Step the pages with RIGHT.
