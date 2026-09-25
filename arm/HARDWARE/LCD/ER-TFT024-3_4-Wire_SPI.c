@@ -1921,6 +1921,48 @@ void scroll_warning(uint8 item)
 }
 
 
+/* Blank the rectangle x0..x1-1, y0..y1-1, clipped to the unit band. */
+static void unit_band_rect(int16 x0, int16 y0, int16 x1, int16 y1)
+{
+	if(x0 < UNIT_BAND_XPOS)
+		x0 = UNIT_BAND_XPOS;
+	if(x1 > UNIT_BAND_XPOS + UNIT_BAND_XDOTS)
+		x1 = UNIT_BAND_XPOS + UNIT_BAND_XDOTS;
+	if(y0 < UNIT_BAND_YPOS)
+		y0 = UNIT_BAND_YPOS;
+	if(y1 > UNIT_BAND_YPOS + UNIT_BAND_YDOTS)
+		y1 = UNIT_BAND_YPOS + UNIT_BAND_YDOTS;
+	if(x1 > x0 && y1 > y0)
+		disp_null_icon((uint16)(x1 - x0), (uint16)(y1 - y0), 0, (uint16)x0, (uint16)y0,
+			TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
+}
+
+/* Blank whatever part of the unit band a unit has left bare. The unit is an
+ * optional ring (rw 0 for none) at rx, ry, rw x rh, then chars small glyphs
+ * from tx on the UNIT_TEXT_YPOS line; chars 0 blanks the whole band. */
+static void unit_band_blank(int16 rx, int16 ry, int16 rw, int16 rh, int16 tx, uint8 chars)
+{
+	int16 bx0 = UNIT_BAND_XPOS, bx1 = UNIT_BAND_XPOS + UNIT_BAND_XDOTS;
+	int16 by0 = UNIT_BAND_YPOS, by1 = UNIT_BAND_YPOS + UNIT_BAND_YDOTS;
+	int16 tx1 = chars ? (int16)(tx + (chars - 1) * 23 + CHSMALL_XDOTS) : tx;	/* disp_str advances 23 */
+
+	if(chars == 0)
+		tx = tx1 = bx1;
+	unit_band_rect(bx0, by0, rw ? rx : tx, by1);			// left of everything
+	if(rw)
+	{
+		unit_band_rect(rx, by0, rx + rw, ry);				// above the ring
+		unit_band_rect(rx, ry + rh, rx + rw, by1);			// below it
+		unit_band_rect(rx + rw, by0, tx, by1);				// between ring and text
+	}
+	if(chars)
+	{
+		unit_band_rect(tx, by0, tx1, UNIT_TEXT_YPOS);						// above the text
+		unit_band_rect(tx, UNIT_TEXT_YPOS + CHSMALL_YDOTS, tx1, by1);		// below it
+	}
+	unit_band_rect(tx1, by0, bx1, by1);						// right of everything
+}
+
 void Top_area_display(uint8 item, int16 value, uint8 unit)
 {
 	int16 value_buf;
@@ -1979,43 +2021,42 @@ void Top_area_display(uint8 item, int16 value, uint8 unit)
 //	{
 //		if(EEP_DEGCorF == 0)
 
-	/* Everything any unit can reach, wiped before whichever one is drawn, so that
-	 * switching from a two character unit to a one character one cannot leave its
-	 * tail on screen.  TOP_AREA_DISP_UNIT_NONE then needs no drawing of its own.
-	 *
-	 * A one character unit hangs off UNIT_POS with the degree ring to its left
+	/* A one character unit hangs off UNIT_POS with the degree ring to its left
 	 * where the temperature scales want one.  A two character unit starts at
 	 * UNIT2_POS instead: two 23 dot advances back from UNIT_POS would begin at
-	 * x=166, inside the third digit cell, which put "%R" on the hundreds digit. */
-	disp_null_icon(UNIT_BAND_XDOTS, UNIT_BAND_YDOTS, 0, UNIT_BAND_XPOS, UNIT_BAND_YPOS,
-		TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
-
+	 * x=166, inside the third digit cell, which put "%R" on the hundreds digit.
+	 *
+	 * The band any unit can reach is then blanked only where the unit just drawn
+	 * does not reach, so that switching from a two character unit to a one
+	 * character one cannot leave its tail on screen.  Blanking the whole band
+	 * first and drawing over it made the unit blink on every refresh, since the
+	 * band sat empty until the glyphs went back; a glyph cell repaints its own
+	 * background, so drawing straight over the old unit never shows a gap. */
 	switch(unit)
 	{
 	case TOP_AREA_DISP_UNIT_C:
-		disp_icon(14, 14, degree_o, UNIT_POS - 14, UNIT_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
-		disp_str(FORM15X30, UNIT_POS, UNIT_TEXT_YPOS, "C", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
-		break;
 	case TOP_AREA_DISP_UNIT_F:
 		disp_icon(14, 14, degree_o, UNIT_POS - 14, UNIT_YPOS, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
-		disp_str(FORM15X30, UNIT_POS, UNIT_TEXT_YPOS, "F", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+		disp_str(FORM15X30, UNIT_POS, UNIT_TEXT_YPOS, (uint8 *)(unit == TOP_AREA_DISP_UNIT_C ? "C" : "F"),
+			TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+		unit_band_blank(UNIT_POS - 14, UNIT_YPOS, 14, 14, UNIT_POS, 1);
 		break;
 	case TOP_AREA_DISP_UNIT_PERCENT:
 		disp_str(FORM15X30, UNIT_POS, UNIT_TEXT_YPOS, "%", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+		unit_band_blank(0, 0, 0, 0, UNIT_POS, 1);
 		break;
 	case TOP_AREA_DISP_UNIT_RH:
-		disp_str(FORM15X30, UNIT2_POS, UNIT_TEXT_YPOS, "%R", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
-		break;
 	case TOP_AREA_DISP_UNIT_PPM:
-		disp_str(FORM15X30, UNIT2_POS, UNIT_TEXT_YPOS, "pp", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
-		break;
 	case TOP_AREA_DISP_UNIT_kPa:
-		disp_str(FORM15X30, UNIT2_POS, UNIT_TEXT_YPOS, "kP", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
-		break;
 	case TOP_AREA_DISP_UNIT_Pa:
-		disp_str(FORM15X30, UNIT2_POS, UNIT_TEXT_YPOS, "Pa", TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+		disp_str(FORM15X30, UNIT2_POS, UNIT_TEXT_YPOS,
+			(uint8 *)(unit == TOP_AREA_DISP_UNIT_RH ? "%R" : unit == TOP_AREA_DISP_UNIT_PPM ? "pp"
+				: unit == TOP_AREA_DISP_UNIT_kPa ? "kP" : "Pa"),
+			TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+		unit_band_blank(0, 0, 0, 0, UNIT2_POS, 2);
 		break;
 	default:					/* TOP_AREA_DISP_UNIT_NONE, and anything unknown */
+		unit_band_blank(0, 0, 0, 0, 0, 0);
 		break;
 	}
 }
