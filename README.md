@@ -12,8 +12,9 @@ As of 2026-09-25, `main` carries all of the work below.
 - **Build:** `Tstat10_wifi`, 0 errors, 474 warnings. `tools/checkmap.py` passes.
 - **Hardware:** `rev68VPF` to `rev68VPF4` run on the unit. `rev68VPF2`,
   `rev68VPF3` and `rev68VPF4` were flashed and confirmed working on 2026-09-25.
-  `rev68VPF5`, the T3-OEM key scheme, is built but **not yet flashed**. The
-  targeted checks in [On the bench](#on-the-bench) are still open.
+  `rev68VPF5` (the T3-OEM key scheme) and `rev68VPF6` (the unit no longer
+  blinks) are built but **not yet flashed**. The targeted checks in
+  [On the bench](#on-the-bench) are still open.
 
 | image | adds | md5 | hardware |
 | --- | --- | --- | --- |
@@ -21,9 +22,10 @@ As of 2026-09-25, `main` carries all of the work below.
 | `rev68VPF2` | `RW_IRAM1` based at `0x20002000` (#5) | `21e7c5cc…` | works |
 | `rev68VPF3` | memory safety, UART races, PID derivative (#6, #7) | `43889d83…` | works |
 | `rev68VPF4` | cap on nested array indexes, three index bounds (#8) | `de1f5e18…` | works |
-| `rev68VPF5` | the keys as arrows on a T3-OEM | `8eec914c…` | untested — **this is `main`** |
+| `rev68VPF5` | the keys as arrows on a T3-OEM | `8eec914c…` | untested |
+| `rev68VPF6` | the top-area unit no longer blinks | `b142d299…` | untested — **this is `main`** |
 
-All five are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF5` carries
+All six are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF6` carries
 everything; `rev68VPF4` is the newest one confirmed on the unit and the fallback.
 The
 md5s are of a Windows checkout, where `core.autocrlf` gives the hex files CRLF
@@ -243,8 +245,12 @@ digit (`9.996` at two places is `10.00`), and drops places until it does.
 **A two character unit sat on the hundreds digit.** `"%R"`, `"pp"`, `"kP"` and
 `"Pa"` were drawn at `UNIT_POS - 23`, which is x=166 -- inside the third digit
 cell. They start at `UNIT2_POS` now, where the digits end, and still finish six
-dots clear of the page marks. The whole unit band is wiped before each draw, so
-switching from a two character unit to a one character one cannot leave a tail.
+dots clear of the page marks. After each draw, whatever part of the unit band the
+new unit does not cover is blanked, so switching from a two character unit to a
+one character one cannot leave a tail. The band was first wiped whole before each
+draw, which left it empty for a moment on every refresh: the unit blinked about
+once a second. Drawing first and blanking only the rest never shows a gap,
+because a glyph cell repaints its own background.
 
 **`display_dec()` cut a notch out of the third digit.** It painted an 8x8
 rectangle at x=130 to hide the decimal point, which was between the digits in
@@ -776,7 +782,9 @@ These checks are still open. Run them on `rev68VPF4`, which carries everything:
 - Step the pages with RIGHT (and back with LEFT on a T3-OEM).
 - Drive VAR25-28 to see the state icons and the humidity readout change.
 
-`rev68VPF5` has not been flashed. On a T3-OEM, check the keys against the table in
+`rev68VPF5` and `rev68VPF6` have not been flashed. On `rev68VPF6`, the unit
+beside the top-area value ("°C") should hold steady instead of blinking about once
+a second. On a T3-OEM, check the keys against the table in
 [Keys on a T3-OEM](#keys-on-a-t3-oem):
 
 - UP and DOWN move the highlight both ways and wrap, and it clears by itself
