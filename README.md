@@ -31,7 +31,7 @@ As of 2026-09-25, `main` carries all of the work below.
 | `rev68VPF8` | program code and settings saves survive a power cut | `69f28185…` | untested |
 | `rev68VPF9` | T3-OEM value boxes drop the `.0` from whole values | `4cfb9408…` | untested |
 | `rev68VPF10` | oversize private-transfer reads refused; MS/TP invoke id kept signed | `47655cc0…` | untested |
-| `rev68VPF11` | the program interpreter confined to each program's own row | `8ca11181…` | untested — **this is `main`** |
+| `rev68VPF11` | the program interpreter confined to each program's own row | `4e372340…` | untested — **this is `main`** |
 
 All eleven are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF11` carries
 everything; `rev68VPF4` is the newest one confirmed on the unit and the fallback.
@@ -476,7 +476,7 @@ Current state of the `Tstat10_wifi` target: **0 errors, 461 warnings**.
 
 | Region | Used | Of | Free |
 | --- | --- | --- | --- |
-| `ER_IROM1` flash | `0x4cf98` (315,288) | `0x60000` | ~76 KB |
+| `ER_IROM1` flash | `0x4cfa0` (315,296) | `0x60000` | ~76 KB |
 | `RW_RAM1` external SRAM | `0x763f8` (484,344) | `0x80000` | ~39 KB (92.4% full) |
 | `RW_IRAM1` internal SRAM | `0x43f0` (17,392) | `0xe000` | ~39 KB |
 
@@ -743,7 +743,7 @@ wherever the array's offset and its stored dimensions put it.
 Every write through a bytecode offset, and every jump, is now checked against the
 row first, in `in_row` and `jump_to` in `decode.c`. Outside the row the scan is
 abandoned the way deep nesting is, by a `longjmp` back to `exec_program`, and the
-alarm is `PRG n error : invalid code`. What is checked:
+alarm is `PRG n error : out of bounds`. What is checked:
 
 - the three section lengths, which together have to fit the row, before anything
   is read through them;
@@ -762,10 +762,20 @@ the program silently on every scan; it now raises the alarm. Reads past the row
 are left alone. The rows are in external SRAM, so a stray read cannot fault, and
 bounding every read would mean a check in every operand.
 
-Programs T3000 compiles do not trip any of this, because everything they point at
-is inside the program. That was checked two ways, with the tools in
-[Tools](#tools), on 29 compiled programs: the three on the bench unit, the rest
-Temco's examples.
+A program T3000 compiles trips these checks only where the old interpreter
+already left the row with it, which is what the harness below tests. Three such
+cases are known, and all three are interpreter bugs rather than bad code:
+
+- `COM1`, which this build does not have (one of Temco's BTU-meter examples);
+- a multi-target `ON` on a program's last line, whose fall-through scan used to
+  run into the next program's row and execute it (see [To do](#to-do));
+- a `RETURN` in a subroutine that used `UNACK`, which leaves a value on the stack
+  for `RETURN` to pop in place of the address `GOSUB` pushed.
+
+Each now stops the scan with the alarm where it used to run on outside the row.
+Everything else the compiled programs point at is inside them, and they run as
+before. That was checked two ways, with the tools in [Tools](#tools), on 29
+compiled programs: the three on the bench unit, the rest Temco's examples.
 
 - `check_programs.py` walks each program as the interpreter does and checks every
   offset against the section it belongs to, which is stricter than the row. All
@@ -916,10 +926,12 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-24.
 1. **`ON` never jumps.** `ON X GOTO` and `ON X GOSUB` compare their selector with
    the number of targets without dividing it by 1000, so any whole `X` is out of
    range and the statement falls through. The fall-through then scans for the next
-   `0x01` byte. One of the jump offsets can contain that byte, and after the
-   program's last line there is none, so the scan runs on into the tables behind
-   the code (now only as far as the end of the row). Temco's ESP32 port has the
-   same code. The fix is to divide by 1000 and step over the list, but programs
+   `0x01` byte. The target count or an offset can be that byte (a one-target `ON`
+   stops on its own count), and after the program's last line there is none, so
+   the scan ran on through the tables behind the code and into the next
+   program's row. It now stops at the end of the row with
+   `PRG n error : out of bounds`, which a program with a multi-target `ON` as its
+   last line will show. Temco's ESP32 port has the same code. The fix is to divide by 1000 and step over the list, but programs
    whose `ON` lines have never jumped would start jumping, so it wants a decision
    first.
 2. **`COM1` is not in the T3-OEM build.** It is compiled only for `ARM_MINI` and
@@ -927,13 +939,13 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-24.
    the byte for 2,000 iterations. The statement loop then reads its opcode,
    `0x10`, as `ELSE`, and jumps wherever the next two bytes say. Temco's
    BTU-meter examples use it, and on one of them that jump leaves the row, which
-   is now abandoned as invalid code. The fix is to step over `COM1`'s argument
+   now stops the scan with `PRG n error : out of bounds`. The fix is to step over `COM1`'s argument
    count and push 0 in builds without it. `tools/check_programs.py` already
    reports programs that use it.
 3. **Downloaded program bytecode is not checked when it arrives.** The
    interpreter now keeps every program inside its own row (see
    [A program stays in its row](#a-program-stays-in-its-row)), so a malformed
-   program no longer damages anything. It raises `PRG n error : invalid code` on
+   program no longer damages anything. It raises `PRG n error : out of bounds` on
    its first scan. Checking the row when `WRITEPROGRAMCODE_T3000` receives it
    would move that to the download. `tools/check_programs.py` is most of the
    checker. It has not yet met a real program with `FOR`/`NEXT`, `ON`, `GOSUB`,
@@ -1024,7 +1036,7 @@ from another panel over MS/TP, check they still update, and go offline when
 that panel is unplugged.
 
 `rev68VPF11` should not change what the programs do. With the unit's programs
-running, check that the alarm list shows no `PRG n error : invalid code`, and
+running, check that the alarm list shows no `PRG n error : out of bounds`, and
 that outputs still follow the programs. Then send one program over 400 bytes
 while the others run and read it back. The download arrives in several packets,
 and no invalid-code alarm should appear in between.

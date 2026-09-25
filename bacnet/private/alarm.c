@@ -396,7 +396,7 @@ void generate_program_alarm(U8_T type,U8_T prg)
     else if(type == 3) // array indexes nested past MAX_INDEX_DEPTH (decode.c)
         sprintf((char *)str, "PRG %d error : indexes nest too deep", (U16_T)prg);
     else if(type == 4) // bytecode pointed outside its own program (decode.c)
-        sprintf((char *)str, "PRG %d error : invalid code", (U16_T)prg);
+        sprintf((char *)str, "PRG %d error : out of bounds", (U16_T)prg);
 //	else
 //		return;
 		

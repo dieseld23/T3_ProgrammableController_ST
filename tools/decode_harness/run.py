@@ -41,7 +41,7 @@ sys.path.insert(0, os.path.dirname(HERE))
 import check_programs as cp  # noqa: E402
 
 VCVARS32 = os.environ.get("VCVARS32", r"C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars32.bat")
-INVALID_CODE = 1 << 4           # generate_program_alarm(4, ...): the scan was abandoned for leaving the row
+OUT_OF_BOUNDS = 1 << 4          # generate_program_alarm(4, ...): the scan was abandoned for leaving the row
 
 
 def build(tag, decode_src, basic_src, work):
@@ -195,13 +195,13 @@ def main():
             new_writes = any(res[name, "new", l][i]["write_fault"] or res[name, "new", l][i]["outside"] for l in (0, 1, 2))
             new_reads = any(res[name, "new", l][i]["crashed"] for l in (0, 1, 2)) and not new_writes
             base_writes = any(res[name, "base", l][i]["write_fault"] or res[name, "base", l][i]["outside"] for l in (0, 1, 2))
-            abandoned = bool(n0["alarms"] & INVALID_CODE)
+            abandoned = bool(n0["alarms"] & OUT_OF_BOUNDS)
             same = (b0["rets"], b0["trace"], b0["alarms"]) == (n0["rets"], n0["trace"], n0["alarms"])
             c["base writes outside its row"] += base_writes
             c["base reads outside its row, no writes"] += base_left and not base_writes
             c["new writes outside its row"] += new_writes
             c["new reads outside its row, no writes"] += new_reads
-            c["new abandons the scan: invalid code"] += abandoned
+            c["new abandons the scan: out of bounds"] += abandoned
             if same:
                 c["behave the same"] += 1
             elif base_left or abandoned:
@@ -213,12 +213,12 @@ def main():
         for k in ("behave the same", "differ: base left the row, or new abandoned", "differ, unexplained",
                   "base writes outside its row", "base reads outside its row, no writes",
                   "new writes outside its row", "new reads outside its row, no writes",
-                  "new abandons the scan: invalid code"):
+                  "new abandons the scan: out of bounds"):
             print("  %-46s %5d" % (k, c[k]))
         if name == "corpus":
             for i in range(len(rows)):
                 if (res[name, "base", 0][i]["trace"] != res[name, "new", 0][i]["trace"]
-                        or res[name, "new", 0][i]["alarms"] & INVALID_CODE):
+                        or res[name, "new", 0][i]["alarms"] & OUT_OF_BOUNDS):
                     print("    differs or abandoned: %s" % rows[i][0])
         if unexplained:
             print("    unexplained: " + " ".join(map(str, unexplained[:30])))
