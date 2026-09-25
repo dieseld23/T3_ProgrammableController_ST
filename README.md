@@ -9,11 +9,12 @@ developed and reviewed on the fork rather than upstream.
 
 As of 2026-09-25, `main` carries all of the work below.
 
-- **Build:** `Tstat10_wifi`, 0 errors, 474 warnings. `tools/checkmap.py` passes.
+- **Build:** `Tstat10_wifi`, 0 errors, 472 warnings. `tools/checkmap.py` passes.
 - **Hardware:** `rev68VPF` to `rev68VPF4` run on the unit. `rev68VPF2`,
   `rev68VPF3` and `rev68VPF4` were flashed and confirmed working on 2026-09-25.
-  `rev68VPF5` (the T3-OEM key scheme) and `rev68VPF6` (the unit no longer
-  blinks) are built but **not yet flashed**. The targeted checks in
+  `rev68VPF5` (the T3-OEM key scheme), `rev68VPF6` (the unit no longer
+  blinks) and `rev68VPF7` (network reads and writes bounded) are built but
+  **not yet flashed**. The targeted checks in
   [On the bench](#on-the-bench) are still open.
 
 | image | adds | md5 | hardware |
@@ -23,9 +24,10 @@ As of 2026-09-25, `main` carries all of the work below.
 | `rev68VPF3` | memory safety, UART races, PID derivative (#6, #7) | `43889d83…` | works |
 | `rev68VPF4` | cap on nested array indexes, three index bounds (#8) | `de1f5e18…` | works |
 | `rev68VPF5` | the keys as arrows on a T3-OEM | `8eec914c…` | untested |
-| `rev68VPF6` | the top-area unit no longer blinks | `b142d299…` | untested — **this is `main`** |
+| `rev68VPF6` | the top-area unit no longer blinks | `b142d299…` | untested |
+| `rev68VPF7` | private-transfer reads and writes bounded to their tables | `5f3bcb45…` | untested — **this is `main`** |
 
-All six are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF6` carries
+All seven are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF7` carries
 everything; `rev68VPF4` is the newest one confirmed on the unit and the fallback.
 The
 md5s are of a Windows checkout, where `core.autocrlf` gives the hex files CRLF
@@ -33,8 +35,8 @@ line endings. The blobs in git have LF and hash differently. The application is
 linked above the bootloader, so a bad image leaves the device recoverable through
 the bootloader's ISP window at power-on.
 
-The most urgent open item is that **network write commands can overflow the
-point tables**; see [To do](#to-do).
+The most urgent open item is now that **program code and four settings pages
+are lost on a power cut**; see [To do](#to-do).
 
 ## The idle screen
 
@@ -428,12 +430,12 @@ Notes on the toolchain:
   meant for a device are also copied to `Tstat10_arm_rev68VPF*.hex`; see
   [Status](#status).
 
-Current state of the `Tstat10_wifi` target: **0 errors, 474 warnings**.
+Current state of the `Tstat10_wifi` target: **0 errors, 472 warnings**.
 
 | Region | Used | Of | Free |
 | --- | --- | --- | --- |
-| `ER_IROM1` flash | `0x4c8f8` (313,592) | `0x60000` | ~78 KB |
-| `RW_RAM1` external SRAM | `0x763d8` (484,312) | `0x80000` | ~39 KB (92.4% full) |
+| `ER_IROM1` flash | `0x4cbf0` (314,352) | `0x60000` | ~77 KB |
+| `RW_RAM1` external SRAM | `0x763e0` (484,320) | `0x80000` | ~39 KB (92.4% full) |
 | `RW_IRAM1` internal SRAM | `0x43dc` (17,372) | `0xe000` | ~39 KB |
 
 `RW_IRAM1`'s `Of` column is `0xe000` rather than the `0x10000` the chip carries,
@@ -565,7 +567,8 @@ sound level still reads the table's floor of 50 in a silent room, as it always
 has; it just no longer gets there by dividing by zero.
 
 That pass did not reach every copy the network drives. The private-transfer
-writes into the other point tables are still unbounded; see [To do](#to-do).
+writes into the other point tables were bounded later; see
+[Private transfer bounds](#private-transfer-bounds).
 
 The `decode.c` clamp covers the copy into `message[]` only. `prog += len` still
 steps by the original length, because that byte is part of the instruction
@@ -679,33 +682,64 @@ The same pass bounded three indexes that came straight from the program:
   8-bit count wrapped negative, it wrote below the array too. Each `ALARM-AT`
   now replaces the list, keeping the five panels `putmessage` reads.
 
+### Private transfer bounds
+
+`bacnet/private/ptransfer.c` serves T3000's private-transfer reads and writes,
+over BACnet and, through `common/modbus.c`, over Modbus. Nothing authenticates
+them, and everything that locates the data comes from the request: the first and
+last entry, a 9-bit entry size, and for program code a 7-bit packet index. Only
+the input, output and variable commands checked both ends of the range. The
+rest:
+
+- checked only `end <= MAX_…`, which admits one entry past the table, and never
+  the start. Custom tables, multi-state values, arrays and zone writes checked
+  nothing.
+- then copied `total_length - 7` bytes. That only had to equal
+  `entitysize × count`, and both come from the same packet, so a write could put
+  about 500 bytes past `programs[]`, `controllers[]` and the rest.
+- `WRITEOUTPUT` checked its range but still copied the full length the packet
+  claimed.
+- program code offset its copy by `400 × packet_index` into the program's row
+  before any check, up to 50 KB past it.
+
+Reads used the same headers, so they could send back whatever followed a table.
+
+Every command now finds its destination through one of three helpers:
+
+- a table: `start` and `end` inside it and `start <= end`, with the size taken
+  from the declaration so it cannot drift from a `MAX_` constant;
+- a whole object that `start` and `end` do not index;
+- a program-code packet, which must start inside its program's 2,000-byte row.
+  That allows packets 0 to 4.
+
+Each notes how many bytes there are from the destination to the end of its
+object. A write copies no more than that, nor more than the receive buffer holds.
+A read copies no more than that and sends zeros for the rest of what was asked.
+A request that fails the check is ignored, as an out-of-range input, output or
+variable request always was.
+
+T3000 asks only for ranges inside these tables. It limits a program to 2,000
+bytes and sends it as at most five 400-byte packets, so nothing it sends is
+refused; this was checked against its source.
+
+Two more out-of-bounds writes turned up on the same paths:
+
+- `READ_TSTAT_DB` lists the subdevices and panels the unit knows into
+  `Remote_tst_db.sub[64]`. There can be up to `MAX_ID` (100) Modbus subdevices
+  plus the remote panels, so a unit that knew more than 64 wrote past the table
+  on every read. Both loops now stop when it is full.
+- Writing 0 to a counting input clears its counter, and the input number indexes
+  four counter arrays. Three of them have 16 entries and one has 12, but the
+  number can be any input up to 63. Each write is now bounded by its own array.
+  The Modbus register path in `common/modbus.c` had the same bug.
+
 ## To do
 
 Ordered by risk to a unit in the field. Checked against `main` on 2026-09-24.
 
 ### Code
 
-1. **Network write commands can overflow the point tables.** This is the most
-   urgent item. `bacnet/private/ptransfer.c` handles the T3000 private-transfer
-   writes, which need no authentication. `WRITEINPUT`, `WRITEOUTPUT` and
-   `WRITEVARIABLE` check both ends of the range and cap the copy. Every other table
-   write does neither: weekly and annual routines, programs, program code,
-   controllers, monitors, groups, remote points, alarms, units and passwords.
-   - It checks only `point_end_instance <= MAX_…`. The `<=` admits one entry past
-     the end of the table, and `point_start_instance` is never checked at all.
-   - The generic copy then writes `total_length - 7` bytes. The only check is that
-     this equals `entitysize × count`, and `entitysize` is a 9-bit field from the
-     same packet. So a request can put up to about 500 bytes past the end of
-     `programs[]`, `controllers[]` and the rest.
-   - `WRITEPROGRAMCODE_T3000` also offsets into the program row by a 7-bit
-     `packet_index`, which puts the copy up to 50 KB past the row. The check on
-     `packet_index` at ~`ptransfer.c:2092` runs after the copy.
-
-   The fix is the `WRITEINPUT` pattern applied to every table: `start < MAX`,
-   `end < MAX`, `start <= end`, and cap the copy at `(MAX - start) × sizeof`.
-   Plus a bound on `packet_index`. Reads use the same headers and want the same
-   check.
-2. **Program code and four settings pages are still lost on a power cut.** The
+1. **Program code and four settings pages are still lost on a power cut.** The
    point tables are saved through a shadow page and a commit record
    (`flash_replace_page`, `flash_finish_pending_commit` in
    `arm/FLASH/flash_user.c`), so a cut mid-save is recovered at boot. Two kinds of
@@ -716,17 +750,17 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-24.
      device name and SNTP settings, output priority arrays, and email settings.
 
    Routing both through `flash_replace_page` would close it.
-3. **Downloaded program bytecode is not checked when it arrives.** The
+2. **Downloaded program bytecode is not checked when it arrives.** The
    interpreter now bounds what it can at run time: message lengths, jump targets
    within the row, nesting depth, table indexes. A malformed program is still
    stored and saved to flash as sent, though. Checking the row when
    `WRITEPROGRAMCODE_T3000` receives it would turn a program that fails every
    scan into a rejected download. The larger half of the job is a parser that
    agrees exactly with `veval_exp` on operand sizes.
-4. **Eight `#186-D` warnings deserve a read as a group.** Each is an unsigned
+3. **Eight `#186-D` warnings deserve a read as a group.** Each is an unsigned
    value compared with zero, and one of them was already hiding a division by
    zero:
-   - `ptransfer.c:705`, `ptransfer.c:2288`
+   - `ptransfer.c:764`, `ptransfer.c:2327`
    - `user_data.c:1485`
    - `modbus.c:4488`, `modbus.c:4608`
    - `tstat_wifi.c:380`, `tstat_wifi.c:401`
@@ -734,20 +768,20 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-24.
 
    A useless lower bound on an index that came off the network is how an overflow
    hides.
-5. **Alarms are never forwarded to other panels.** `sendalarm` and its callers in
+4. **Alarms are never forwarded to other panels.** `sendalarm` and its callers in
    `bacnet/private/alarm.c` are commented out. The `where1…where5` destinations
    that `ALARM-AT` sets are stored with each alarm and shown in T3000, but go
    nowhere. Relatedly, `alarm_at_all` is set by `ALARM-AT ALL` and never cleared.
    The reset at the top of the scan is commented out, so it stays set until
    reboot. That is harmless while forwarding is off, and needs deciding before
    forwarding is turned back on.
-6. **The `mini_arm` and `CM5_arm` targets have not been built since this work
+5. **The `mini_arm` and `CM5_arm` targets have not been built since this work
    began.** They compile the same `decode.c`, `ptransfer.c`, `alarm.c`,
    `modbus.c` and `main.c`. Nothing here has checked that they still build, or
    that the memory-map and stack reasoning holds for them. Both still link the
    BACnet library from `..\BACLIB`, and CM5's library is missing (see
    [Building](#building)).
-7. **On a Tstat10, UP/DOWN with nothing highlighted toggle the top-area point.**
+6. **On a Tstat10, UP/DOWN with nothing highlighted toggle the top-area point.**
    In `MenuIdle_keycope` a `disp_index` outside 1-3 falls into the branch meant
    for the top area, and `disp_index` is 0 whenever no row is highlighted, which
    is most of the time. So a stray UP or DOWN flips the `control` of whatever
@@ -782,7 +816,7 @@ These checks are still open. Run them on `rev68VPF4`, which carries everything:
 - Step the pages with RIGHT (and back with LEFT on a T3-OEM).
 - Drive VAR25-28 to see the state icons and the humidity readout change.
 
-`rev68VPF5` and `rev68VPF6` have not been flashed. On `rev68VPF6`, the unit
+`rev68VPF5` to `rev68VPF7` have not been flashed. On `rev68VPF6`, the unit
 beside the top-area value ("°C") should hold steady instead of blinking about once
 a second. On a T3-OEM, check the keys against the table in
 [Keys on a T3-OEM](#keys-on-a-t3-oem):
@@ -794,6 +828,16 @@ a second. On a T3-OEM, check the keys against the table in
 - LEFT and RIGHT page back and forward with nothing highlighted, and holding
   RIGHT on a highlighted row does not make the frame flicker.
 - LEFT+RIGHT opens the menu, where DOWN goes to the next item.
+
+`rev68VPF7` should change nothing T3000 can see. With it on the unit, work
+through T3000's pages once:
+
+- Read and write inputs, outputs and variables. Set a counting input to 0 and
+  check its count clears.
+- Open a program over 400 bytes, change it, send it and read it back. That
+  exercises several code packets.
+- Open the weekly and annual schedules, controllers, monitors and a trend graph,
+  graphics screens, alarms, custom units and users, and save a change on each.
 
 ### In the field
 
@@ -838,6 +882,10 @@ a second. On a T3-OEM, check the keys against the table in
   - `PIDPROP`, `PIDDERIV` and `PIDINT` use an unchecked controller index.
   - `ALARM-AT` has the appending overflow.
   - `alarm.c` still `strcpy`s the program's message into its 59-byte field.
+  - `ptransfer.c` has the private-transfer ranges described in
+    [Private transfer bounds](#private-transfer-bounds): `end <= MAX_…` with no
+    check on the start, and program code offset by `packet_index` before any
+    check.
 
 ## Options considered
 
