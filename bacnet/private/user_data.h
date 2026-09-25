@@ -288,7 +288,7 @@ typedef enum { WRITE_SD_OK = 0,WAIT_FOR_SD} E_OPERATE_SD;
 
 extern U32_T	timeCount1,timeCount2;
 //extern uint8_t invokeid_bip;
-extern uint8_t far invokeid_mstp;
+extern int far invokeid_mstp;
 extern uint8_t far flag_receive_netp;	// network points 
 extern uint8_t far flag_receive_netp_temcovar;
 //extern uint8_t far flag_receive_netp_temcoreg;

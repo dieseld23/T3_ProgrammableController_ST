@@ -4509,7 +4509,7 @@ void responseCmd(U8_T type,U8_T* pData)
 		if(cmd == WRITE_COIL)
 		{
 			char j;
-			if(StartAdd >= MODBUS_COIL_OUTPUT_START && StartAdd <= MODBUS_COIL_OUTPUT_END )  // BO1-64
+			if(StartAdd <= MODBUS_COIL_OUTPUT_END )  // BO1-64; the coils start at register 0
 			{					
 				j = StartAdd - MODBUS_COIL_OUTPUT_START;
 				if(outputs[j].digital_analog == 0)  // digital
@@ -4629,7 +4629,7 @@ void responseCmd(U8_T type,U8_T* pData)
 #endif
 			ChangeFlash = 1;
 		}
-		if (StartAdd >= MODBUS_SERIALNUMBER_LOWORD && StartAdd <= MODBUS_SERIALNUMBER_LOWORD + 3 )
+		if (StartAdd <= MODBUS_SERIALNUMBER_LOWORD + 3 )  // the serial number starts at register 0
 		{
 			if((StartAdd == MODBUS_SERIALNUMBER_LOWORD) && (SNWriteflag & 0x01) == 0)
 			{
