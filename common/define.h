@@ -182,8 +182,16 @@ typedef struct
 	U8_T end_month;
 	U8_T end_day;
 	U8_T icon_config;
+	U8_T value_decimals;  // T3-OEM value boxes, VALUE_DECIMALS_*; register MODBUS_VALUE_DECIMALS
 	
 }STR_MODBUS;
+
+/* How a T3-OEM's value boxes show decimals (Modbus.value_decimals). A Tstat10
+ * always shows VALUE_DECIMALS_AS_FIT. */
+#define VALUE_DECIMALS_AS_FIT	0	/* as many as fit in the box: 72.0, 21.5 */
+#define VALUE_DECIMALS_TRIM		1	/* a whole value drops its .0: 72, 21.5 (default) */
+#define VALUE_DECIMALS_WHOLE	2	/* whole numbers only: 72, 22 */
+#define VALUE_DECIMALS_DEFAULT	VALUE_DECIMALS_TRIM
 
 typedef struct
 {
@@ -581,6 +589,7 @@ typedef enum{
 	EEP_READ_POINT_TIMER, // 100MS
 	EEP_UART0_BAUDRATE_NEW,// = 237,
 	EEP_READ_SUB_OFFSET, // 238
+	EEP_VALUE_DECIMALS,  // 239, T3-OEM value boxes; 239-253 were unused
 	
 	
 	EEP_FLASH_MAC = 254,	
@@ -992,6 +1001,7 @@ typedef enum {
 	MODBUS_CO2,  // 734
 	MODBUS_LIGHT,
 	MODBUS_VOICE,
+	MODBUS_VALUE_DECIMALS = 737,  // T3-OEM: VALUE_DECIMALS_*
 	
 	MODBUS_PULSE1 = 740,
 	MODBUS_PULSE2 ,

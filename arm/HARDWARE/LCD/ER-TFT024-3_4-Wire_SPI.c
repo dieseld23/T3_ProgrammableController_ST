@@ -816,11 +816,41 @@ void display_screen_value(uint8 type)
  * dangling point -- "-12.", "123." -- which reads as a broken number rather
  * than a rounded one.  Rounding can carry into a new digit as well (9.996 at
  * two places is "10.00"), so the result is measured and the places dropped
- * until it fits, ending at a plain rounded integer. */
+ * until it fits, ending at a plain rounded integer.
+ *
+ * A T3-OEM can be set, through Modbus register MODBUS_VALUE_DECIMALS, to drop a
+ * fraction that is all zeros ("72.0" and "5.00" become "72" and "5", while
+ * "21.5" stays), which is its default, or to show whole numbers only. A
+ * setpoint stepped on the unit is always whole, so without this it read "72.0". */
+static uint8 value_decimals_mode(void)
+{
+	if(Modbus.mini_type != MINI_T10P)	/* a Tstat10 is unchanged */
+		return VALUE_DECIMALS_AS_FIT;
+	return Modbus.value_decimals;
+}
+
+static void drop_zero_fraction(uint8 *buf)
+{
+	uint8 *point = (uint8 *)strchr((char *)buf, '.');
+	uint8 *p;
+
+	if(point == NULL)
+		return;
+	for(p = point + 1;*p != 0;p++)
+	{
+		if(*p != '0')
+			return;
+	}
+	*point = 0;
+	if(strcmp((char *)buf, "-0") == 0)	/* -0.04 rounds to "-0.0" */
+		strcpy((char *)buf, "0");
+}
+
 static void format_value(uint8 *buf, float v)
 {
 	int32_t whole;
 	int room, digits = 1, places;
+	uint8 mode = value_decimals_mode();
 
 	if(v > 9999.0f)
 		v = 9999.0f;
@@ -836,6 +866,8 @@ static void format_value(uint8 *buf, float v)
 	}
 
 	places = room - digits - 1;		/* the point costs a cell of its own */
+	if(mode == VALUE_DECIMALS_WHOLE)
+		places = 0;
 	for(places = (places > 2) ? 2 : places;places > 0;places--)
 	{
 		if(places == 2)
@@ -843,7 +875,11 @@ static void format_value(uint8 *buf, float v)
 		else
 			sprintf((char *)buf, "%.1f", v);
 		if(strlen((char *)buf) <= VALUE_CHARS)
+		{
+			if(mode == VALUE_DECIMALS_TRIM)
+				drop_zero_fraction(buf);
 			return;
+		}
 	}
 	sprintf((char *)buf, "%d", (int)(v < 0 ? v - 0.5f : v + 0.5f));
 }

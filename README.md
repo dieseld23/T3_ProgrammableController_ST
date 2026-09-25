@@ -13,8 +13,9 @@ As of 2026-09-25, `main` carries all of the work below.
 - **Hardware:** `rev68VPF` to `rev68VPF4` run on the unit. `rev68VPF2`,
   `rev68VPF3` and `rev68VPF4` were flashed and confirmed working on 2026-09-25.
   `rev68VPF5` (the T3-OEM key scheme), `rev68VPF6` (the unit no longer
-  blinks), `rev68VPF7` (network reads and writes bounded) and `rev68VPF8`
-  (power-cut-safe saves) are built but **not yet flashed**. The targeted checks in
+  blinks), `rev68VPF7` (network reads and writes bounded), `rev68VPF8`
+  (power-cut-safe saves) and `rev68VPF9` (no `.0` on whole values) are built
+  but **not yet flashed**. The targeted checks in
   [On the bench](#on-the-bench) are still open.
 
 | image | adds | md5 | hardware |
@@ -26,9 +27,10 @@ As of 2026-09-25, `main` carries all of the work below.
 | `rev68VPF5` | the keys as arrows on a T3-OEM | `8eec914c…` | untested |
 | `rev68VPF6` | the top-area unit no longer blinks | `b142d299…` | untested |
 | `rev68VPF7` | private-transfer reads and writes bounded to their tables | `5f3bcb45…` | untested |
-| `rev68VPF8` | program code and settings saves survive a power cut | `69f28185…` | untested — **this is `main`** |
+| `rev68VPF8` | program code and settings saves survive a power cut | `69f28185…` | untested |
+| `rev68VPF9` | T3-OEM value boxes drop the `.0` from whole values | `6c444015…` | untested — **this is `main`** |
 
-All eight are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF8` carries
+All nine are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF9` carries
 everything; `rev68VPF4` is the newest one confirmed on the unit and the fallback.
 The
 md5s are of a Windows checkout, where `core.autocrlf` gives the hex files CRLF
@@ -175,6 +177,30 @@ enough for `HEAT`, `AUTO`, `OPEN`, `72`. `draw_tangle()` takes a width rather
 than assuming one, and the box is anchored to the right edge because the page
 marks no longer live there. The 44 state words were shortened to fit, which also
 retired the original `NAORM` typo.
+
+### Decimals in the value boxes on a T3-OEM
+
+A value box shows as many decimals as fit in its four cells, so a setpoint
+stepped on the unit, which is always whole, read `72.0`. On a T3-OEM the boxes
+follow a mode instead, held in Modbus holding register **737** and saved in
+EEPROM byte 239:
+
+| register 737 | shows | 72.0 | 21.5 | -3.0 |
+| --- | --- | --- | --- | --- |
+| `0` | as many decimals as fit, as before | `72.0` | `21.5` | `-3.0` |
+| `1` (default) | drops a fraction that is all zeros | `72` | `21.5` | `-3` |
+| `2` | whole numbers only | `72` | `22` | `-3` |
+
+Write it with a single-register write (function 06) from T3000's Modbus Poll or
+register-write tool, or any Modbus master; any other value is ignored. A unit
+that predates the option reads the unwritten EEPROM byte as `0xFF` and gets the
+default, and a factory reset restores it. The register sits beside the
+display-disable option at 729. It applies to the value boxes only; the big
+top-area number was already whole degrees. A Tstat10 always shows mode `0`.
+
+In mode `1` a reading that changes, rather than a setpoint, jumps a column when
+it lands on a whole number: `71.9`, then `  72`, then `72.1`. Mode `0` keeps it
+steady.
 
 ### The link corner, the unit and the value boxes
 
@@ -435,7 +461,7 @@ Current state of the `Tstat10_wifi` target: **0 errors, 472 warnings**.
 
 | Region | Used | Of | Free |
 | --- | --- | --- | --- |
-| `ER_IROM1` flash | `0x4cce0` (314,592) | `0x60000` | ~77 KB |
+| `ER_IROM1` flash | `0x4cd90` (314,768) | `0x60000` | ~77 KB |
 | `RW_RAM1` external SRAM | `0x763e0` (484,320) | `0x80000` | ~39 KB (92.4% full) |
 | `RW_IRAM1` internal SRAM | `0x43dc` (17,372) | `0xe000` | ~39 KB |
 
@@ -857,7 +883,7 @@ These checks are still open. Run them on `rev68VPF4`, which carries everything:
 - Step the pages with RIGHT (and back with LEFT on a T3-OEM).
 - Drive VAR25-28 to see the state icons and the humidity readout change.
 
-`rev68VPF5` to `rev68VPF8` have not been flashed. On `rev68VPF6`, the unit
+`rev68VPF5` to `rev68VPF9` have not been flashed. On `rev68VPF6`, the unit
 beside the top-area value ("°C") should hold steady instead of blinking about once
 a second. On a T3-OEM, check the keys against the table in
 [Keys on a T3-OEM](#keys-on-a-t3-oem):
@@ -869,6 +895,10 @@ a second. On a T3-OEM, check the keys against the table in
 - LEFT and RIGHT page back and forward with nothing highlighted, and holding
   RIGHT on a highlighted row does not make the frame flicker.
 - LEFT+RIGHT opens the menu, where DOWN goes to the next item.
+
+On `rev68VPF9`, a setpoint row shows `72` rather than `72.0`. Writing 0 to
+register 737 brings the `.0` back, and 2 rounds everything to whole numbers; the
+setting should survive a restart.
 
 `rev68VPF7` should change nothing T3000 can see. With it on the unit, work
 through T3000's pages once:
