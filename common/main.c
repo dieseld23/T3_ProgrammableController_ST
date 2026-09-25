@@ -1330,18 +1330,9 @@ void set_default_parameters(void)
 	
 #if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI)
 // erase all flash for user	
-	Bacnet_Initial_Data();	
-	
-	__disable_irq();
-	STMFLASH_Unlock();
-					
-	for(loop = 0;loop < 64;loop++)
-	{
-		STMFLASH_ErasePage(0x8060000 + 2048 * loop);	
-	}
-	
-	STMFLASH_Lock();
-	__enable_irq();
+	Bacnet_Initial_Data();
+
+	Flash_Erase_User_Pages();
 
     for (loop = 0; loop < 26; loop++)
     {
@@ -3032,6 +3023,10 @@ void main( void )
 	uart1_init(115200);
 	DEBUG_EN = 1;
 	printf("intial end\r\n");
+#endif
+#if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI)
+	/* after every task is created, so the heap is still only drawn on at boot */
+	Flash_Lock_Init();
 #endif
 #if (ASIX_MINI || ASIX_CM5)
 	vTaskStartScheduler( portUSE_PREEMPTION );

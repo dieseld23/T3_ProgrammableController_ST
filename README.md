@@ -13,8 +13,8 @@ As of 2026-09-25, `main` carries all of the work below.
 - **Hardware:** `rev68VPF` to `rev68VPF4` run on the unit. `rev68VPF2`,
   `rev68VPF3` and `rev68VPF4` were flashed and confirmed working on 2026-09-25.
   `rev68VPF5` (the T3-OEM key scheme), `rev68VPF6` (the unit no longer
-  blinks) and `rev68VPF7` (network reads and writes bounded) are built but
-  **not yet flashed**. The targeted checks in
+  blinks), `rev68VPF7` (network reads and writes bounded) and `rev68VPF8`
+  (power-cut-safe saves) are built but **not yet flashed**. The targeted checks in
   [On the bench](#on-the-bench) are still open.
 
 | image | adds | md5 | hardware |
@@ -25,9 +25,10 @@ As of 2026-09-25, `main` carries all of the work below.
 | `rev68VPF4` | cap on nested array indexes, three index bounds (#8) | `de1f5e18…` | works |
 | `rev68VPF5` | the keys as arrows on a T3-OEM | `8eec914c…` | untested |
 | `rev68VPF6` | the top-area unit no longer blinks | `b142d299…` | untested |
-| `rev68VPF7` | private-transfer reads and writes bounded to their tables | `5f3bcb45…` | untested — **this is `main`** |
+| `rev68VPF7` | private-transfer reads and writes bounded to their tables | `5f3bcb45…` | untested |
+| `rev68VPF8` | program code and settings saves survive a power cut | `69f28185…` | untested — **this is `main`** |
 
-All seven are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF7` carries
+All eight are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF8` carries
 everything; `rev68VPF4` is the newest one confirmed on the unit and the fallback.
 The
 md5s are of a Windows checkout, where `core.autocrlf` gives the hex files CRLF
@@ -35,8 +36,8 @@ line endings. The blobs in git have LF and hash differently. The application is
 linked above the bootloader, so a bad image leaves the device recoverable through
 the bootloader's ISP window at power-on.
 
-The most urgent open item is now that **program code and four settings pages
-are lost on a power cut**; see [To do](#to-do).
+The most urgent open item is now that **downloaded program bytecode is not
+checked when it arrives**; see [To do](#to-do).
 
 ## The idle screen
 
@@ -434,7 +435,7 @@ Current state of the `Tstat10_wifi` target: **0 errors, 472 warnings**.
 
 | Region | Used | Of | Free |
 | --- | --- | --- | --- |
-| `ER_IROM1` flash | `0x4cbf0` (314,352) | `0x60000` | ~77 KB |
+| `ER_IROM1` flash | `0x4cce0` (314,592) | `0x60000` | ~77 KB |
 | `RW_RAM1` external SRAM | `0x763e0` (484,320) | `0x80000` | ~39 KB (92.4% full) |
 | `RW_IRAM1` internal SRAM | `0x43dc` (17,372) | `0xe000` | ~39 KB |
 
@@ -733,31 +734,71 @@ Two more out-of-bounds writes turned up on the same paths:
   number can be any input up to 63. Each write is now bounded by its own array.
   The Modbus register path in `common/modbus.c` had the same bug.
 
+### Saves that survive a power cut
+
+The point tables were already saved through a shadow page. `flash_replace_page`
+writes the new page to a spare page first, then a commit record naming its
+destination, and only then erases and rewrites the live page. If power is cut
+after the record is written, `flash_finish_pending_commit` finishes the save from
+the shadow copy at the next boot. Program code and four settings pages bypassed
+it, and were erased and rewritten in place with interrupts off:
+
+- `Flash_Store_Code` erased and rewrote all 16 program pages on every save,
+  whichever program had changed. That kept interrupts off for up to about a
+  second, and wore every page on every download.
+- `FLASH_OTHER_ADDR` holds the panel name, the Wi-Fi settings and the schedules'
+  on/off flags. `…ADDR2` holds the multi-state values, relinquish defaults,
+  BACnet vendor strings, variable units and the display configuration, and
+  `…ADDR4` the email settings. A cut while the first of these was being saved
+  took the unit off the network.
+
+Each is now built whole in RAM and saved through the shadow page, and only if it
+differs from what is in flash. Downloading one program rewrites one page. The
+images match byte for byte what the old field-by-field writes left, so existing
+units read the same data and an unchanged page is recognised as unchanged. Boot
+recovery now also accepts a program page as the destination, and refuses the
+shadow pages themselves.
+
+The output priority arrays (`…ADDR3`) stay in place, deliberately. They are
+saved on every BACnet write to a binary output, so that page changes far more
+often than any other. Through the shadow page, each change would also erase the
+shadow page and the commit record, which every save shares; once those wore out,
+every save would fail with them. In place, a cut mid-rewrite loses the stored
+commands, and the outputs start at their relinquish defaults. What did change is
+that the page is no longer erased on every write whether or not anything
+changed. A BMS that re-sent a command once a minute erased it 1,440 times a day,
+and the flash is rated for 10,000 erases.
+
+All flash writes now also take one lock, a recursive FreeRTOS mutex. Saves start
+from several tasks (the main loop, the BACnet and Modbus handlers, the Wi-Fi and
+TCP/IP tasks), and nothing kept them apart:
+
+- One save could lock the flash controller under another part way through a
+  page, or overwrite the shadow copy the other was relying on.
+- `Flash_Write_Mass` copies a table into a shared 20 KB buffer and writes it out
+  a page at a time. A second save could refill the buffer with another table in
+  between, and the first would write that table into its own pages.
+
+Being a mutex, it makes only other saves wait. Other tasks still run between the
+halfword writes of a save, and the receive ISRs are never masked. The factory
+reset's erase takes it too. It is created just before the scheduler starts,
+after every task, so the heap is still only drawn on at boot; until then the
+lock does nothing.
+
 ## To do
 
 Ordered by risk to a unit in the field. Checked against `main` on 2026-09-24.
 
 ### Code
 
-1. **Program code and four settings pages are still lost on a power cut.** The
-   point tables are saved through a shadow page and a commit record
-   (`flash_replace_page`, `flash_finish_pending_commit` in
-   `arm/FLASH/flash_user.c`), so a cut mid-save is recovered at boot. Two kinds of
-   save bypass that:
-   - `Flash_Store_Code` erases each program's page and rewrites it in place.
-   - The `FLASH_OTHER_ADDR…ADDR4` pages are erased and then written directly, in
-     several separate writes for some of them. These hold multi-state values, the
-     device name and SNTP settings, output priority arrays, and email settings.
-
-   Routing both through `flash_replace_page` would close it.
-2. **Downloaded program bytecode is not checked when it arrives.** The
+1. **Downloaded program bytecode is not checked when it arrives.** The
    interpreter now bounds what it can at run time: message lengths, jump targets
    within the row, nesting depth, table indexes. A malformed program is still
    stored and saved to flash as sent, though. Checking the row when
    `WRITEPROGRAMCODE_T3000` receives it would turn a program that fails every
    scan into a rejected download. The larger half of the job is a parser that
    agrees exactly with `veval_exp` on operand sizes.
-3. **Eight `#186-D` warnings deserve a read as a group.** Each is an unsigned
+2. **Eight `#186-D` warnings deserve a read as a group.** Each is an unsigned
    value compared with zero, and one of them was already hiding a division by
    zero:
    - `ptransfer.c:764`, `ptransfer.c:2327`
@@ -768,20 +809,20 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-24.
 
    A useless lower bound on an index that came off the network is how an overflow
    hides.
-4. **Alarms are never forwarded to other panels.** `sendalarm` and its callers in
+3. **Alarms are never forwarded to other panels.** `sendalarm` and its callers in
    `bacnet/private/alarm.c` are commented out. The `where1…where5` destinations
    that `ALARM-AT` sets are stored with each alarm and shown in T3000, but go
    nowhere. Relatedly, `alarm_at_all` is set by `ALARM-AT ALL` and never cleared.
    The reset at the top of the scan is commented out, so it stays set until
    reboot. That is harmless while forwarding is off, and needs deciding before
    forwarding is turned back on.
-5. **The `mini_arm` and `CM5_arm` targets have not been built since this work
+4. **The `mini_arm` and `CM5_arm` targets have not been built since this work
    began.** They compile the same `decode.c`, `ptransfer.c`, `alarm.c`,
    `modbus.c` and `main.c`. Nothing here has checked that they still build, or
    that the memory-map and stack reasoning holds for them. Both still link the
    BACnet library from `..\BACLIB`, and CM5's library is missing (see
    [Building](#building)).
-6. **On a Tstat10, UP/DOWN with nothing highlighted toggle the top-area point.**
+5. **On a Tstat10, UP/DOWN with nothing highlighted toggle the top-area point.**
    In `MenuIdle_keycope` a `disp_index` outside 1-3 falls into the branch meant
    for the top area, and `disp_index` is 0 whenever no row is highlighted, which
    is most of the time. So a stray UP or DOWN flips the `control` of whatever
@@ -816,7 +857,7 @@ These checks are still open. Run them on `rev68VPF4`, which carries everything:
 - Step the pages with RIGHT (and back with LEFT on a T3-OEM).
 - Drive VAR25-28 to see the state icons and the humidity readout change.
 
-`rev68VPF5` to `rev68VPF7` have not been flashed. On `rev68VPF6`, the unit
+`rev68VPF5` to `rev68VPF8` have not been flashed. On `rev68VPF6`, the unit
 beside the top-area value ("°C") should hold steady instead of blinking about once
 a second. On a T3-OEM, check the keys against the table in
 [Keys on a T3-OEM](#keys-on-a-t3-oem):
@@ -838,6 +879,12 @@ through T3000's pages once:
   exercises several code packets.
 - Open the weekly and annual schedules, controllers, monitors and a trend graph,
   graphics screens, alarms, custom units and users, and save a change on each.
+
+`rev68VPF8` changes how settings reach flash, not what is stored:
+
+- Change a program, the panel name, a multi-state value and the email settings.
+  Restart, and check each one survived.
+- A factory reset still clears everything back to defaults.
 
 ### In the field
 

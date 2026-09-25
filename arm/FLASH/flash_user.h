@@ -39,5 +39,7 @@ void Flash_Write_Other(void);
 void Flash_Write_Other_Page2(void);
 void Flash_Read_Other_Page2(void);
 void Flash_Write_Output_PriArray(void);
+void Flash_Lock_Init(void);
+void Flash_Erase_User_Pages(void);
 #endif
 
