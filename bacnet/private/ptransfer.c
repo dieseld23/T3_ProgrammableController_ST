@@ -143,6 +143,65 @@ void udpate_zone_table(uint8 i);
 U16_T crc16(U8_T *p, U8_T length);
 
 U8_T 	far bacnet_to_modbus[300];
+
+/* ---- where a private transfer may read or write ---------------------------
+ * The request header comes off the network unauthenticated: start, end and
+ * entitysize are wire fields, and so is packet_index for program code. So every
+ * read and write resolves its destination through one of the helpers below,
+ * which also leave in dest_room how many bytes there are from the destination
+ * to the end of the object it lies in, and every copy is capped at that.
+ *
+ * A table access needs start and end both inside the table and start <= end,
+ * the rule WRITEINPUT/WRITEOUTPUT/WRITEVARIABLE always had; the other tables
+ * checked only end <= MAX, which lets end run one past and leaves start free,
+ * and some checked nothing. Table sizes come from the declarations, so they
+ * cannot drift from a MAX_ constant. A whole object that start and end do not
+ * index is capped at its own size. */
+#define COUNT_OF(a)		(sizeof(a) / sizeof((a)[0]))
+
+static U16_T dest_room;
+
+static uint8_t *table_dest(Str_user_data_header *h, void *table, U16_T count, U16_T size)
+{
+	if(h->point_start_instance >= count || h->point_end_instance >= count
+		|| h->point_start_instance > h->point_end_instance)
+	{
+		dest_room = 0;
+		return NULL;
+	}
+	dest_room = (U16_T)((count - h->point_start_instance) * size);
+	return (uint8_t *)table + (U16_T)h->point_start_instance * size;
+}
+
+static uint8_t *object_dest(void *object, U16_T size)
+{
+	dest_room = size;
+	return (uint8_t *)object;
+}
+
+/* Program code: packet packet_index of program start. A program owns one row of
+ * prg_code, so a packet may neither start nor run past the end of that row.
+ * T3000 cuts a program into 400 byte packets and a row holds five, which is as
+ * much code as a program may have here; the packets after those used to land in
+ * the next program's row. */
+static uint8_t *code_dest(Str_user_data_header *h, U8_T packet_index)
+{
+	U16_T offset = (U16_T)(CODE_ELEMENT * packet_index);
+	uint8_t *p = table_dest(h, prg_code, COUNT_OF(prg_code), sizeof(prg_code[0]));
+
+	if(p == NULL || offset >= sizeof(prg_code[0]))
+	{
+		dest_room = 0;
+		return NULL;
+	}
+	dest_room = (U16_T)(sizeof(prg_code[0]) - offset);
+	return p + offset;
+}
+
+/* Used inside handler_private_transfer, where private_header is in scope. */
+#define TABLE_DEST(t)	table_dest(&private_header, (t), (U16_T)COUNT_OF(t), (U16_T)sizeof((t)[0]))
+#define OBJECT_DEST(o)	object_dest(&(o), (U16_T)sizeof(o))
+
 void Get_Pkt_Bac_to_Modbus(Str_user_data_header * header)
 {  
 	uint8_t buf[300];
@@ -1636,135 +1695,107 @@ void handler_private_transfer(
 			{
 #if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI )
 				case WRITE_BACNET_TO_MDOBUS:
-					ptr = (uint8_t *)(&bacnet_to_modbus);				
+					ptr = OBJECT_DEST(bacnet_to_modbus);
 					break;
 #endif
+				/* Bounds only: entitysize need not equal sizeof, since the
+				 * total_length check below ties it to the payload instead. */
 				case WRITEINPUT_T3000:
-					/* Bounds only — do not require entitysize==sizeof; T3000 wire
-					 * size must still match total_length check before memcpy. */
-					if(private_header.point_start_instance < MAX_INS
-						&& private_header.point_end_instance < MAX_INS
-						&& private_header.point_start_instance <= private_header.point_end_instance)
-					ptr = (uint8_t *)(&inputs[private_header.point_start_instance]);				
-					break;	
+					ptr = TABLE_DEST(inputs);
+					break;
 				case WRITEOUTPUT_T3000:
-					if(private_header.point_start_instance < MAX_OUTS
-						&& private_header.point_end_instance < MAX_OUTS
-						&& private_header.point_start_instance <= private_header.point_end_instance)
-					ptr = (uint8_t *)(&outputs[private_header.point_start_instance]);
+					ptr = TABLE_DEST(outputs);
 					break;
 				case WRITEVARIABLE_T3000:        /* write variables  */
-					if(private_header.point_start_instance < MAX_VARS
-						&& private_header.point_end_instance < MAX_VARS
-						&& private_header.point_start_instance <= private_header.point_end_instance)
-					ptr = (uint8_t *)(&vars[private_header.point_start_instance]);
+					ptr = TABLE_DEST(vars);
 					break;
 			 	case WRITEWEEKLYROUTINE_T3000:         /* write weekly routines*/
-					if(private_header.point_end_instance <= MAX_WR)
-					ptr = (uint8_t *)(&weekly_routines[private_header.point_start_instance]);
+					ptr = TABLE_DEST(weekly_routines);
 					//check_weekly_routines();
 					break;
 			 	case WRITEANNUALROUTINE_T3000:         /* write annual routines*/
-					if(private_header.point_end_instance <= MAX_AR)
-					ptr = (uint8_t *)(&annual_routines[private_header.point_start_instance]);
+					ptr = TABLE_DEST(annual_routines);
 					//check_annual_routines();
 					break;
 			 	case WRITEPROGRAM_T3000:
-					if(private_header.point_end_instance <= MAX_PRGS)
-					ptr = (uint8_t *)(&programs[private_header.point_start_instance]);
-					break;	
+					ptr = TABLE_DEST(programs);
+					break;
 				case WRITEPROGRAMCODE_T3000:
-					if(private_header.point_end_instance <= MAX_PRGS)
-					ptr = (uint8_t *)(&prg_code[private_header.point_start_instance][CODE_ELEMENT * packet_index]);
+					ptr = code_dest(&private_header, packet_index);
 					break;
 				case WRITETIMESCHEDULE_T3000:
-					if(private_header.point_end_instance <= MAX_WR)
-					ptr = (uint8_t *)(wr_times[private_header.point_start_instance]);
+					ptr = TABLE_DEST(wr_times);
 					break;
-				case WRITE_SCHEDULE_FLAG: 
-					if(private_header.point_end_instance <= MAX_WR)
-					ptr = (uint8_t *)(wr_time_on_off[private_header.point_start_instance]);
+				case WRITE_SCHEDULE_FLAG:
+					ptr = TABLE_DEST(wr_time_on_off);
 					break;
 				case WRITEANNUALSCHEDULE_T3000:
-					if(private_header.point_end_instance <= MAX_AR)
-					ptr = (uint8_t *)(ar_dates[private_header.point_start_instance]);
+					ptr = TABLE_DEST(ar_dates);
 					break;
 				case WRITETIME_COMMAND:
-					ptr = (uint8_t *)(Rtc2.all);
+					ptr = OBJECT_DEST(Rtc2);
 					break;
 				case WRITECONTROLLER_T3000:
-					if(private_header.point_end_instance <= MAX_CONS)
-					ptr = (uint8_t *)&controllers[private_header.point_start_instance];
+					ptr = TABLE_DEST(controllers);
 					break;
 
 				case WRITEMONITOR_T3000 :
-					if(private_header.point_end_instance <= MAX_MONITORS)
-					ptr = (uint8_t *)&monitors[private_header.point_start_instance];
+					ptr = TABLE_DEST(monitors);
 					break;
 
 			 	case WRITESCREEN_T3000  :   //CONTROL_GROUP
-					if(private_header.point_end_instance <= MAX_GRPS)
-					ptr = (uint8_t *)&control_groups[private_header.point_start_instance];
+					ptr = TABLE_DEST(control_groups);
 					break;
 				case WRITEGROUPELEMENTS_T3000:
-					if(private_header.point_end_instance <= MAX_ELEMENTS)
-					ptr = (uint8_t *)(&group_data_new.old_item[private_header.point_start_instance]);
+					ptr = TABLE_DEST(group_data_new.old_item);
 					break;
 				case WRITE_JSON_SCREEN:
-					if(private_header.point_end_instance <= MAX_GRPS)
-					ptr = (uint8_t *)(&group_data_new.new_item.screen[private_header.point_start_instance]);
+					ptr = TABLE_DEST(group_data_new.new_item.screen);
 					break;
 				case WRITE_JSON_ITEM:
-					if(private_header.point_end_instance <= MAX_ELEMENTS_NEW)
-					ptr = (uint8_t *)(&group_data_new.new_item.item[private_header.point_start_instance]);
+					ptr = TABLE_DEST(group_data_new.new_item.item);
 					break;
-					
+
 				case WRITEREMOTEPOINT:
-					if(private_header.point_end_instance <= MAXREMOTEPOINTS)
-					ptr = (uint8_t *)(&remote_points_list[private_header.point_start_instance]);
-					break;
+					ptr = TABLE_DEST(remote_points_list);
 					break;
 //
 				case WRITE_SETTING:
-					ptr = (uint8_t *)(&Setting_Info.all[0]);
+					ptr = OBJECT_DEST(Setting_Info);
 					break;
 				case WRITEALARM_T3000:
-					if(private_header.point_end_instance <= MAX_ALARMS)
-					ptr = (uint8_t *)&alarms[private_header.point_start_instance];
+					ptr = TABLE_DEST(alarms);
 			    	break;
 				case WRITEUNIT_T3000:
-					if(private_header.point_end_instance <= MAX_DIG_UNIT)
-					ptr = (uint8_t *)&digi_units[private_header.point_start_instance];
+					ptr = TABLE_DEST(digi_units);
 			    	break;
 				case WRITETABLE_T3000:
-					//if(private_header.point_end_instance <= MAX_DIG_UNIT)
-					ptr = (uint8_t *)&custom_tab[private_header.point_start_instance];
+					ptr = TABLE_DEST(custom_tab);
 			    	break;
 				case WRITEUSER_T3000:
-					if(private_header.point_end_instance <= MAX_PASSW)
-					ptr = (uint8_t *)&passwords[private_header.point_start_instance];
+					ptr = TABLE_DEST(passwords);
 			    	break;
 				case WRITE_MISC:
-					ptr = (uint8_t *)(MISC_Info.all);	
+					ptr = OBJECT_DEST(MISC_Info);
 					break;
 				case WRITE_SPECIAL_COMMAND:
-					ptr = (uint8_t *)(Write_Special.all);	
+					ptr = OBJECT_DEST(Write_Special);
 					break;
 				case WRITEVARUNIT_T3000:
 					write_page_en[25] = 1;
-					ptr = (uint8_t *)(var_unit);
+					ptr = OBJECT_DEST(var_unit);
 					break;
 //				case WRITEWEATHER_T3000:
 //					ptr = (char *)(&weather);
 //					break;
-				case WRITEEXT_IO_T3000:					
-					ptr = (uint8_t *)(extio_points);	
+				case WRITEEXT_IO_T3000:
+					ptr = OBJECT_DEST(extio_points);
 				// update database
-				 
+
 					break;
 #if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI )
 				case WRITE_ZONE_T3000:
-					ptr = (uint8_t *)(&ID_Config[private_header.point_start_instance]);
+					ptr = TABLE_DEST(ID_Config);
 					break;
 #endif
 #if 0
@@ -1813,23 +1844,23 @@ void handler_private_transfer(
 					break;
 #endif
 #if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI)
-			case WRITE_MSV_COMMAND:			
+			case WRITE_MSV_COMMAND:
 					write_page_en[25] = 1;
-					ptr = (uint8_t *)&msv_data[private_header.point_start_instance];
-					break;		
-#if SMTP			
-			case WRITE_EMAIL_ALARM:						
-					ptr = (uint8_t *)&Email_Setting;	
+					ptr = TABLE_DEST(msv_data);
+					break;
+#if SMTP
+			case WRITE_EMAIL_ALARM:
+					ptr = OBJECT_DEST(Email_Setting);
 					break;
 #endif
 #endif
 			case WRITEARRAY_T3000:
 					write_page_en[25] = 1;
-					ptr = (uint8_t *)&arrays[private_header.point_start_instance];
-					break;	
+					ptr = TABLE_DEST(arrays);
+					break;
 			case WRITEARRAYVALUE_T3000:
 					write_page_en[25] = 1;
-					ptr = (uint8_t *)&arrays_data;
+					ptr = OBJECT_DEST(arrays_data);
 					break;
 			default:
 					break;	
@@ -1886,21 +1917,19 @@ void handler_private_transfer(
 				else
 #endif
 				if(private_header.total_length  == private_header.entitysize * (private_header.point_end_instance - private_header.point_start_instance + 1) + header_len)
-				{	// check is length is correct 
-					U16_T copy_len = private_header.total_length - header_len;
-					U16_T max_copy = copy_len;
+				{	// check is length is correct
+					/* entitysize is a wire field too, so the payload can claim to be
+					 * any size: copy no further than the destination's object goes,
+					 * nor than the receive buffer the payload sits in. That also
+					 * keeps a bad entitysize from smashing adjacent RAM (the classic
+					 * cause of 0xFF / RAM_ERR). */
+					U16_T copy_len = (private_header.total_length > header_len)
+						? (U16_T)(private_header.total_length - header_len) : 0;
 
-					/* Cap copy into OUT/IN/VAR so a bad entitysize/count cannot
-					 * smash adjacent RAM (classic cause of 0xFF / RAM_ERR). */
-					if(command == WRITEVARIABLE_T3000)
-						max_copy = (U16_T)((MAX_VARS - private_header.point_start_instance) * sizeof(Str_variable_point));
-					else if(command == WRITEINPUT_T3000)
-						max_copy = (U16_T)((MAX_INS - private_header.point_start_instance) * sizeof(Str_in_point));
-					else if(command == WRITEOUTPUT_T3000)
-						max_copy = (U16_T)((MAX_OUTS - private_header.point_start_instance) * sizeof(Str_out_point));
-
-					if(copy_len > max_copy)
-						copy_len = max_copy;
+					if(copy_len > dest_room)
+						copy_len = dest_room;
+					if(copy_len > sizeof(Temp_CS.value) - header_len)
+						copy_len = (U16_T)(sizeof(Temp_CS.value) - header_len);
 
 					if(command != WRITEOUTPUT_T3000)
 						memcpy(ptr,&Temp_CS.value[header_len],copy_len);
@@ -1989,15 +2018,23 @@ void handler_private_transfer(
 								if((inputs[i].range == HI_spd_count) || (inputs[i].range == N0_2_32counts)
 									|| (inputs[i].range == RPM)	)
 								{							
-									if(swap_double(inputs[i].value) == 0) 
+									if(swap_double(inputs[i].value) == 0)
 									{
-										high_spd_counter[i] = 0; // clear high spd count	
+										/* Only the first few inputs have a counter, and
+										 * these arrays are not all the same length; the
+										 * input just came off the network, so i can be
+										 * any input at all. */
+										if((U8_T)i < COUNT_OF(high_spd_counter))
+											high_spd_counter[i] = 0; // clear high spd count
 #if ARM_TSTAT_WIFI
-										high_spd_counter_tempbuf[i] = 0;
+										if((U8_T)i < COUNT_OF(high_spd_counter_tempbuf))
+											high_spd_counter_tempbuf[i] = 0;
 #endif
-										Input_RPM[i] = 0;
-										clear_high_spd[i] = 1;
-									}											
+										if((U8_T)i < COUNT_OF(Input_RPM))
+											Input_RPM[i] = 0;
+										if((U8_T)i < COUNT_OF(clear_high_spd))
+											clear_high_spd[i] = 1;
+									}									
 								}
 							}							
 						}	
@@ -2020,8 +2057,10 @@ void handler_private_transfer(
 
 						vTaskSuspend(xHandler_Output);  // do not control local io
 #endif
-						memcpy(ptr,&Temp_CS.value[header_len],private_header.total_length - header_len);
-				
+						/* capped like every other write; it used to copy the full
+						 * total_length - header_len the packet claimed */
+						memcpy(ptr,&Temp_CS.value[header_len],copy_len);
+
 						for(i = private_header.point_start_instance;i <= private_header.point_end_instance;i++)
 						//i = private_header.point_start_instance;
 						//if(private_header.point_start_instance == private_header.point_end_instance)
@@ -2308,54 +2347,38 @@ void handler_private_transfer(
 			case READ_BACNET_TO_MDOBUS:
 			// get packet (transfer bacnet to modbus )	
 				Get_Pkt_Bac_to_Modbus(&private_header);
-				ptr = (uint8_t *)(&bacnet_to_modbus[0]);
+				ptr = OBJECT_DEST(bacnet_to_modbus);
 				break;
 #endif
 			case READOUTPUT_T3000:
-				if(private_header.point_start_instance < MAX_OUTS
-					&& private_header.point_end_instance < MAX_OUTS
-					&& private_header.point_start_instance <= private_header.point_end_instance)
-				ptr = (uint8_t *)(&outputs[private_header.point_start_instance]);
+				ptr = TABLE_DEST(outputs);
 				break;
-			case READINPUT_T3000:					
-				if(private_header.point_start_instance < MAX_INS
-					&& private_header.point_end_instance < MAX_INS
-					&& private_header.point_start_instance <= private_header.point_end_instance)
-				ptr = (uint8_t *)(&inputs[private_header.point_start_instance]);
+			case READINPUT_T3000:
+				ptr = TABLE_DEST(inputs);
 				break;
 			case READVARIABLE_T3000:
-				if(private_header.point_start_instance < MAX_VARS
-					&& private_header.point_end_instance < MAX_VARS
-					&& private_header.point_start_instance <= private_header.point_end_instance)
-				ptr = (uint8_t *)(&vars[private_header.point_start_instance]);
+				ptr = TABLE_DEST(vars);
 				break;
 			case READWEEKLYROUTINE_T3000:
-				if(private_header.point_end_instance <= MAX_WR)
-				ptr = (uint8_t *)(&weekly_routines[private_header.point_start_instance]);
+				ptr = TABLE_DEST(weekly_routines);
 				break;
 			case READANNUALROUTINE_T3000:
-				if(private_header.point_end_instance <= MAX_AR)
-				ptr = (uint8_t *)(&annual_routines[private_header.point_start_instance]);
+				ptr = TABLE_DEST(annual_routines);
 				break;
 			case READPROGRAM_T3000:
-				if(private_header.point_end_instance <= MAX_PRGS)
-				ptr = (uint8_t *)(&programs[private_header.point_start_instance]);
+				ptr = TABLE_DEST(programs);
 				break;
 			case READPROGRAMCODE_T3000:
-				if(private_header.point_end_instance <= MAX_PRGS)
-				ptr = (uint8_t *)&prg_code[private_header.point_start_instance][CODE_ELEMENT * packet_index];
+				ptr = code_dest(&private_header, packet_index);
 				break;
 			case READTIMESCHEDULE_T3000:   /* read time schedule  */
-				if(private_header.point_end_instance <= MAX_WR)
-				ptr = (uint8_t *)&wr_times[private_header.point_start_instance];
+				ptr = TABLE_DEST(wr_times);
 				break;
 		 	case READANNUALSCHEDULE_T3000:    /* read annual schedule*/
-				if(private_header.point_end_instance <= MAX_AR)
-				ptr = (uint8_t *)&ar_dates[private_header.point_start_instance];				
+				ptr = TABLE_DEST(ar_dates);
 				break;
 			case READ_SCHEDULE_FLAG:
-				if(private_header.point_end_instance <= MAX_WR)
-				ptr = (uint8_t *)&wr_time_on_off[private_header.point_start_instance];	
+				ptr = TABLE_DEST(wr_time_on_off);
 				break;
 			case READTIME_COMMAND:
 				// if daylight_saving_time
@@ -2367,14 +2390,13 @@ void handler_private_transfer(
 //					Rtc2.NEW.timestamp = swap_double(get_current_time()) - 86400;
 				Rtc2.NEW.time_zone = timezone;
 				Rtc2.NEW.daylight_saving_time = Daylight_Saving_Time;
-				ptr = (uint8_t *)(Rtc2.all);
+				ptr = OBJECT_DEST(Rtc2);
 				break;
 			}
 			case READCONTROLLER_T3000:
-				if(private_header.point_end_instance <= MAX_CONS)
+				ptr = TABLE_DEST(controllers);
+				if(ptr != NULL)
 				{
-					ptr = (uint8_t *)(&controllers[private_header.point_start_instance]);
-
 					for( j=0; j<MAX_CONS; j++ )
 					{
 						get_point_value( (Point*)&controllers[j].input, &controllers[j].input_value );
@@ -2383,30 +2405,24 @@ void handler_private_transfer(
 				}
 				break;
 			case READMONITOR_T3000 :
-				if(private_header.point_end_instance <= MAX_MONITORS)
-				ptr = (uint8_t *)(&monitors[private_header.point_start_instance]);				
+				ptr = TABLE_DEST(monitors);
 				break;
 	 		case READSCREEN_T3000 :
-				if(private_header.point_end_instance <= MAX_GRPS)
-				ptr = (uint8_t *)(&control_groups[private_header.point_start_instance]);
+				ptr = TABLE_DEST(control_groups);
 				break;
 			case READGROUPELEMENTS_T3000:
-				if(private_header.point_end_instance <= MAX_ELEMENTS)				
-				ptr = (uint8_t *)(&group_data_new.old_item[private_header.point_start_instance]);
+				ptr = TABLE_DEST(group_data_new.old_item);
 				break;
 			case READ_JSON_SCREEN:
-				if(private_header.point_end_instance <= MAX_GRPS)				
-				ptr = (uint8_t *)(&group_data_new.new_item.screen[private_header.point_start_instance]);
+				ptr = TABLE_DEST(group_data_new.new_item.screen);
 				break;
 			case READ_JSON_ITEM:
-				if(private_header.point_end_instance <= MAX_ELEMENTS_NEW)				
-				ptr = (uint8_t *)(&group_data_new.new_item.item[private_header.point_start_instance]);
-				break;			
-				
+				ptr = TABLE_DEST(group_data_new.new_item.item);
+				break;
+
 			case READREMOTEPOINT:
-				if(private_header.point_end_instance <= MAXREMOTEPOINTS)
-				ptr = (uint8_t *)(&points_header[private_header.point_start_instance]);
-				break;	 
+				ptr = TABLE_DEST(points_header);
+				break;
 			case READMONITORDATA_T3000:				
 			// check whether get correct data, if fail no response
 				flag_read_monitor = ReadMonitor(Graphi_data);	
@@ -2422,8 +2438,8 @@ void handler_private_transfer(
 				temp[21] = Graphi_data->seg_index >> 24;
 			
 				temp[17] = Graphi_data->special;
-				ptr = (uint8_t *)(Graphi_data->asdu);	
-				
+				ptr = object_dest(Graphi_data->asdu, (U16_T)sizeof(Graphi_data->asdu));
+
 				break;
 #if 0//STORE_TO_SD
 		 case READPIC_T3000:			 
@@ -2451,42 +2467,39 @@ void handler_private_transfer(
 			case GET_PANEL_INFO:   // other commad
 				Sync_Panel_Info();	
 				Panel_Info.reg.protocal = protocal;
-				ptr = (uint8_t *)(Panel_Info.all);	
+				ptr = OBJECT_DEST(Panel_Info);
 				break;
 #endif
-			case READ_SETTING:	
-				Sync_Panel_Info(); 
+			case READ_SETTING:
+				Sync_Panel_Info();
 #if ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI
 				//check_SD_PnP();
-#endif				
-			  ptr = (uint8_t *)(Setting_Info.all);
+#endif
+			  ptr = OBJECT_DEST(Setting_Info);
 				break;
 			case READVARUNIT_T3000:
-					ptr = (uint8_t *)(var_unit);
+					ptr = OBJECT_DEST(var_unit);
 					break;
-			case READEXT_IO_T3000:					
-					ptr = (uint8_t *)(extio_points);	
+			case READEXT_IO_T3000:
+					ptr = OBJECT_DEST(extio_points);
 					break;
 #if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI )
-			case READ_ZONE_T3000:		
+			case READ_ZONE_T3000:
 					refresh_zone();
-					ptr = (uint8_t *)(ID_Config);	
+					ptr = OBJECT_DEST(ID_Config);
 					break;
 #endif
 			case READALARM_T3000:   // 13
-				if(private_header.point_end_instance <= MAX_ALARMS)
-				ptr = (uint8_t *)(&alarms[private_header.point_start_instance]);
+				ptr = TABLE_DEST(alarms);
 				break;
 			case READUNIT_T3000: // digital customer range
-				if(private_header.point_end_instance <= MAX_DIG_UNIT)
-				ptr = (uint8_t *)(&digi_units[private_header.point_start_instance]);
+				ptr = TABLE_DEST(digi_units);
 				break;
 			case READTABLE_T3000: // analog customer range
-				ptr = (uint8_t *)(&custom_tab[private_header.point_start_instance]);
+				ptr = TABLE_DEST(custom_tab);
 				break;
 			case READUSER_T3000:
-				if(private_header.point_end_instance <= MAX_PASSW)
-				ptr = (uint8_t *)(&passwords[private_header.point_start_instance]);
+				ptr = TABLE_DEST(passwords);
 				break;
 //			case READTSTAT_T3000:
 //				ptr = (char *)(&scan_db[private_header.point_start_instance]);
@@ -2506,8 +2519,12 @@ void handler_private_transfer(
 					U8_T i,index;	
 					index = 0; 
 					
-					for(i = 0;i < sub_no;i++)
-					{	 
+					/* sub[] holds 64 entries, but there can be up to MAX_ID
+					 * Modbus subdevices plus MAX_REMOTE_PANEL_NUMBER panels, so
+					 * both loops stop when it is full. Before, a panel that knew
+					 * more than 64 of them wrote past the table on every read. */
+					for(i = 0;i < sub_no && index < COUNT_OF(Remote_tst_db.sub);i++)
+					{
 						if((scan_db[i].product_model >= CUSTOMER_PRODUCT) || (current_online[scan_db[i].id / 8] & (1 << (scan_db[i].id % 8))))	  	 // in database but not on_line
 						{
 							if(scan_db[i].product_model != PRODUCT_MINI_BIG)
@@ -2520,7 +2537,7 @@ void handler_private_transfer(
 						}						
 					}
 					
-					for(i = 0;i < remote_panel_num;i++)
+					for(i = 0;i < remote_panel_num && index < COUNT_OF(Remote_tst_db.sub);i++)
 					{
 						if(remote_panel_db[i].protocal == BAC_MSTP )
 						{
@@ -2531,8 +2548,8 @@ void handler_private_transfer(
 						}
 					}
 					Remote_tst_db.number = index;
-					
-					ptr = (char *)(&Remote_tst_db);
+
+					ptr = OBJECT_DEST(Remote_tst_db);
 				}			
 				break;
 			case READ_MISC:
@@ -2551,38 +2568,46 @@ void handler_private_transfer(
 						MISC_Info.reg.timeout[i] = swap_word(timeout[i]);
 					}	
 				}
-				ptr = (uint8_t *)(MISC_Info.all);	
+				ptr = OBJECT_DEST(MISC_Info);
 				break;
 #if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI)
-			case READ_MSV_COMMAND:	
-				ptr = (uint8_t *)&msv_data[private_header.point_start_instance];	
+			case READ_MSV_COMMAND:
+				ptr = TABLE_DEST(msv_data);
 				break;
 #if SMTP
 			case READ_EMAIL_ALARM:
-				ptr = (uint8_t *)&Email_Setting;	
+				ptr = OBJECT_DEST(Email_Setting);
 				break;
 #endif
 #endif
 			case READARRAY_T3000:
-				ptr = (uint8_t *)&arrays[private_header.point_start_instance];	
+				ptr = TABLE_DEST(arrays);
 				break;
 			case READARRAYVALUE_T3000:
-				ptr = (uint8_t *)&arrays_data;	
+				ptr = OBJECT_DEST(arrays_data);
 				break;
 			default:
 				break;
 		}
 
-		if(ptr != NULL)	
+		if(ptr != NULL)
 		{
+			/* transfer_len is entitysize * count, both off the wire. Copy only
+			 * what the object holds from ptr on, and send zeros for the rest of
+			 * what was asked for rather than whatever follows the object. */
+			U16_T have = (transfer_len < dest_room) ? transfer_len : dest_room;
+
 #if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI )
 			if(protocal < 0xa0)  // mstp or bip
 #endif
 			{
 				if(header_len + transfer_len < MAX_OCTET_STRING_BYTES) // avoid overrun
-					memcpy(&temp[header_len],ptr,transfer_len);
-				else	
-				{				
+				{
+					memcpy(&temp[header_len],ptr,have);
+					memset(&temp[header_len + have],0,transfer_len - have);
+				}
+				else
+				{
 					return ;
 				}
 			}
@@ -2591,10 +2616,13 @@ void handler_private_transfer(
 			{
 				memcpy(&temp,&apdu[0],14);
 				if(header_len + transfer_len < MAX_OCTET_STRING_BYTES) // avoid overrun
-					memcpy(&temp[14],ptr,transfer_len);
-				else				
+				{
+					memcpy(&temp[14],ptr,have);
+					memset(&temp[14 + have],0,transfer_len - have);
+				}
+				else
 					return ;
-				
+
 			}
 #endif
 		}

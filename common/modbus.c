@@ -5765,12 +5765,17 @@ void responseCmd(U8_T type,U8_T* pData)
 #endif
 					)
 					{						
-						if(swap_double(inputs[i].value) == 0) 
+						if(swap_double(inputs[i].value) == 0)
 						{
-							high_spd_counter[i] = 0; // clear high spd count	
-							clear_high_spd[i] = 1;
+							/* Only the first few inputs have a counter, and these two
+							 * arrays differ in length; i is any input a Modbus
+							 * master chose to write. */
+							if(i < sizeof(high_spd_counter) / sizeof(high_spd_counter[0]))
+								high_spd_counter[i] = 0; // clear high spd count
+							if(i < sizeof(clear_high_spd) / sizeof(clear_high_spd[0]))
+								clear_high_spd[i] = 1;
 
-						}											
+						}										
 					}
 				}		
 			}
