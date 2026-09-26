@@ -9,14 +9,14 @@ developed and reviewed on the fork rather than upstream.
 
 As of 2026-09-25, `main` carries all of the work below.
 
-- **Build:** `Tstat10_wifi`, 0 errors, 465 warnings. `tools/checkmap.py` passes.
+- **Build:** `Tstat10_wifi`, 0 errors, 461 warnings. `tools/checkmap.py` passes.
 - **Hardware:** `rev68VPF` to `rev68VPF4` run on the unit. `rev68VPF2`,
   `rev68VPF3` and `rev68VPF4` were flashed and confirmed working on 2026-09-25.
   `rev68VPF5` (the T3-OEM key scheme), `rev68VPF6` (the unit no longer
   blinks), `rev68VPF7` (network reads and writes bounded), `rev68VPF8`
-  (power-cut-safe saves), `rev68VPF9` (no `.0` on whole values) and
-  `rev68VPF10` (two bugs behind compiler warnings) are built but **not yet
-  flashed**. The targeted checks in
+  (power-cut-safe saves), `rev68VPF9` (no `.0` on whole values),
+  `rev68VPF10` (two bugs behind compiler warnings) and `rev68VPF11` (programs
+  kept inside their own memory) are built but **not yet flashed**. The targeted checks in
   [On the bench](#on-the-bench) are still open.
 
 | image | adds | md5 | hardware |
@@ -30,9 +30,10 @@ As of 2026-09-25, `main` carries all of the work below.
 | `rev68VPF7` | private-transfer reads and writes bounded to their tables | `5f3bcb45…` | untested |
 | `rev68VPF8` | program code and settings saves survive a power cut | `69f28185…` | untested |
 | `rev68VPF9` | T3-OEM value boxes drop the `.0` from whole values | `4cfb9408…` | untested |
-| `rev68VPF10` | oversize private-transfer reads refused; MS/TP invoke id kept signed | `47655cc0…` | untested — **this is `main`** |
+| `rev68VPF10` | oversize private-transfer reads refused; MS/TP invoke id kept signed | `47655cc0…` | untested |
+| `rev68VPF11` | the program interpreter confined to each program's own row | `4e372340…` | untested — **this is `main`** |
 
-All ten are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF10` carries
+All eleven are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF11` carries
 everything; `rev68VPF4` is the newest one confirmed on the unit and the fallback.
 The
 md5s are of a Windows checkout, where `core.autocrlf` gives the hex files CRLF
@@ -40,8 +41,8 @@ line endings. The blobs in git have LF and hash differently. The application is
 linked above the bootloader, so a bad image leaves the device recoverable through
 the bootloader's ISP window at power-on.
 
-The most urgent open item is now that **downloaded program bytecode is not
-checked when it arrives**; see [To do](#to-do).
+The most urgent open item is now that **Control Basic's `ON` and `COM1` do not work
+on a T3-OEM**; see [To do](#to-do).
 
 ## The idle screen
 
@@ -345,6 +346,8 @@ root and need Python 3 with Pillow.
 | `recolour_icons.py` | Recomposites the legacy RGB565 icon bitmaps for a new screen background. |
 | `screenshot.py` | Renders the idle screen to a PNG from the real arrays. |
 | `checkmap.py` | Fails a link that puts data where the stack lives. Run before flashing. |
+| `check_programs.py` | Walks compiled Control Basic programs the way `decode.c` does and checks every offset they carry. |
+| `decode_harness/run.py` | Runs real and damaged programs through `decode.c` before and after a change, on the PC, and compares. |
 
 ```bash
 python tools/fontgen.py                       # report the fit, change nothing
@@ -353,7 +356,16 @@ python tools/icongen.py --sheet icons.png     # draw every state, change nothing
 python tools/icongen.py --write
 python tools/recolour_icons.py --bg "#0D1520" --write
 python tools/screenshot.py out.png --labels "SETPOINT,ROOM TMP,MODE" --values "72,71,HEAT" --icons "fan_auto,mode_heat,wall_up"
+python tools/check_programs.py "Database/temp/271203.prog"
+python tools/decode_harness/run.py --base main "Database/temp/271203.prog" ...
 ```
+
+`check_programs.py` and `decode_harness/run.py` take T3000 configuration files
+(`.prog`), which hold a panel's compiled programs; T3000 keeps one per device in
+its `Database/temp` folder. `run.py` needs Visual Studio's C compiler, which it
+uses to build `decode.c` as 32-bit x86 against stand-in headers in
+`tools/decode_harness/inc`. What they found is in
+[A program stays in its row](#a-program-stays-in-its-row).
 
 Three things about these are worth knowing before changing them.
 
@@ -460,13 +472,13 @@ Notes on the toolchain:
   meant for a device are also copied to `Tstat10_arm_rev68VPF*.hex`; see
   [Status](#status).
 
-Current state of the `Tstat10_wifi` target: **0 errors, 465 warnings**.
+Current state of the `Tstat10_wifi` target: **0 errors, 461 warnings**.
 
 | Region | Used | Of | Free |
 | --- | --- | --- | --- |
-| `ER_IROM1` flash | `0x4cdc0` (314,816) | `0x60000` | ~77 KB |
-| `RW_RAM1` external SRAM | `0x763f0` (484,336) | `0x80000` | ~39 KB (92.4% full) |
-| `RW_IRAM1` internal SRAM | `0x43dc` (17,372) | `0xe000` | ~39 KB |
+| `ER_IROM1` flash | `0x4cfa0` (315,296) | `0x60000` | ~76 KB |
+| `RW_RAM1` external SRAM | `0x763f8` (484,344) | `0x80000` | ~39 KB (92.4% full) |
+| `RW_IRAM1` internal SRAM | `0x43f0` (17,392) | `0xe000` | ~39 KB |
 
 `RW_IRAM1`'s `Of` column is `0xe000` rather than the `0x10000` the chip carries,
 because the 8 KB below `0x20002000` is reserved for the stack the linker cannot
@@ -603,11 +615,11 @@ writes into the other point tables were bounded later; see
 The `decode.c` clamp covers the copy into `message[]` only. `prog += len` still
 steps by the original length, because that byte is part of the instruction
 stream whether or not it was sane, and `ALARM` and `DALARM` write to the program
-just past the message — a state byte and a 4-byte delay counter. Both now check
-that step against the end of the program's 2,000-byte row and abandon the scan
-with `-1`, the decoder's existing answer to malformed code, rather than write
-past it. `ALARM` also stopped writing through a `NULL` when its comparison
-operator is missing.
+just past the message — a state byte and a 4-byte delay counter. Both check that
+step against the program's 2,000-byte row before writing, as every write into a
+program now does; see [A program stays in its row](#a-program-stays-in-its-row).
+`ALARM` also stopped writing through a `NULL` when its comparison operator is
+missing.
 
 Alarm messages are stored truncated to 58 characters, so the lookups that find
 an existing alarm (`checkforalarm`, `dalarmrestore`) now compare on the same 58.
@@ -711,6 +723,72 @@ The same pass bounded three indexes that came straight from the program:
   a program using it wrote past the array within a few scans. Once the signed
   8-bit count wrapped negative, it wrote below the array too. Each `ALARM-AT`
   now replaces the list, keeping the five panels `putmessage` reads.
+
+### A program stays in its row
+
+A program is one 2,000-byte row of `prg_code[]`: its code, then its local
+variables and its time table, each behind a 2-byte length. The interpreter reads
+and writes all three, at places the bytecode gives as offsets: the three lengths,
+every jump target, every local-variable and array offset, and `WAIT`'s resume
+point. None of them was checked. This README said jump targets were bounded; they
+were not.
+
+A damaged program could send the interpreter anywhere within about 32 KB of its
+row, and not only to read. An `IF` whose false branch lands outside the row runs
+whatever it finds there as statements. `IF+`, `IF-`, `WAIT` and `INTERVAL` write
+their state back into the code, and the time-table pass writes a counter for as
+many entries as the table's length claims. `put_local_array` wrote each element
+wherever the array's offset and its stored dimensions put it.
+
+Every write through a bytecode offset, and every jump, is now checked against the
+row first, in `in_row` and `jump_to` in `decode.c`. Outside the row the scan is
+abandoned the way deep nesting is, by a `longjmp` back to `exec_program`, and the
+alarm is `PRG n error : out of bounds`. What is checked:
+
+- the three section lengths, which together have to fit the row, before anything
+  is read through them;
+- every jump: `GOTO`, `GOSUB`, `ON`, `ON-ALARM`, `IF`, `IF+`, `IF-`, `ELSE`, `FOR`,
+  `NEXT`, `WAIT`'s resume point, and the address `RETURN` pops;
+- where the next statement starts, before it is read;
+- the state and counter bytes of time-table entries, `IF+`, `IF-`, `WAIT`,
+  `INTERVAL`, `ALARM` and `DALARM`, and the panel list of `ALARM-AT`;
+- every local-variable and array-element write.
+
+A `RETURN` with no `GOSUB` behind it pops 0 and still ends the scan quietly, as
+it always has. `put_local_var` used to refuse offsets past 500 instead of
+checking against the row, which also dropped writes to real locals more than 500
+bytes into a large local table. A `WAIT` resume offset past the row used to stop
+the program silently on every scan; it now raises the alarm. Reads past the row
+are left alone. The rows are in external SRAM, so a stray read cannot fault, and
+bounding every read would mean a check in every operand.
+
+A program T3000 compiles trips these checks only where the old interpreter
+already left the row with it, which is what the harness below tests. Three such
+cases are known, and all three are interpreter bugs rather than bad code:
+
+- `COM1`, which this build does not have (one of Temco's BTU-meter examples);
+- a multi-target `ON` on a program's last line, whose fall-through scan used to
+  run into the next program's row and execute it (see [To do](#to-do));
+- a `RETURN` in a subroutine that used `UNACK`, which leaves a value on the stack
+  for `RETURN` to pop in place of the address `GOSUB` pushed.
+
+Each now stops the scan with the alarm where it used to run on outside the row.
+Everything else the compiled programs point at is inside them, and they run as
+before. That was checked two ways, with the tools in [Tools](#tools), on 29
+compiled programs: the three on the bench unit, the rest Temco's examples.
+
+- `check_programs.py` walks each program as the interpreter does and checks every
+  offset against the section it belongs to, which is stricter than the row. All
+  pass except two that use `COM1`, which this build does not have; see
+  [To do](#to-do).
+- `decode_harness/run.py` builds `decode.c` from before and after this change for
+  the PC and runs both on the 29, then on 4,350 damaged copies. 28 of the 29
+  behave identically. The odd one is a BTU-meter program whose `COM1` sends the
+  old interpreter 257 bytes back, into the previous program's row, where it ran
+  what it found as statements; the new one abandons the scan. On the damaged
+  copies the old interpreter wrote outside its row 333 times and the new one
+  never. Every difference between the two is a scan where the old one left its
+  row or the new one abandoned it.
 
 ### Private transfer bounds
 
@@ -845,14 +923,36 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-24.
 
 ### Code
 
-1. **Downloaded program bytecode is not checked when it arrives.** The
-   interpreter now bounds what it can at run time: message lengths, jump targets
-   within the row, nesting depth, table indexes. A malformed program is still
-   stored and saved to flash as sent, though. Checking the row when
-   `WRITEPROGRAMCODE_T3000` receives it would turn a program that fails every
-   scan into a rejected download. The larger half of the job is a parser that
-   agrees exactly with `veval_exp` on operand sizes.
-2. **Remote panels never leave the panel table.** `Check_Remote_Panel_Table` in
+1. **`ON` never jumps.** `ON X GOTO` and `ON X GOSUB` compare their selector with
+   the number of targets without dividing it by 1000, so any whole `X` is out of
+   range and the statement falls through. The fall-through then scans for the next
+   `0x01` byte. The target count or an offset can be that byte (a one-target `ON`
+   stops on its own count), and after the program's last line there is none, so
+   the scan ran on through the tables behind the code and into the next
+   program's row. It now stops at the end of the row with
+   `PRG n error : out of bounds`, which a program with a multi-target `ON` as its
+   last line will show. Temco's ESP32 port has the same code. The fix is to divide by 1000 and step over the list, but programs
+   whose `ON` lines have never jumped would start jumping, so it wants a decision
+   first.
+2. **`COM1` is not in the T3-OEM build.** It is compiled only for `ARM_MINI` and
+   `ASIX_MINI`. Here the expression evaluator cannot step over it: it spins on
+   the byte for 2,000 iterations. The statement loop then reads its opcode,
+   `0x10`, as `ELSE`, and jumps wherever the next two bytes say. Temco's
+   BTU-meter examples use it, and on one of them that jump leaves the row, which
+   now stops the scan with `PRG n error : out of bounds`. The fix is to step over `COM1`'s argument
+   count and push 0 in builds without it. `tools/check_programs.py` already
+   reports programs that use it.
+3. **Downloaded program bytecode is not checked when it arrives.** The
+   interpreter now keeps every program inside its own row (see
+   [A program stays in its row](#a-program-stays-in-its-row)), so a malformed
+   program no longer damages anything. It raises `PRG n error : out of bounds` on
+   its first scan. Checking the row when `WRITEPROGRAMCODE_T3000` receives it
+   would move that to the download. `tools/check_programs.py` is most of the
+   checker. It has not yet met a real program with `FOR`/`NEXT`, `ON`, `GOSUB`,
+   `WAIT` or the alarm statements, though, and a check in the download path must
+   never refuse what T3000 compiles. It needs programs like those first, and
+   `tools/decode_harness` to test it against the interpreter.
+4. **Remote panels never leave the panel table.** `Check_Remote_Panel_Table` in
    `bacnet/private/user_data.c` counts each panel's `time_to_live` down once a
    minute and was meant to drop it below zero. The field is unsigned, so it wraps
    to 255 instead and the check never fires; a panel that goes away keeps its
@@ -865,20 +965,25 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-24.
      it.
 
    It wants testing against a real multi-panel network before it is switched on.
-3. **Alarms are never forwarded to other panels.** `sendalarm` and its callers in
+5. **Alarms are never forwarded to other panels.** `sendalarm` and its callers in
    `bacnet/private/alarm.c` are commented out. The `where1…where5` destinations
    that `ALARM-AT` sets are stored with each alarm and shown in T3000, but go
    nowhere. Relatedly, `alarm_at_all` is set by `ALARM-AT ALL` and never cleared.
    The reset at the top of the scan is commented out, so it stays set until
    reboot. That is harmless while forwarding is off, and needs deciding before
    forwarding is turned back on.
-4. **The `mini_arm` and `CM5_arm` targets have not been built since this work
+6. **Two table reads take their index from a program's values.** `WR_ON` and
+   `WR_OFF` index `wr_times[]` with the schedule number the program computed,
+   checked only for being positive. `STATUS` indexes `current_online[]` with a
+   panel number the same way. Both only read, but a large enough schedule number
+   takes the first one out of RAM altogether.
+7. **The `mini_arm` and `CM5_arm` targets have not been built since this work
    began.** They compile the same `decode.c`, `ptransfer.c`, `alarm.c`,
    `modbus.c` and `main.c`. Nothing here has checked that they still build, or
    that the memory-map and stack reasoning holds for them. Both still link the
    BACnet library from `..\BACLIB`, and CM5's library is missing (see
    [Building](#building)).
-5. **On a Tstat10, UP/DOWN with nothing highlighted toggle the top-area point.**
+8. **On a Tstat10, UP/DOWN with nothing highlighted toggle the top-area point.**
    In `MenuIdle_keycope` a `disp_index` outside 1-3 falls into the branch meant
    for the top area, and `disp_index` is 0 whenever no row is highlighted, which
    is most of the time. So a stray UP or DOWN flips the `control` of whatever
@@ -913,7 +1018,7 @@ These checks are still open. Run them on `rev68VPF4`, which carries everything:
 - Step the pages with RIGHT (and back with LEFT on a T3-OEM).
 - Drive VAR25-28 to see the state icons and the humidity readout change.
 
-`rev68VPF5` to `rev68VPF10` have not been flashed. On `rev68VPF6`, the unit
+`rev68VPF5` to `rev68VPF11` have not been flashed. On `rev68VPF6`, the unit
 beside the top-area value ("°C") should hold steady instead of blinking about once
 a second. On a T3-OEM, check the keys against the table in
 [Keys on a T3-OEM](#keys-on-a-t3-oem):
@@ -929,6 +1034,12 @@ a second. On a T3-OEM, check the keys against the table in
 `rev68VPF10` should change nothing you can see. If the unit reads remote points
 from another panel over MS/TP, check they still update, and go offline when
 that panel is unplugged.
+
+`rev68VPF11` should not change what the programs do. With the unit's programs
+running, check that the alarm list shows no `PRG n error : out of bounds`, and
+that outputs still follow the programs. Then send one program over 400 bytes
+while the others run and read it back. The download arrives in several packets,
+and no invalid-code alarm should appear in between.
 
 On `rev68VPF9`, a setpoint row shows `72` rather than `72.0`. Writing 0 to
 register 737 brings the `.0` back, and 2 rounds everything to whole numbers; the
