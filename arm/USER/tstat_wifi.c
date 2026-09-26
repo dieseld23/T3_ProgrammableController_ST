@@ -377,7 +377,6 @@ U16_T conver_ADC(U16_T adc)
 	real_adc = Modbus.start_adc[seg] + (U16_T)(adc % 100) * slop[seg] / 100;
 	
 	if(real_adc > 1000) return 1000;
-	else if(real_adc < 0) return 0;
 	
 	return real_adc;
 
@@ -398,7 +397,6 @@ U16_T conver_ADC_new(U16_T *start_adc, U16_T * slop,U16_T adc)
 	real_adc = start_adc[seg] + (U16_T)(adc % 100) * slop[seg] / 100;
 	
 	if(real_adc > 1000) return 1000;
-	else if(real_adc < 0) return 0;
 	
 	return real_adc;
 

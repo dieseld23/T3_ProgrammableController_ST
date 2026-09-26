@@ -2520,7 +2520,10 @@ void Check_On_Line(void)
 }
 
 #if (ARM_MINI || ARM_CM5 || ARM_TSTAT_WIFI )
-uint8_t far invokeid_mstp;
+/* int, not uint8_t: GetRemotePoint and Send_private_scan return it, and a failed
+ * send is -1 or -7. As a uint8_t that came back as 255 or 249, which callers
+ * took for a sent request, and a stray reply with that id then matched it. */
+int far invokeid_mstp;
 uint8_t far flag_receive_rmbp;  // remote bacnet points
 
 

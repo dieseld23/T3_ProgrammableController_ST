@@ -2324,7 +2324,12 @@ void handler_private_transfer(
 				transfer_len = private_header.entitysize * (private_header.point_end_instance - private_header.point_start_instance + 1);
 			}
 			
-			if((transfer_len >= 0) && (transfer_len <= 500 ))
+			/* transfer_len is entitysize * count from the request. A reply that
+			 * long has no header and does not fit, and nothing later stops it:
+			 * on the Temco Modbus path the CRC was written at
+			 * temp[transfer_len + 14] even when the range was invalid. */
+			if(transfer_len > 500)
+				return;
 			{
 				temp[1] = (uint8_t)(transfer_len >> 8);
 				temp[0] = (uint8_t)transfer_len;
@@ -2685,6 +2690,8 @@ void handler_private_transfer(
 		U16_T crc_check;
 		// send data via temco private modbus
 		uart_init_send_com(protocal - 0xa0);
+		if(transfer_len + 16 > sizeof(temp))
+			return;
 		crc_check = crc16(temp, transfer_len + 14);
 		temp[transfer_len + 14] = HIGH_BYTE(crc_check);
 		temp[transfer_len + 15] = LOW_BYTE(crc_check);

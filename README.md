@@ -9,13 +9,14 @@ developed and reviewed on the fork rather than upstream.
 
 As of 2026-09-25, `main` carries all of the work below.
 
-- **Build:** `Tstat10_wifi`, 0 errors, 472 warnings. `tools/checkmap.py` passes.
+- **Build:** `Tstat10_wifi`, 0 errors, 465 warnings. `tools/checkmap.py` passes.
 - **Hardware:** `rev68VPF` to `rev68VPF4` run on the unit. `rev68VPF2`,
   `rev68VPF3` and `rev68VPF4` were flashed and confirmed working on 2026-09-25.
   `rev68VPF5` (the T3-OEM key scheme), `rev68VPF6` (the unit no longer
   blinks), `rev68VPF7` (network reads and writes bounded), `rev68VPF8`
-  (power-cut-safe saves) and `rev68VPF9` (no `.0` on whole values) are built
-  but **not yet flashed**. The targeted checks in
+  (power-cut-safe saves), `rev68VPF9` (no `.0` on whole values) and
+  `rev68VPF10` (two bugs behind compiler warnings) are built but **not yet
+  flashed**. The targeted checks in
   [On the bench](#on-the-bench) are still open.
 
 | image | adds | md5 | hardware |
@@ -28,9 +29,10 @@ As of 2026-09-25, `main` carries all of the work below.
 | `rev68VPF6` | the top-area unit no longer blinks | `b142d299…` | untested |
 | `rev68VPF7` | private-transfer reads and writes bounded to their tables | `5f3bcb45…` | untested |
 | `rev68VPF8` | program code and settings saves survive a power cut | `69f28185…` | untested |
-| `rev68VPF9` | T3-OEM value boxes drop the `.0` from whole values | `6c444015…` | untested — **this is `main`** |
+| `rev68VPF9` | T3-OEM value boxes drop the `.0` from whole values | `4cfb9408…` | untested |
+| `rev68VPF10` | oversize private-transfer reads refused; MS/TP invoke id kept signed | `47655cc0…` | untested — **this is `main`** |
 
-All nine are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF9` carries
+All ten are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF10` carries
 everything; `rev68VPF4` is the newest one confirmed on the unit and the fallback.
 The
 md5s are of a Windows checkout, where `core.autocrlf` gives the hex files CRLF
@@ -191,12 +193,13 @@ EEPROM byte 239:
 | `1` (default) | drops a fraction that is all zeros | `72` | `21.5` | `-3` |
 | `2` | whole numbers only | `72` | `22` | `-3` |
 
-Write it with a single-register write (function 06) from T3000's Modbus Poll or
-register-write tool, or any Modbus master; any other value is ignored. A unit
+Write it with function 06 or 16 from T3000's Modbus Poll or register-write
+tool, or any Modbus master; any other value is ignored. A unit
 that predates the option reads the unwritten EEPROM byte as `0xFF` and gets the
 default, and a factory reset restores it. The register sits beside the
 display-disable option at 729. It applies to the value boxes only; the big
-top-area number was already whole degrees. A Tstat10 always shows mode `0`.
+top-area number was already whole degrees. A Tstat10 always shows mode `0`,
+and on a Tstat10 register 737 is still the remote-input register it always was.
 
 In mode `1` a reading that changes, rather than a setpoint, jumps a column when
 it lands on a whole number: `71.9`, then `  72`, then `72.1`. Mode `0` keeps it
@@ -457,12 +460,12 @@ Notes on the toolchain:
   meant for a device are also copied to `Tstat10_arm_rev68VPF*.hex`; see
   [Status](#status).
 
-Current state of the `Tstat10_wifi` target: **0 errors, 472 warnings**.
+Current state of the `Tstat10_wifi` target: **0 errors, 465 warnings**.
 
 | Region | Used | Of | Free |
 | --- | --- | --- | --- |
-| `ER_IROM1` flash | `0x4cd90` (314,768) | `0x60000` | ~77 KB |
-| `RW_RAM1` external SRAM | `0x763e0` (484,320) | `0x80000` | ~39 KB (92.4% full) |
+| `ER_IROM1` flash | `0x4cdc0` (314,816) | `0x60000` | ~77 KB |
+| `RW_RAM1` external SRAM | `0x763f0` (484,336) | `0x80000` | ~39 KB (92.4% full) |
 | `RW_IRAM1` internal SRAM | `0x43dc` (17,372) | `0xe000` | ~39 KB |
 
 `RW_IRAM1`'s `Of` column is `0xe000` rather than the `0x10000` the chip carries,
@@ -811,6 +814,31 @@ reset's erase takes it too. It is created just before the scheduler starts,
 after every task, so the heap is still only drawn on at boot; until then the
 lock does nothing.
 
+### Comparisons with zero
+
+Keil's `#186-D` flags an unsigned value compared with zero, which is always or
+never true. Eight were read as a group; two were hiding bugs.
+
+- **A reply longer than the buffer** (`ptransfer.c`). A private-transfer read
+  computes its reply length as `entitysize × count`, both from the request, and
+  capped it at 500 bytes with `transfer_len >= 0 && transfer_len <= 500`. The
+  cap only skipped building the reply header; the handler carried on. On the
+  Temco private-Modbus path it then wrote the CRC at `temp[transfer_len + 14]`,
+  and when the range was invalid nothing else had looked at `transfer_len`. So a
+  request could write two bytes up to about 64 KB past the 600-byte `temp[]`. An
+  oversize read now gets no reply, as the handler's other overrun checks already
+  do, and the CRC write is bounded to `temp[]` too.
+- **A failed send taken for a sent one** (`ptransfer.c`, `scan.c`).
+  `invokeid_mstp` was a `uint8_t` holding what `GetRemotePoint` and
+  `Send_private_scan` return, and a failed send is `-1` or `-7`. Stored, that
+  became 255 or 249. Callers then counted the send as made rather than raising
+  the point's `lose_count`, and a stray reply carrying that id matched it. It is
+  an `int` now, so its `>= 0` check means what it says.
+
+Five were dead lower bounds with a real upper bound beside them (`tstat_wifi.c`
+twice, `menuSet.c`, two Modbus register ranges) and were removed without any
+change in behaviour. The eighth, in `user_data.c`, is on the To do list below.
+
 ## To do
 
 Ordered by risk to a unit in the field. Checked against `main` on 2026-09-24.
@@ -824,17 +852,19 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-24.
    `WRITEPROGRAMCODE_T3000` receives it would turn a program that fails every
    scan into a rejected download. The larger half of the job is a parser that
    agrees exactly with `veval_exp` on operand sizes.
-2. **Eight `#186-D` warnings deserve a read as a group.** Each is an unsigned
-   value compared with zero, and one of them was already hiding a division by
-   zero:
-   - `ptransfer.c:764`, `ptransfer.c:2327`
-   - `user_data.c:1485`
-   - `modbus.c:4488`, `modbus.c:4608`
-   - `tstat_wifi.c:380`, `tstat_wifi.c:401`
-   - `menuSet.c:83`
+2. **Remote panels never leave the panel table.** `Check_Remote_Panel_Table` in
+   `bacnet/private/user_data.c` counts each panel's `time_to_live` down once a
+   minute and was meant to drop it below zero. The field is unsigned, so it wraps
+   to 255 instead and the check never fires; a panel that goes away keeps its
+   slot until restart. Turning expiry on is not a one-line fix:
+   - The time to live is refreshed only when a panel is heard (`user_data.c:1342`,
+     and MS/TP traffic at `1467`), so a panel that is up but quiet for about six
+     minutes would be dropped and re-added.
+   - The dormant deletion code skips the entry it shifts down.
+   - Indexes into the table (`remote_mstp_panel_index`, the scan loop) move under
+     it.
 
-   A useless lower bound on an index that came off the network is how an overflow
-   hides.
+   It wants testing against a real multi-panel network before it is switched on.
 3. **Alarms are never forwarded to other panels.** `sendalarm` and its callers in
    `bacnet/private/alarm.c` are commented out. The `where1…where5` destinations
    that `ALARM-AT` sets are stored with each alarm and shown in T3000, but go
@@ -883,7 +913,7 @@ These checks are still open. Run them on `rev68VPF4`, which carries everything:
 - Step the pages with RIGHT (and back with LEFT on a T3-OEM).
 - Drive VAR25-28 to see the state icons and the humidity readout change.
 
-`rev68VPF5` to `rev68VPF9` have not been flashed. On `rev68VPF6`, the unit
+`rev68VPF5` to `rev68VPF10` have not been flashed. On `rev68VPF6`, the unit
 beside the top-area value ("°C") should hold steady instead of blinking about once
 a second. On a T3-OEM, check the keys against the table in
 [Keys on a T3-OEM](#keys-on-a-t3-oem):
@@ -895,6 +925,10 @@ a second. On a T3-OEM, check the keys against the table in
 - LEFT and RIGHT page back and forward with nothing highlighted, and holding
   RIGHT on a highlighted row does not make the frame flicker.
 - LEFT+RIGHT opens the menu, where DOWN goes to the next item.
+
+`rev68VPF10` should change nothing you can see. If the unit reads remote points
+from another panel over MS/TP, check they still update, and go offline when
+that panel is unplugged.
 
 On `rev68VPF9`, a setpoint row shows `72` rather than `72.0`. Writing 0 to
 register 737 brings the `.0` back, and 2 rounds everything to whole numbers; the

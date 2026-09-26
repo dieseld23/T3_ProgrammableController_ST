@@ -80,9 +80,7 @@ void MenuSet_display(void)
         }
 				else if (item_to_adjust == 3) //Set the schedule
 				{
-					if(set_value < 0) //Limit the schedule range; the rest are not shown in the menu;
-						set_value = 0;
-					if(set_value > 7)
+					if(set_value > 7) //Limit the schedule range; the rest are not shown in the menu;
 						set_value = 7;
 					memcpy(temp_buffer, c_strSch[set_value], 7);						
           disp_str(FORM15X30, 0, MENU_VALUE_POS, temp_buffer, TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
