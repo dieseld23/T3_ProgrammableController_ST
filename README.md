@@ -7,7 +7,7 @@ developed and reviewed on the fork rather than upstream.
 
 ## Status
 
-As of 2026-09-27, `main` carries all of the work below, through PR #17.
+As of 2026-09-27, `main` carries all of the work below, through PR #19.
 
 - **Build:** `Tstat10_wifi`, 0 errors, 461 warnings. `tools/checkmap.py` passes.
 - **Hardware:** `rev68VPF` to `rev68VPF4` run on the unit. `rev68VPF2`,
@@ -15,8 +15,9 @@ As of 2026-09-27, `main` carries all of the work below, through PR #17.
   `rev68VPF5` (the T3-OEM key scheme), `rev68VPF6` (the unit no longer
   blinks), `rev68VPF7` (network reads and writes bounded), `rev68VPF8`
   (power-cut-safe saves), `rev68VPF9` (no `.0` on whole values),
-  `rev68VPF10` (two bugs behind compiler warnings) and `rev68VPF11` (programs
-  kept inside their own memory) are built but **not yet flashed**. The targeted checks in
+  `rev68VPF10` (two bugs behind compiler warnings), `rev68VPF11` (programs
+  kept inside their own memory) and `rev68VPF12` (table lookups bounded) are
+  built but **not yet flashed**. The targeted checks in
   [On the bench](#on-the-bench) are still open.
 
 | image | adds | md5 | hardware |
@@ -31,12 +32,12 @@ As of 2026-09-27, `main` carries all of the work below, through PR #17.
 | `rev68VPF8` | program code and settings saves survive a power cut | `69f28185…` | untested |
 | `rev68VPF9` | T3-OEM value boxes drop the `.0` from whole values | `4cfb9408…` | untested |
 | `rev68VPF10` | oversize private-transfer reads refused; MS/TP invoke id kept signed | `47655cc0…` | untested |
-| `rev68VPF11` | the program interpreter confined to each program's own row | `4e372340…` | untested — **this is `main`** |
+| `rev68VPF11` | the program interpreter confined to each program's own row | `4e372340…` | untested |
+| `rev68VPF12` | a full remote-panel table no longer overruns; `WR_ON`, `WR_OFF`, `STATUS` bounded | `f544edbd…` | untested — **this is `main`** |
 
-All eleven are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF11` carries
+All twelve are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF12` carries
 everything; `rev68VPF4` is the newest one confirmed on the unit and the fallback.
-The
-md5s are of a Windows checkout, where `core.autocrlf` gives the hex files CRLF
+The md5s are of a Windows checkout, where `core.autocrlf` gives the hex files CRLF
 line endings. The blobs in git have LF and hash differently. The application is
 linked above the bootloader, so a bad image leaves the device recoverable through
 the bootloader's ISP window at power-on.
@@ -210,7 +211,7 @@ steady.
 
 The wifi bars moved from the top right to the top left, with the RS485 send and
 receive arrows stacked underneath them, so everything about the link is in one
-corner. Both sit left of `FIRST_CH_POS`, which is x=39, so the column is clear
+corner. Both sit left of `FIRST_CH_POS`, which is x=30, so the column is clear
 of the big number for its whole height.
 
 The unit moved from the foot of the number to its cap line. That needs two
@@ -917,6 +918,35 @@ Five were dead lower bounds with a real upper bound beside them (`tstat_wifi.c`
 twice, `menuSet.c`, two Modbus register ranges) and were removed without any
 change in behaviour. The eighth, in `user_data.c`, is on the To do list below.
 
+### Table lookups
+
+Three tables were indexed past their ends (`rev68VPF12`):
+
+- **The remote-panel table** (`user_data.c`). `add_remote_panel_db` refused a
+  new device only once `remote_panel_num > MAX_REMOTE_PANEL_NUMBER`, so with 100
+  in the table the next was written to `remote_panel_db[100]`. In this build
+  that is the interpreter's expression `stack[]`, and every loop over the table
+  then walked it, including the expiry pass that decrements a byte in each
+  entry once a minute, from a task that outranks the program task. Any
+  BACnet/IP device that answers is added, and entries never expire (see
+  [To do](#to-do)), so about 100 devices seen over one uptime were enough. A full
+  table now takes no new devices. The network-master check still runs for every
+  I-Am.
+- **`WR_ON` and `WR_OFF`** (`decode.c`). The schedule number a program computes
+  was checked only for being positive, so it could index `wr_times[]` up to
+  about 300 MB past its end. The time was checked against
+  `MAX_SCHEDULES_PER_WEEK` (9) where a day holds 8, so asking for a fifth
+  on-time read the next day's first. The week day was trusted too, and a clock
+  set over BACnet takes the date's `wday`, which can be 255 until the RTC is
+  read back.
+  Each is now held to the table. Out of range, they return 0, as they already
+  did for a schedule of 0.
+- **`STATUS`** (`decode.c`) read `current_online[m / 8]` for any station number
+  a program gave it, up to about 4 KB either side of the 32-byte table. It now
+  reads it only for stations 0-255; any other number reads as offline.
+
+None of this changes anything for values in range.
+
 ## To do
 
 Ordered by risk to a unit in the field. Checked against `main` on 2026-09-27.
@@ -931,17 +961,21 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-27.
    the scan ran on through the tables behind the code and into the next
    program's row. It now stops at the end of the row with
    `PRG n error : out of bounds`, which a program with a multi-target `ON` as its
-   last line will show. Temco's ESP32 port has the same code. The fix is to divide by 1000 and step over the list, but programs
-   whose `ON` lines have never jumped would start jumping, so it wants a decision
-   first.
+   last line will show. Temco's ESP32 port has the same code. T3000 compiles the
+   selector as an ordinary expression (`case ON` in `BacNetProgram_transplant.cpp`
+   writes it through `pcodvar`), so `ON 2 GOTO` evaluates to 2000 and never
+   jumps. None of the 23 real programs in hand uses `ON`. The fix is to divide by
+   1000 and step over the list, but programs whose `ON` lines have never jumped
+   would start jumping, so it wants a decision first.
 2. **`COM1` is not in the T3-OEM build.** It is compiled only for `ARM_MINI` and
    `ASIX_MINI`. Here the expression evaluator cannot step over it: it spins on
    the byte for 2,000 iterations. The statement loop then reads its opcode,
    `0x10`, as `ELSE`, and jumps wherever the next two bytes say. Temco's
-   BTU-meter examples use it, and on one of them that jump leaves the row, which
-   now stops the scan with `PRG n error : out of bounds`. The fix is to step over `COM1`'s argument
-   count and push 0 in builds without it. `tools/check_programs.py` already
-   reports programs that use it.
+   BTU-meter examples use it (`BTUMeterRev16` PRG1 and `BTUMeterRev22` PRG7; none
+   of the unit's own programs do), and on one of them that jump leaves the row,
+   which now stops the scan with `PRG n error : out of bounds`. The fix is to step
+   over `COM1`'s argument count and push 0 in builds without it.
+   `tools/check_programs.py` already reports programs that use it.
 3. **Downloaded program bytecode is not checked when it arrives.** The
    interpreter now keeps every program inside its own row (see
    [A program stays in its row](#a-program-stays-in-its-row)), so a malformed
@@ -952,19 +986,34 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-27.
    `WAIT` or the alarm statements, though, and a check in the download path must
    never refuse what T3000 compiles. It needs programs like those first, and
    `tools/decode_harness` to test it against the interpreter.
+
+   Nothing marks a download as finished, either. There is no last-packet flag or
+   total length, and the row is not cleared at packet 0, so its tail keeps the
+   previous program's bytes. Each packet is in RAM as soon as it arrives, so a
+   check could raise an alarm but not refuse. What keeps the scan off a
+   half-written row is a timer: each packet sets `count_wring_code = 5`, and the
+   500 ms control loop skips the scan until that runs out, about 2.5 s after the
+   latest packet (`ptransfer.c:2115`, `bac_control.c:812`). Packets further apart
+   than that, as on a link where T3000 has to retry, would let a scan see a
+   half-written program.
 4. **Remote panels never leave the panel table.** `Check_Remote_Panel_Table` in
    `bacnet/private/user_data.c` counts each panel's `time_to_live` down once a
    minute and was meant to drop it below zero. The field is unsigned, so it wraps
    to 255 instead and the check never fires; a panel that goes away keeps its
    slot until restart. Turning expiry on is not a one-line fix:
-   - The time to live is refreshed only when a panel is heard (`user_data.c:1342`,
-     and MS/TP traffic at `1467`), so a panel that is up but quiet for about six
-     minutes would be dropped and re-added.
-   - The dormant deletion code skips the entry it shifts down.
+   - The time to live is refreshed only when a panel is heard: its I-Am
+     (`user_data.c:1342`), MS/TP traffic (`user_data.c:1470`), or a reply to a
+     remote point (`main.c:1794`, `scan.c:3197`). A panel that is up but quiet
+     for about six minutes would be dropped and re-added.
+   - The dormant deletion code skips the entry it shifts down, and shifts with
+     `memcpy` over overlapping entries where it needs `memmove`.
    - Indexes into the table (`remote_mstp_panel_index`, the scan loop) move under
      it.
 
    It wants testing against a real multi-panel network before it is switched on.
+   Meanwhile the table only grows until restart. Since `rev68VPF12` a full table
+   (100 devices) takes no new ones; before, the 101st was written past its end
+   (see [Table lookups](#table-lookups)).
 5. **Alarms are never forwarded to other panels.** `sendalarm` and its callers in
    `bacnet/private/alarm.c` are commented out. The `where1…where5` destinations
    that `ALARM-AT` sets are stored with each alarm and shown in T3000, but go
@@ -972,18 +1021,29 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-27.
    The reset at the top of the scan is commented out, so it stays set until
    reboot. That is harmless while forwarding is off, and needs deciding before
    forwarding is turned back on.
-6. **Two table reads take their index from a program's values.** `WR_ON` and
-   `WR_OFF` index `wr_times[]` with the schedule number the program computed,
-   checked only for being positive. `STATUS` indexes `current_online[]` with a
-   panel number the same way. Both only read, but a large enough schedule number
-   takes the first one out of RAM altogether.
-7. **The `mini_arm` and `CM5_arm` targets have not been built since this work
+6. **`WR_ON` and `WR_OFF` return 0 every Monday.** They turn the RTC's week day
+   (0 = Sunday) into a `wr_times[]` day with `m = week - 1`, as the weekly
+   routines do (`bac_control.c:192`), so Monday is day 0. Their check then
+   refuses `m <= 0` (`decode.c:1833`). Since `rev68VPF12` their indexes are
+   bounded (see [Table lookups](#table-lookups)), but this was left alone:
+   fixing it changes what programs see on Mondays, so it wants a decision.
+7. **An RH variable in the top area shows a tenth of its value.** For a VAR with
+   range `RH`, `menuIdle.c:557` passes the value in whole percent
+   (`value / 1000`), and `Top_area_display` treats RH as tenths and divides by 10
+   again, so 55% shows as `6`. An input with range `RH` passes tenths
+   (`menuIdle.c:419`) and is right. Temco's original code was wrong here too.
+   The fix is `value / 100` at `:557`.
+8. **The MS/TP private scan waits for an uninitialised count.** `main.c:1816`
+   declares `char count;` and waits `while(... && count++ < 20)`, so the wait for
+   a remote panel's reply is anywhere from none to 4 s. Initialising it changes
+   the scan's timing, so it wants testing on an MS/TP network.
+9. **The `mini_arm` and `CM5_arm` targets have not been built since this work
    began.** They compile the same `decode.c`, `ptransfer.c`, `alarm.c`,
    `modbus.c` and `main.c`. Nothing here has checked that they still build, or
    that the memory-map and stack reasoning holds for them. Both still link the
    BACnet library from `..\BACLIB`, and CM5's library is missing (see
    [Building](#building)).
-8. **On a Tstat10, UP/DOWN with nothing highlighted toggle the top-area point.**
+10. **On a Tstat10, UP/DOWN with nothing highlighted toggle the top-area point.**
    In `MenuIdle_keycope` a `disp_index` outside 1-3 falls into the branch meant
    for the top area, and `disp_index` is 0 whenever no row is highlighted, which
    is most of the time. So a stray UP or DOWN flips the `control` of whatever
@@ -1003,7 +1063,8 @@ All four images in [Status](#status) were flashed in order and work on the unit
 - `rev68VPF3` and `rev68VPF4` run rather than reset. With overflow detection on,
   a stack or heap shortfall would show as a reset loop in the first seconds.
 
-These checks are still open. Run them on `rev68VPF4`, which carries everything:
+These checks are still open. Every later image carries the same code, so run
+them on `rev68VPF12`, which carries everything:
 
 - RS-485 master polling returns sane values on each port in use. This covers the
   UART change.
@@ -1018,9 +1079,12 @@ These checks are still open. Run them on `rev68VPF4`, which carries everything:
 - Step the pages with RIGHT (and back with LEFT on a T3-OEM).
 - Drive VAR25-28 to see the state icons and the humidity readout change.
 
-`rev68VPF5` to `rev68VPF11` have not been flashed. On `rev68VPF6`, the unit
-beside the top-area value ("°C") should hold steady instead of blinking about once
-a second. On a T3-OEM, check the keys against the table in
+`rev68VPF5` to `rev68VPF12` have not been flashed. Each carries the ones before
+it, so one flash of `rev68VPF12` covers the checks below. On `rev68VPF6`, the
+unit beside the top-area value ("°C") should hold steady instead of blinking
+about once a second. If the top area shows a VAR with range `RH`, it reads a
+tenth of its value; that is item 7 in [To do](#to-do), not a regression. On a
+T3-OEM, check the keys against the table in
 [Keys on a T3-OEM](#keys-on-a-t3-oem):
 
 - UP and DOWN move the highlight both ways and wrap, and it clears by itself
@@ -1039,7 +1103,15 @@ that panel is unplugged.
 running, check that the alarm list shows no `PRG n error : out of bounds`, and
 that outputs still follow the programs. Then send one program over 400 bytes
 while the others run and read it back. The download arrives in several packets,
-and no invalid-code alarm should appear in between.
+and no `out of bounds` alarm should appear in between. The scan is held off for
+only about 2.5 s after each packet, so if one does appear, repeat the send on a
+clean link before counting it as a failure.
+
+`rev68VPF12` should change nothing you can see. If a program uses `WR_ON`,
+`WR_OFF` or `STATUS`, check it reads what it did before, on a day other than
+Monday, and that `STATUS` of a panel that is online still reads as online. The
+panel-table overrun needed about 100 BACnet devices, so a small bench network
+will not show it either way.
 
 On `rev68VPF9`, a setpoint row shows `72` rather than `72.0`. Writing 0 to
 register 737 brings the `.0` back, and 2 rounds everything to whole numbers; the
@@ -1112,6 +1184,14 @@ through T3000's pages once:
     [Private transfer bounds](#private-transfer-bounds): `end <= MAX_…` with no
     check on the start, and program code offset by `packet_index` before any
     check.
+  - `user_data.c` adds a 101st remote panel past the end of its table, and
+    `decode.c`'s `WR_ON`, `WR_OFF` and `STATUS` index with unchecked program
+    values (see [Table lookups](#table-lookups)).
+- **T3000 leaves the last bytes of some programs unsent.** It sends a program in
+  400-byte packets but counts them as `length / 401 + 1`
+  (`BacnetProgramEdit.cpp:716`), so a program of 801, 1201-1202 or 1601-1603
+  bytes loses its last 1-3 bytes, and the unit keeps whatever the row held
+  there before. None of the 23 real programs in hand is one of those lengths.
 
 ## Options considered
 
