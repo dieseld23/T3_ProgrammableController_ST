@@ -7,7 +7,7 @@ developed and reviewed on the fork rather than upstream.
 
 ## Status
 
-As of 2026-09-25, `main` carries all of the work below.
+As of 2026-09-27, `main` carries all of the work below, through PR #17.
 
 - **Build:** `Tstat10_wifi`, 0 errors, 461 warnings. `tools/checkmap.py` passes.
 - **Hardware:** `rev68VPF` to `rev68VPF4` run on the unit. `rev68VPF2`,
@@ -919,7 +919,7 @@ change in behaviour. The eighth, in `user_data.c`, is on the To do list below.
 
 ## To do
 
-Ordered by risk to a unit in the field. Checked against `main` on 2026-09-24.
+Ordered by risk to a unit in the field. Checked against `main` on 2026-09-27.
 
 ### Code
 
@@ -1099,8 +1099,12 @@ through T3000's pages once:
 ### Elsewhere
 
 - **The ESP32 port still has bugs that are fixed here.** In
-  `T3-programmable-controller-on-ESP32/temco_bacnet/private/`, as of 2026-09-24:
+  `T3-programmable-controller-on-ESP32/temco_bacnet/private/`, as of 2026-09-27:
   - `decode.c` has the unbounded array-index recursion.
+  - `decode.c` checks none of the offsets a program carries: jump targets,
+    section lengths, local-variable offsets (see
+    [A program stays in its row](#a-program-stays-in-its-row)). Its `ON` is the
+    same as the one in To do.
   - `PIDPROP`, `PIDDERIV` and `PIDINT` use an unchecked controller index.
   - `ALARM-AT` has the appending overflow.
   - `alarm.c` still `strcpy`s the program's message into its 59-byte field.
