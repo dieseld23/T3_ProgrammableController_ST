@@ -56,7 +56,7 @@ REMOTE_PANEL_HOST remote_panel_db[32];
 U8_T panel_number;
 S32_T v;
 Str_controller_point controllers[MAX_CONS];
-WR_DAY_HOST wr_times[8][9];
+WR_DAY_HOST wr_times[MAX_WR][MAX_SCHEDULES_PER_WEEK];
 Alarm_point_host alarms[MAX_ALARMS];
 UN_Time Rtc;
 extern U32_T miliseclast_cur;
