@@ -42,7 +42,9 @@ typedef signed short int16_t;
 #define MAX_INS                64
 #define MAX_CONS               16
 #define MAX_SCHEDULES_PER_WEEK 9
-#define ARRAY                  11
+#define MAX_WR                 8
+#define MAX_INTERVALS_PER_DAY  4
+#define ARRAY                 11
 #define VAR                    2
 #define MB_COIL_REG            20
 #define VIRTUAL_ALARM          0
@@ -64,7 +66,7 @@ typedef union { Str_in_point *pin; void *p; } Str_points_ptr;
 typedef struct { U8_T auto_manual, proportional, prop_high, rate, reset; } Str_controller_point;
 typedef struct { U8_T panel; U8_T sub_id; } REMOTE_PANEL_HOST;
 typedef struct { U8_T minutes, hours; } WR_TIME_HOST;
-typedef struct { WR_TIME_HOST time[MAX_SCHEDULES_PER_WEEK]; } WR_DAY_HOST;
+typedef struct { WR_TIME_HOST time[2 * MAX_INTERVALS_PER_DAY]; } WR_DAY_HOST;
 typedef struct { U8_T alarm, acknowledged; } Alarm_point_host;
 typedef struct { U8_T icon_config; } STR_MODBUS_HOST;
 
@@ -101,7 +103,7 @@ extern REMOTE_PANEL_HOST remote_panel_db[32];
 extern U8_T panel_number;
 extern S32_T v;
 extern Str_controller_point controllers[MAX_CONS];
-extern WR_DAY_HOST wr_times[8][9];
+extern WR_DAY_HOST wr_times[MAX_WR][MAX_SCHEDULES_PER_WEEK];
 extern Alarm_point_host alarms[MAX_ALARMS];
 
 S16_T swap_word(S16_T dat);

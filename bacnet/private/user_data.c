@@ -1387,7 +1387,10 @@ void add_remote_panel_db(uint32_t device_id,BACNET_ADDRESS* src,uint8_t panel,ui
 		}
 	}		
 		// it is a new device
-		if(i == remote_panel_num)  // add new panel into DB
+		/* The check above lets remote_panel_num reach MAX_REMOTE_PANEL_NUMBER,
+		 * and adding a device then would write one entry past the table, over
+		 * the interpreter's stack[]. A full table takes no new devices. */
+		if(i == remote_panel_num && remote_panel_num < MAX_REMOTE_PANEL_NUMBER)  // add new panel into DB
 		{
 			remote_panel_db[remote_panel_num].device_id = device_id;
 			remote_panel_db[remote_panel_num].protocal = protocal;	

@@ -1600,7 +1600,9 @@ S32_T veval_exp(U8_T *local)
 				 else
 				 {// whethe sub modbus device is on-line 
 					 // remote modbus device
-					 if(current_online[m / 8] & (1 << (m % 8)))
+					 /* the station number is the program's: keep it inside current_online[] */
+					 if(m >= 0 && m < 8 * (S16_T)sizeof(current_online)
+						 && (current_online[m / 8] & (1 << (m % 8))))
 						 push(1);
 					 else 
 						{								
@@ -1821,9 +1823,14 @@ S32_T veval_exp(U8_T *local)
 				else
 					i = i * 2 + 1;	
 
-				if(((op2 / 1000) <= 0)		||					
-				((i < 0) || (i >= MAX_SCHEDULES_PER_WEEK )) ||
-					(m <= 0))
+				/* The schedule and the time both come from the program, so keep them
+				 * inside wr_times[]: a day holds 2*MAX_INTERVALS_PER_DAY times, not
+				 * MAX_SCHEDULES_PER_WEEK. The week day is a BACnet date's wday when
+				 * the clock was set over the network, and that can be 255. m <= 0
+				 * refuses Monday as well; see the README's To do. */
+				if(((op2 / 1000) <= 0) || ((op2 / 1000) > MAX_WR) ||
+				((i < 0) || (i >= 2 * MAX_INTERVALS_PER_DAY)) ||
+					(m <= 0) || (m > 6))
 				{
 					push(0);
 					break;
