@@ -554,7 +554,13 @@ void MenuIdle_display(void)
 						}
 						else	if(vars[num].range == RH)
 						{
-							Top_area_display(TOP_AREA_DISP_ITEM_TEMPERATURE, vars[num].value / 1000, TOP_AREA_DISP_UNIT_RH);
+							/* Top_area_display takes RH in tenths, as the input path above
+							 * passes it; value / 1000 gave whole percent, so 55% showed as 6.
+							 * T3-OEM only: the Tstat10 path is left as it was. */
+							if(ARROW_KEYS())
+								Top_area_display(TOP_AREA_DISP_ITEM_TEMPERATURE, vars[num].value / 100, TOP_AREA_DISP_UNIT_RH);
+							else
+								Top_area_display(TOP_AREA_DISP_ITEM_TEMPERATURE, vars[num].value / 1000, TOP_AREA_DISP_UNIT_RH);
 						}
 						else 	if(vars[num].range == ppm)
 						{
