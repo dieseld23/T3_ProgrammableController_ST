@@ -65,7 +65,7 @@ ONE_BYTE = {
     0x29, 0x2C,                                                                # ASSIGNARRAY_1/2: empty cases in veval_exp
 } | set(range(0xC1, 0xCD))                                                     # JAN .. DEC
 COUNTED = {0x33, 0xCE, 0xCF, 0x37, 0x38}           # AVG MB_BW MB_BW_COIL MAX MIN: + 1 count byte
-COM1 = 0x10     # counted too, but compiled in only for ARM_MINI and ASIX_MINI
+COM1 = 0x10     # counted too; without ARM_MINI/ASIX_MINI it is stepped over and gives 0
 TIME_ON, TIME_OFF, INTERVAL = 0x3C, 0x3D, 0x3E
 DELIMITERS = (0x01, 0xFF, 0xFE)                    # isdelimit()
 
@@ -156,9 +156,9 @@ class Program:
             elif t == INTERVAL:
                 p += 4
             elif t == COM1:
-                # Not in the T3-OEM build, so veval_exp reaches operand(), which cannot
-                # step over it either; and 0x10 is ELSE to the statement loop.
-                raise Bad("COM1 at %d: this firmware has no COM1 and misreads what follows" % (p - 1))
+                # The T3-OEM build has no RS232 command port; veval_exp steps over
+                # the count and pushes 0 (before rev68VPF14 it could not step over it).
+                p += 1
             elif t == ASSIGNARRAY:                      # pushes a local array's offset
                 if LOCAL_VARIABLE <= b[p] <= STRING_TYPE_ARRAY:
                     self.local(p, b[p], u16(b, p + 1))
