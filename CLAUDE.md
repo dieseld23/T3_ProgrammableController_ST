@@ -10,16 +10,15 @@ before starting anything.
 
 Update this section at the end of each piece of work.
 
-- As of 2026-09-28, `main` holds everything through PR #20. PRs are merged by Dan.
-- The newest image is `arm/OBJ/Tstat10_arm_rev68VPF13.hex`, and it carries
+- As of 2026-09-28, `main` holds everything through PR #21. PRs are merged by Dan.
+- The newest image is `arm/OBJ/Tstat10_arm_rev68VPF14.hex`, and it carries
   everything. `rev68VPF4` is the newest one confirmed on the unit.
-- `rev68VPF5` to `rev68VPF13` have not been flashed. Their checks are open in the
-  README's *On the bench*, and one flash of `rev68VPF13` covers them all.
-- Waiting on Dan: flashing `rev68VPF13`, and decisions on README To do items 1-3
-  and 6. `ON` would start jumping in existing programs if fixed. `COM1` would be
-  stepped over and return 0. The download-time check could only alarm, not
-  refuse, since nothing marks a download as finished. `WR_ON`/`WR_OFF` would stop
-  returning 0 on Mondays.
+- `rev68VPF5` to `rev68VPF14` have not been flashed. Their checks are open in the
+  README's *On the bench*, and one flash of `rev68VPF14` covers them all.
+- Waiting on Dan: flashing `rev68VPF14`, and decisions on README To do items 1,
+  2 and 5. `ON` would start jumping in existing programs if fixed. The
+  download-time check could only alarm, not refuse, since nothing marks a
+  download as finished. `WR_ON`/`WR_OFF` would stop returning 0 on Mondays.
 - Everything else open waits on those decisions, or on the `todo:` list.
 - Items Dan flags with `todo:` live in Claude's project memory (`todo-list.md`),
   not in the repo. Don't start one until asked.
