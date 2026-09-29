@@ -1658,7 +1658,18 @@ S32_T veval_exp(U8_T *local)
 				}	
 				rs232_cmd.len = m - 2;
 				send_rs232_command();
-				push(swap_double(rs232_cmd.res));	
+				push(swap_double(rs232_cmd.res));
+				break;
+#else
+		case COM1:
+				/* No RS232 command port in this build. Left to the default case,
+				 * operand() cannot step over COM1, and the statement loop then read
+				 * its 0x10 as ELSE. Step over the argument count, drop the
+				 * arguments and give 0. */
+				m = *prog++;
+				for(i = 0;i < m;i++)
+					pop();
+				push(0);
 				break;
 #endif
 		case MB_BW:
