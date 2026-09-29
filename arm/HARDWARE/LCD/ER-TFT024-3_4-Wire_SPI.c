@@ -1999,6 +1999,50 @@ static void unit_band_blank(int16 rx, int16 ry, int16 rw, int16 rh, int16 tx, ui
 	unit_band_rect(tx1, by0, bx1, by1);						// right of everything
 }
 
+/* Blank the rectangle x0..x1-1, y0..y1-1, if it has any area. */
+static void top_area_rect(int16 x0, int16 y0, int16 x1, int16 y1)
+{
+	if(x1 > x0 && y1 > y0)
+		disp_null_icon((uint16)(x1 - x0), (uint16)(y1 - y0), 0, (uint16)x0, (uint16)y0,
+			TSTAT8_BACK_COLOR, TSTAT8_BACK_COLOR);
+}
+
+/* A T3-OEM temperature: the number and its degree unit centred as one group,
+ * placed as if the number were at least two cells wide (see TOP_TWO_CELL_XPOS).
+ * cells[] is the right aligned three cell form Top_area_display builds, so a
+ * blank first cell means the reading fits in two.  The group is drawn first,
+ * then everything of the top area it does not cover is blanked, so a group that
+ * has just moved leaves nothing behind.  None of those pads holds ink the group
+ * has just drawn, and every glyph cell repaints its own background, so nothing
+ * on screen goes blank between refreshes the way the old whole-band wipe did. */
+static void t3oem_top_degrees(const uint8 *cells, uint8 unit)
+{
+	uint8 first = (cells[0] == ' ') ? 1 : 0;
+	int16 x0 = first ? TOP_TWO_CELL_XPOS : FIRST_CH_POS;
+	int16 xc = x0 + (3 - first) * CHLIB_XDOTS;		/* the end of the cells */
+	int16 rx = xc + 1;								/* the degree ring */
+	int16 tx = rx + DEGREE_RING_XDOTS;				/* the letter */
+	int16 tx1 = tx + CHSMALL_XDOTS;
+	int16 ty0 = UNIT_TEXT_YPOS, ty1 = UNIT_TEXT_YPOS + CHSMALL_YDOTS;
+	uint8 k;
+
+	for(k = first;k < 3;k++)
+		disp_ch(0, (uint16)(x0 + (k - first) * CHLIB_XDOTS), THERM_METER_POS, cells[k],
+			TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+	disp_icon(DEGREE_RING_XDOTS, DEGREE_RING_XDOTS, degree_o, (uint16)rx, UNIT_YPOS,
+		TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+	disp_str(FORM15X30, (uint16)tx, UNIT_TEXT_YPOS, (uint8 *)(unit == TOP_AREA_DISP_UNIT_C ? "C" : "F"),
+		TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
+
+	top_area_rect(TOP_AREA_XPOS, TOP_AREA_YPOS, x0, TOP_AREA_YEND);			// left of the cells
+	top_area_rect(xc, TOP_AREA_YPOS, TOP_AREA_XEND, ty0);					// right of them, above the unit
+	top_area_rect(xc, ty1, TOP_AREA_XEND, TOP_AREA_YEND);					// and below it
+	top_area_rect(xc, ty0, rx, ty1);										// the dot before the ring
+	top_area_rect(rx, ty0, tx, UNIT_YPOS);									// above the ring
+	top_area_rect(rx, UNIT_YPOS + DEGREE_RING_XDOTS, tx, ty1);				// below it
+	top_area_rect(tx1, ty0, TOP_AREA_XEND, ty1);							// right of the letter
+}
+
 void Top_area_display(uint8 item, int16 value, uint8 unit)
 {
 	int16 value_buf;
@@ -2025,6 +2069,10 @@ void Top_area_display(uint8 item, int16 value, uint8 unit)
 				value_buf = (int16)((value_buf + 5) / 10);
 			if(value_buf > 999)
 				value_buf = 999;
+			/* The sign is taken before rounding, so -0.3 rounds to "-0". A T3-OEM
+			 * shows it as 0; a Tstat10 is left as it was. */
+			if(value_buf == 0 && Modbus.mini_type == MINI_T10P)
+				neg = 0;
 
 			/* The sign rides in the cell left of the first digit rather than in a
 			 * column of its own: the number starts at x=30 now and the RS485
@@ -2041,6 +2089,15 @@ void Top_area_display(uint8 item, int16 value, uint8 unit)
 				cells[0] = (uint8)(0x30 + value_buf / 100);
 			if(neg)
 				cells[value_buf < 10 ? 1 : 0] = '-';
+
+			/* a T3-OEM centres a temperature with its unit; a Tstat10, and every
+			 * other unit, keeps the fixed cells below */
+			if(Modbus.mini_type == MINI_T10P
+				&& (unit == TOP_AREA_DISP_UNIT_C || unit == TOP_AREA_DISP_UNIT_F))
+			{
+				t3oem_top_degrees(cells, unit);
+				return;
+			}
 
 			disp_ch(0, FIRST_CH_POS, THERM_METER_POS, cells[0], TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
 			disp_ch(0, SECOND_CH_POS, THERM_METER_POS, cells[1], TSTAT8_CH_COLOR, TSTAT8_BACK_COLOR);
