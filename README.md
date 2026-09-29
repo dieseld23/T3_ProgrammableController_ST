@@ -7,7 +7,7 @@ developed and reviewed on the fork rather than upstream.
 
 ## Status
 
-As of 2026-09-27, `main` carries all of the work below, through PR #19.
+As of 2026-09-28, `main` carries all of the work below, through PR #20.
 
 - **Build:** `Tstat10_wifi`, 0 errors, 461 warnings. `tools/checkmap.py` passes.
 - **Hardware:** `rev68VPF` to `rev68VPF4` run on the unit. `rev68VPF2`,
@@ -16,8 +16,9 @@ As of 2026-09-27, `main` carries all of the work below, through PR #19.
   blinks), `rev68VPF7` (network reads and writes bounded), `rev68VPF8`
   (power-cut-safe saves), `rev68VPF9` (no `.0` on whole values),
   `rev68VPF10` (two bugs behind compiler warnings), `rev68VPF11` (programs
-  kept inside their own memory) and `rev68VPF12` (table lookups bounded) are
-  built but **not yet flashed**. The targeted checks in
+  kept inside their own memory), `rev68VPF12` (table lookups bounded) and
+  `rev68VPF13` (an RH variable in the top area at its real value) are built but
+  **not yet flashed**. The targeted checks in
   [On the bench](#on-the-bench) are still open.
 
 | image | adds | md5 | hardware |
@@ -33,9 +34,10 @@ As of 2026-09-27, `main` carries all of the work below, through PR #19.
 | `rev68VPF9` | T3-OEM value boxes drop the `.0` from whole values | `4cfb9408…` | untested |
 | `rev68VPF10` | oversize private-transfer reads refused; MS/TP invoke id kept signed | `47655cc0…` | untested |
 | `rev68VPF11` | the program interpreter confined to each program's own row | `4e372340…` | untested |
-| `rev68VPF12` | a full remote-panel table no longer overruns; `WR_ON`, `WR_OFF`, `STATUS` bounded | `f544edbd…` | untested — **this is `main`** |
+| `rev68VPF12` | a full remote-panel table no longer overruns; `WR_ON`, `WR_OFF`, `STATUS` bounded | `f544edbd…` | untested |
+| `rev68VPF13` | T3-OEM: an RH variable in the top area shows its real value | `ac75aead…` | untested — **this is `main`** |
 
-All twelve are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF12` carries
+All thirteen are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF13` carries
 everything; `rev68VPF4` is the newest one confirmed on the unit and the fallback.
 The md5s are of a Windows checkout, where `core.autocrlf` gives the hex files CRLF
 line endings. The blobs in git have LF and hash differently. The application is
@@ -175,6 +177,12 @@ The displayed temperatures are only ever whole numbers, so the big top number
 drops the decimal point: it rounds the tenths the sensor path carries, clamps to
 three digits and right aligns with leading blanks. `THIRD_CH_POS` moved back to
 `SECOND_CH_POS + 48` now that nothing sits between the digits.
+
+Relative humidity takes the same path in tenths. An input with range `RH`
+passed it that way, but a VAR passed whole percent (`value / 1000`), so it was
+divided by 10 twice and 55% showed as `6`. On a T3-OEM the VAR now passes
+tenths too (`rev68VPF13`). The Tstat10 path is unchanged and still shows a
+tenth of the value.
 
 The value boxes hold four characters (`VALUE_CHARS`) instead of five, which is
 enough for `HEAT`, `AUTO`, `OPEN`, `72`. `draw_tangle()` takes a width rather
@@ -1027,23 +1035,17 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-27.
    refuses `m <= 0` (`decode.c:1833`). Since `rev68VPF12` their indexes are
    bounded (see [Table lookups](#table-lookups)), but this was left alone:
    fixing it changes what programs see on Mondays, so it wants a decision.
-7. **An RH variable in the top area shows a tenth of its value.** For a VAR with
-   range `RH`, `menuIdle.c:557` passes the value in whole percent
-   (`value / 1000`), and `Top_area_display` treats RH as tenths and divides by 10
-   again, so 55% shows as `6`. An input with range `RH` passes tenths
-   (`menuIdle.c:419`) and is right. Temco's original code was wrong here too.
-   The fix is `value / 100` at `:557`.
-8. **The MS/TP private scan waits for an uninitialised count.** `main.c:1816`
+7. **The MS/TP private scan waits for an uninitialised count.** `main.c:1816`
    declares `char count;` and waits `while(... && count++ < 20)`, so the wait for
    a remote panel's reply is anywhere from none to 4 s. Initialising it changes
    the scan's timing, so it wants testing on an MS/TP network.
-9. **The `mini_arm` and `CM5_arm` targets have not been built since this work
+8. **The `mini_arm` and `CM5_arm` targets have not been built since this work
    began.** They compile the same `decode.c`, `ptransfer.c`, `alarm.c`,
    `modbus.c` and `main.c`. Nothing here has checked that they still build, or
    that the memory-map and stack reasoning holds for them. Both still link the
    BACnet library from `..\BACLIB`, and CM5's library is missing (see
    [Building](#building)).
-10. **On a Tstat10, UP/DOWN with nothing highlighted toggle the top-area point.**
+9. **On a Tstat10, UP/DOWN with nothing highlighted toggle the top-area point.**
    In `MenuIdle_keycope` a `disp_index` outside 1-3 falls into the branch meant
    for the top area, and `disp_index` is 0 whenever no row is highlighted, which
    is most of the time. So a stray UP or DOWN flips the `control` of whatever
@@ -1064,7 +1066,7 @@ All four images in [Status](#status) were flashed in order and work on the unit
   a stack or heap shortfall would show as a reset loop in the first seconds.
 
 These checks are still open. Every later image carries the same code, so run
-them on `rev68VPF12`, which carries everything:
+them on `rev68VPF13`, which carries everything:
 
 - RS-485 master polling returns sane values on each port in use. This covers the
   UART change.
@@ -1079,12 +1081,12 @@ them on `rev68VPF12`, which carries everything:
 - Step the pages with RIGHT (and back with LEFT on a T3-OEM).
 - Drive VAR25-28 to see the state icons and the humidity readout change.
 
-`rev68VPF5` to `rev68VPF12` have not been flashed. Each carries the ones before
-it, so one flash of `rev68VPF12` covers the checks below. On `rev68VPF6`, the
+`rev68VPF5` to `rev68VPF13` have not been flashed. Each carries the ones before
+it, so one flash of `rev68VPF13` covers the checks below. On `rev68VPF6`, the
 unit beside the top-area value ("°C") should hold steady instead of blinking
-about once a second. If the top area shows a VAR with range `RH`, it reads a
-tenth of its value; that is item 7 in [To do](#to-do), not a regression. On a
-T3-OEM, check the keys against the table in
+about once a second. On `rev68VPF13`, a VAR with range `RH` shown in the top
+area reads its value, `55` for 55%, where it used to read `6`. On a T3-OEM,
+check the keys against the table in
 [Keys on a T3-OEM](#keys-on-a-t3-oem):
 
 - UP and DOWN move the highlight both ways and wrap, and it clears by itself

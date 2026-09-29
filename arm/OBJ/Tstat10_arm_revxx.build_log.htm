@@ -28,50 +28,50 @@ Project File Date:  09/24/2026
 *** Using Compiler 'V5.06 update 7 (build 960)', folder: 'C:\Keil_v5\ARM\ARMCC\Bin'
 Rebuild target 'STM32F103'
 compiling misc.c...
-compiling stm32f10x_dma.c...
-compiling stm32f10x_rcc.c...
-compiling stm32f10x_usart.c...
-compiling stm32f10x_sdio.c...
-compiling stm32f10x_iwdg.c...
-compiling system_stm32f10x.c...
-compiling stm32f10x_gpio.c...
-assembling startup_stm32f10x_hd.s...
-compiling stm32f10x_spi.c...
 compiling stm32f10x_exti.c...
-assembling cortexm3_macro_rvds.s...
-compiling stm32f10x_rtc.c...
-compiling stm32f10x_bkp.c...
-compiling core_cm3.c...
-compiling stm32f10x_pwr.c...
 compiling stm32f10x_crc.c...
+compiling stm32f10x_adc.c...
+compiling stm32f10x_dma.c...
+compiling stm32f10x_bkp.c...
+compiling system_stm32f10x.c...
 compiling stm32f10x_dac.c...
 compiling stm32f10x_flash.c...
+compiling stm32f10x_pwr.c...
+compiling stm32f10x_rtc.c...
+assembling cortexm3_macro_rvds.s...
+assembling startup_stm32f10x_hd.s...
+compiling stm32f10x_rcc.c...
+compiling stm32f10x_sdio.c...
+compiling core_cm3.c...
 compiling stm32f10x_wwdg.c...
-compiling stm32f10x_adc.c...
+compiling stm32f10x_iwdg.c...
+compiling stm32f10x_gpio.c...
+compiling stm32f10x_usart.c...
+compiling stm32f10x_spi.c...
 compiling 24cxx.c...
 compiling myiic.c...
-compiling stm32f10x_tim.c...
 compiling flash.c...
-compiling dma.c...
+compiling stm32f10x_tim.c...
 compiling sht_git_version.c...
-compiling enc28j60.c...
+compiling dma.c...
 compiling sht4x.c...
 ..\HARDWARE\HUMIDITY\sht4x.c(55): warning:  #550-D: variable "sht4x_cmd_measure_delay_us"  was set but never used
   static uint16_t sht4x_cmd_measure_delay_us = SHT4X_MEASUREMENT_DURATION_USEC;
 ..\HARDWARE\HUMIDITY\sht4x.c: 1 warning, 0 errors
 compiling list.c...
-compiling rtc.c...
 compiling stmflash.c...
-compiling queue.c...
 compiling heap_2.c...
+compiling enc28j60.c...
+compiling queue.c...
+compiling rtc.c...
 compiling tasks.c...
 compiling sht4x_example_usage.c...
+compiling port.c...
 compiling stm32f10x_it.c...
 ..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
   #define BAC_MSV 1
 stm32f10x_it.c: 1 warning, 0 errors
 compiling delay.c...
-compiling port.c...
 compiling i2c_hal.c...
 ..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
   #define BAC_MSV 1
@@ -80,13 +80,13 @@ compiling i2c_hal.c...
 ..\HARDWARE\HUMIDITY\i2c_hal.c(173): warning:  #223-D: function "READ_SCL" declared implicitly
     while(READ_SCL() == 0)
 ..\HARDWARE\HUMIDITY\i2c_hal.c: 3 warnings, 0 errors
+compiling info.c...
 compiling sht3x.c...
 ..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
   #define BAC_MSV 1
 ..\HARDWARE\HUMIDITY\sht3x.c(611): warning:  #188-D: enumerated type mixed with another type
     return (ALERT_READ != 0) ? TRUE : FALSE;
 ..\HARDWARE\HUMIDITY\sht3x.c: 2 warnings, 0 errors
-compiling info.c...
 compiling spi.c...
 ..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
   #define BAC_MSV 1
@@ -95,6 +95,16 @@ compiling timerx.c...
 ..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
   #define BAC_MSV 1
 ..\HARDWARE\TIMER\timerx.c: 1 warning, 0 errors
+compiling sdcard.c...
+..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
+  #define BAC_MSV 1
+..\HARDWARE\SDCARD\sdcard.c: 1 warning, 0 errors
+compiling MMC_SD.C...
+..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
+  #define BAC_MSV 1
+..\HARDWARE\SDCARD\MMC_SD.C(23): warning:  #940-D: missing return statement at end of non-void function "SD_SPI_ReadWriteByte" 
+  }
+..\HARDWARE\SDCARD\MMC_SD.C: 2 warnings, 0 errors
 compiling SdioEmmcDrive.c...
 ..\HARDWARE\EMMC\SdioEmmcDrive.h(466): warning:  #47-D: incompatible redefinition of macro "NULL"  (declared at line 91 of "..\USER\types.h")
   #define NULL 0
@@ -119,16 +129,6 @@ compiling SdioEmmcDrive.c...
 ..\HARDWARE\SDCARD\sdcard.h(221): warning:  #47-D: incompatible redefinition of macro "SDIO_HIGH_CAPACITY_MMC_CARD"  (declared at line 460 of "..\HARDWARE\EMMC\SdioEmmcDrive.h")
   #define SDIO_HIGH_CAPACITY_MMC_CARD        ((u32)0x7)
 ..\HARDWARE\EMMC\SdioEmmcDrive.c: 11 warnings, 0 errors
-compiling sdcard.c...
-..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
-  #define BAC_MSV 1
-..\HARDWARE\SDCARD\sdcard.c: 1 warning, 0 errors
-compiling MMC_SD.C...
-..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
-  #define BAC_MSV 1
-..\HARDWARE\SDCARD\MMC_SD.C(23): warning:  #940-D: missing return statement at end of non-void function "SD_SPI_ReadWriteByte" 
-  }
-..\HARDWARE\SDCARD\MMC_SD.C: 2 warnings, 0 errors
 compiling bip.c...
 ..\..\IO_control\ud_str.h(97): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 249 of "..\..\bacnet\bacnet.h")
   #define BAC_MSV			22 
@@ -147,46 +147,6 @@ compiling bip.c...
 ..\..\bacnet\bip.c(1379): warning:  #177-D: variable "i"  was declared but never referenced
       int i = 0;
 ..\..\bacnet\bip.c: 8 warnings, 0 errors
-compiling usart.c...
-..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
-  #define BAC_MSV 1
-..\SYSTEM\usart\usart.c: 1 warning, 0 errors
-compiling alarm.c...
-..\..\IO_control\ud_str.h(97): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 249 of "..\..\bacnet\bacnet.h")
-  #define BAC_MSV			22 
-..\..\bacnet\private\alarm.c(27): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "const char *"
-      U16_T n = (U16_T)strlen(mes);
-..\..\bacnet\private\alarm.c(326): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
-  		sprintf(str, "ID :%u SN: %lu has conlift with T3 controller" , (uint16)id,new_sn);
-..\..\bacnet\private\alarm.c(330): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
-  		sprintf(str, "ID :%u SN: %lu has conlift SN: %lu", (uint16)id,new_sn,old_sn);
-..\..\bacnet\private\alarm.c(333): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "const char *"
-  	if(strlen(str) > ALARM_MESSAGE_SIZE) 
-..\..\bacnet\private\alarm.c(349): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
-  		sprintf(str, "Lost communicaton with top board" );
-..\..\bacnet\private\alarm.c(351): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
-  		sprintf(str, "READ AO Feedback FAIL" );
-..\..\bacnet\private\alarm.c(353): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
-  		sprintf(str, "Update time server fail" );
-..\..\bacnet\private\alarm.c(355): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
-  		sprintf(str, "Lose communication with pic" );
-..\..\bacnet\private\alarm.c(360): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
-  		sprintf(str, "SD CARD IS ABNORMAL" );
-..\..\bacnet\private\alarm.c(363): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
-  		sprintf(str, "CAN NOT CONNECT SNTP" );
-..\..\bacnet\private\alarm.c(367): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "const char *"
-  	if(strlen(str) > ALARM_MESSAGE_SIZE) 
-..\..\bacnet\private\alarm.c(391): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
-  		sprintf(str, "PRG %d error : dead cycle1",(U16_T)prg);
-..\..\bacnet\private\alarm.c(393): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
-  		sprintf(str, "PRG %d error : dead cycle2",(U16_T)prg);
-..\..\bacnet\private\alarm.c(395): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
-  		sprintf(str, "PRG %d error : takes long time",(U16_T)prg);
-..\..\bacnet\private\alarm.c(403): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "const char *"
-  	if(strlen(str) > ALARM_MESSAGE_SIZE) 
-..\..\bacnet\private\alarm.c(603): warning:  #940-D: missing return statement at end of non-void function "sendalarm" 
-  } 
-..\..\bacnet\private\alarm.c: 17 warnings, 0 errors
 compiling decode.c...
 ..\..\IO_control\ud_str.h(97): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 249 of "..\..\bacnet\bacnet.h")
   #define BAC_MSV			22 
@@ -255,26 +215,46 @@ compiling decode.c...
 ..\..\bacnet\private\decode.c(1996): warning:  #550-D: variable "num"  was set but never used
   	S16_T num;
 ..\..\bacnet\private\decode.c: 33 warnings, 0 errors
-compiling bac_interface.c...
+compiling usart.c...
 ..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
   #define BAC_MSV 1
-..\..\bacnet\bac_interface.c(32): warning:  #177-D: variable "mstp_port"  was declared but never referenced
-  	char mstp_port;
-..\..\bacnet\bac_interface.c(747): warning:  #120-D: return value type does not match the function type
-  	return panelname;
-..\..\bacnet\bac_interface.c(1222): warning:  #111-D: statement is unreachable
-  			if(vars[io_index].digital_analog == 1)  // analog
-..\..\bacnet\bac_interface.c(1953): warning:  #940-D: missing return statement at end of non-void function "Get_Output_Relinguish" 
-  }
-..\..\bacnet\bac_interface.c(2239): warning:  #550-D: variable "index"  was set but never used
-  		uint8_t index;
-..\..\bacnet\bac_interface.c(2291): warning:  #550-D: variable "index"  was set but never used
-  		uint8_t index;
-..\..\bacnet\bac_interface.c(2342): warning:  #550-D: variable "index"  was set but never used
-  		uint8_t index;
-..\..\bacnet\bac_interface.c(2711): warning:  #177-D: variable "type"  was declared but never referenced
-  	char type,num;
-..\..\bacnet\bac_interface.c: 9 warnings, 0 errors
+..\SYSTEM\usart\usart.c: 1 warning, 0 errors
+compiling alarm.c...
+..\..\IO_control\ud_str.h(97): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 249 of "..\..\bacnet\bacnet.h")
+  #define BAC_MSV			22 
+..\..\bacnet\private\alarm.c(27): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "const char *"
+      U16_T n = (U16_T)strlen(mes);
+..\..\bacnet\private\alarm.c(326): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
+  		sprintf(str, "ID :%u SN: %lu has conlift with T3 controller" , (uint16)id,new_sn);
+..\..\bacnet\private\alarm.c(330): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
+  		sprintf(str, "ID :%u SN: %lu has conlift SN: %lu", (uint16)id,new_sn,old_sn);
+..\..\bacnet\private\alarm.c(333): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "const char *"
+  	if(strlen(str) > ALARM_MESSAGE_SIZE) 
+..\..\bacnet\private\alarm.c(349): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
+  		sprintf(str, "Lost communicaton with top board" );
+..\..\bacnet\private\alarm.c(351): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
+  		sprintf(str, "READ AO Feedback FAIL" );
+..\..\bacnet\private\alarm.c(353): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
+  		sprintf(str, "Update time server fail" );
+..\..\bacnet\private\alarm.c(355): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
+  		sprintf(str, "Lose communication with pic" );
+..\..\bacnet\private\alarm.c(360): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
+  		sprintf(str, "SD CARD IS ABNORMAL" );
+..\..\bacnet\private\alarm.c(363): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
+  		sprintf(str, "CAN NOT CONNECT SNTP" );
+..\..\bacnet\private\alarm.c(367): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "const char *"
+  	if(strlen(str) > ALARM_MESSAGE_SIZE) 
+..\..\bacnet\private\alarm.c(391): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
+  		sprintf(str, "PRG %d error : dead cycle1",(U16_T)prg);
+..\..\bacnet\private\alarm.c(393): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
+  		sprintf(str, "PRG %d error : dead cycle2",(U16_T)prg);
+..\..\bacnet\private\alarm.c(395): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
+  		sprintf(str, "PRG %d error : takes long time",(U16_T)prg);
+..\..\bacnet\private\alarm.c(403): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "const char *"
+  	if(strlen(str) > ALARM_MESSAGE_SIZE) 
+..\..\bacnet\private\alarm.c(603): warning:  #940-D: missing return statement at end of non-void function "sendalarm" 
+  } 
+..\..\bacnet\private\alarm.c: 17 warnings, 0 errors
 compiling bac_control.c...
 ..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
   #define BAC_MSV 1
@@ -303,10 +283,14 @@ compiling key.c...
 ..\..\key\key.c(43): warning:  #177-D: variable "by_shake_Count"  was declared but never referenced
   static U8_T by_shake_Count = 0;
 ..\..\key\key.c: 6 warnings, 0 errors
-compiling user_arm.c...
+compiling io.c...
 ..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
   #define BAC_MSV 1
-user_arm.c: 1 warning, 0 errors
+..\..\IO_control\io.c(197): warning:  #940-D: missing return statement at end of non-void function "conver_by_unit_custable" 
+  }
+..\..\IO_control\io.c(426): warning:  #177-D: variable "channel"  was declared but never referenced
+  	char channel;
+..\..\IO_control\io.c: 3 warnings, 0 errors
 compiling ptransfer.c...
 ..\..\IO_control\ud_str.h(97): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 249 of "..\..\bacnet\bacnet.h")
   #define BAC_MSV			22 
@@ -385,6 +369,68 @@ compiling ptransfer.c...
 ..\..\bacnet\private\ptransfer.c(1545): warning:  #550-D: variable "delay_write_setting"  was set but never used
   		uint8_t delay_write_setting;
 ..\..\bacnet\private\ptransfer.c: 38 warnings, 0 errors
+compiling bac_interface.c...
+..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
+  #define BAC_MSV 1
+..\..\bacnet\bac_interface.c(32): warning:  #177-D: variable "mstp_port"  was declared but never referenced
+  	char mstp_port;
+..\..\bacnet\bac_interface.c(747): warning:  #120-D: return value type does not match the function type
+  	return panelname;
+..\..\bacnet\bac_interface.c(1222): warning:  #111-D: statement is unreachable
+  			if(vars[io_index].digital_analog == 1)  // analog
+..\..\bacnet\bac_interface.c(1953): warning:  #940-D: missing return statement at end of non-void function "Get_Output_Relinguish" 
+  }
+..\..\bacnet\bac_interface.c(2239): warning:  #550-D: variable "index"  was set but never used
+  		uint8_t index;
+..\..\bacnet\bac_interface.c(2291): warning:  #550-D: variable "index"  was set but never used
+  		uint8_t index;
+..\..\bacnet\bac_interface.c(2342): warning:  #550-D: variable "index"  was set but never used
+  		uint8_t index;
+..\..\bacnet\bac_interface.c(2711): warning:  #177-D: variable "type"  was declared but never referenced
+  	char type,num;
+..\..\bacnet\bac_interface.c: 9 warnings, 0 errors
+compiling MONITOR.C...
+..\..\IO_control\ud_str.h(97): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 249 of "..\..\bacnet\bacnet.h")
+  #define BAC_MSV			22 
+..\..\bacnet\private\MONITOR.C(177): warning:  #2748-D: null argument provided for parameter marked with attribute "nonnull"
+  				memcpy(&write_mon_point_buf[i * 2][k],0,sizeof(Str_mon_element));
+..\..\bacnet\private\MONITOR.C(461): warning:  #2748-D: null argument provided for parameter marked with attribute "nonnull"
+  					memcpy(&write_mon_point_buf[i * 2 + 1][k],0,sizeof(Str_mon_element));
+..\..\bacnet\private\MONITOR.C(855): warning:  #550-D: variable "etr_tx"  was set but never used
+  	static U32_T far etr_tx = 0;
+..\..\bacnet\private\MONITOR.C(856): warning:  #177-D: variable "count"  was declared but never referenced
+  	static U8_T far count = 0;
+..\..\bacnet\private\MONITOR.C: 5 warnings, 0 errors
+compiling flash_user.c...
+..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
+  #define BAC_MSV 1
+..\FLASH\flash_user.c(612): warning:  #177-D: variable "i"  was declared but never referenced
+  	uint16_t loop,i;	
+..\FLASH\flash_user.c(1074): warning:  #177-D: variable "temp"  was declared but never referenced
+  	U8_T temp[4];
+..\FLASH\flash_user.c: 3 warnings, 0 errors
+compiling user_data.c...
+..\..\IO_control\ud_str.h(97): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 249 of "..\..\bacnet\bacnet.h")
+  #define BAC_MSV			22 
+..\..\bacnet\private\user_data.c(437): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
+  		sprintf((S8_T *)&ptr.pin->description,"IN %d",(U16_T)(i + 1));
+..\..\bacnet\private\user_data.c(458): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
+  		sprintf((S8_T *)&ptr.pin->label,"IN%d",(U16_T)(i + 1));
+..\..\bacnet\private\user_data.c(565): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
+  		sprintf((S8_T *)&ptr.pout->description,"OUT%d",(U16_T)(i + 1));
+..\..\bacnet\private\user_data.c(566): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
+  		sprintf((S8_T *)&ptr.pout->label,"OUT%d",(U16_T)(i + 1));
+..\..\bacnet\private\user_data.c(878): warning:  #177-D: variable "temp"  was declared but never referenced
+    uint8 temp[2];
+..\..\bacnet\private\user_data.c(1099): warning:  #177-D: variable "i"  was declared but never referenced
+  	S16_T  i, year;
+..\..\bacnet\private\user_data.c(1099): warning:  #177-D: variable "year"  was declared but never referenced
+  	S16_T  i, year;
+..\..\bacnet\private\user_data.c(1239): warning:  #177-D: variable "count"  was declared but never referenced
+  	U8_T count;
+..\..\bacnet\private\user_data.c(1488): warning:  #186-D: pointless comparison of unsigned integer with zero
+  			if(ptr->time_to_live < 0)
+..\..\bacnet\private\user_data.c: 10 warnings, 0 errors
 compiling commsub.c...
 ..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
   #define BAC_MSV 1
@@ -407,36 +453,6 @@ compiling commsub.c...
 ..\..\scan\commsub.c(1520): warning:  #177-D: variable "port"  was declared but never referenced
   	U8_T port;
 ..\..\scan\commsub.c: 10 warnings, 0 errors
-compiling flash_user.c...
-..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
-  #define BAC_MSV 1
-..\FLASH\flash_user.c(612): warning:  #177-D: variable "i"  was declared but never referenced
-  	uint16_t loop,i;	
-..\FLASH\flash_user.c(1074): warning:  #177-D: variable "temp"  was declared but never referenced
-  	U8_T temp[4];
-..\FLASH\flash_user.c: 3 warnings, 0 errors
-compiling io.c...
-..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
-  #define BAC_MSV 1
-..\..\IO_control\io.c(197): warning:  #940-D: missing return statement at end of non-void function "conver_by_unit_custable" 
-  }
-..\..\IO_control\io.c(426): warning:  #177-D: variable "channel"  was declared but never referenced
-  	char channel;
-..\..\IO_control\io.c: 3 warnings, 0 errors
-compiling tcp_debug.c...
-compiling Constcode.c...
-compiling MONITOR.C...
-..\..\IO_control\ud_str.h(97): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 249 of "..\..\bacnet\bacnet.h")
-  #define BAC_MSV			22 
-..\..\bacnet\private\MONITOR.C(177): warning:  #2748-D: null argument provided for parameter marked with attribute "nonnull"
-  				memcpy(&write_mon_point_buf[i * 2][k],0,sizeof(Str_mon_element));
-..\..\bacnet\private\MONITOR.C(461): warning:  #2748-D: null argument provided for parameter marked with attribute "nonnull"
-  					memcpy(&write_mon_point_buf[i * 2 + 1][k],0,sizeof(Str_mon_element));
-..\..\bacnet\private\MONITOR.C(855): warning:  #550-D: variable "etr_tx"  was set but never used
-  	static U32_T far etr_tx = 0;
-..\..\bacnet\private\MONITOR.C(856): warning:  #177-D: variable "count"  was declared but never referenced
-  	static U8_T far count = 0;
-..\..\bacnet\private\MONITOR.C: 5 warnings, 0 errors
 compiling POINT.C...
 ..\..\IO_control\ud_str.h(97): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 249 of "..\..\bacnet\bacnet.h")
   #define BAC_MSV			22 
@@ -473,28 +489,12 @@ compiling POINT.C...
 ..\..\bacnet\private\POINT.C(1833): warning:  #177-D: variable "reg"  was declared but never referenced
   	U16_T reg = 0;
 ..\..\bacnet\private\POINT.C: 17 warnings, 0 errors
-compiling user_data.c...
-..\..\IO_control\ud_str.h(97): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 249 of "..\..\bacnet\bacnet.h")
-  #define BAC_MSV			22 
-..\..\bacnet\private\user_data.c(437): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
-  		sprintf((S8_T *)&ptr.pin->description,"IN %d",(U16_T)(i + 1));
-..\..\bacnet\private\user_data.c(458): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
-  		sprintf((S8_T *)&ptr.pin->label,"IN%d",(U16_T)(i + 1));
-..\..\bacnet\private\user_data.c(565): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
-  		sprintf((S8_T *)&ptr.pout->description,"OUT%d",(U16_T)(i + 1));
-..\..\bacnet\private\user_data.c(566): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "char *restrict"
-  		sprintf((S8_T *)&ptr.pout->label,"OUT%d",(U16_T)(i + 1));
-..\..\bacnet\private\user_data.c(878): warning:  #177-D: variable "temp"  was declared but never referenced
-    uint8 temp[2];
-..\..\bacnet\private\user_data.c(1099): warning:  #177-D: variable "i"  was declared but never referenced
-  	S16_T  i, year;
-..\..\bacnet\private\user_data.c(1099): warning:  #177-D: variable "year"  was declared but never referenced
-  	S16_T  i, year;
-..\..\bacnet\private\user_data.c(1239): warning:  #177-D: variable "count"  was declared but never referenced
-  	U8_T count;
-..\..\bacnet\private\user_data.c(1488): warning:  #186-D: pointless comparison of unsigned integer with zero
-  			if(ptr->time_to_live < 0)
-..\..\bacnet\private\user_data.c: 10 warnings, 0 errors
+compiling user_arm.c...
+..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
+  #define BAC_MSV 1
+user_arm.c: 1 warning, 0 errors
+compiling tcp_debug.c...
+compiling Constcode.c...
 compiling ER-TFT024-3_4-Wire_SPI.c...
 ..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
   #define BAC_MSV 1
@@ -527,6 +527,7 @@ compiling range.c...
 ..\..\common\range.c(97): warning:  #550-D: variable "ucI"  was set but never used
   	unsigned char xdata ucI;
 ..\..\common\range.c: 2 warnings, 0 errors
+compiling sensirion_common.c...
 compiling scan.c...
 ..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
   #define BAC_MSV 1
@@ -595,8 +596,6 @@ compiling scan.c...
 ..\..\scan\scan.c(4563): warning:  #177-D: variable "j"  was declared but never referenced
   	U16_T i,j;
 ..\..\scan\scan.c: 33 warnings, 0 errors
-compiling sgp_git_version.c...
-compiling sensirion_common.c...
 compiling main.c...
 ..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
   #define BAC_MSV 1
@@ -691,6 +690,10 @@ compiling sensirion_sw_i2c.c...
 ..\HARDWARE\VOC\sensirion_sw_i2c.c(98): warning:  #68-D: integer conversion resulted in a change of sign
           return STATUS_FAIL;
 ..\HARDWARE\VOC\sensirion_sw_i2c.c: 3 warnings, 0 errors
+compiling sgp_git_version.c...
+compiling diskio.c...
+compiling sgp30_featureset.c...
+compiling sgp30.c...
 compiling sntpc.c...
 ..\..\SNTP\sntpc.c(13): warning:  #9-D: nested comment is not allowed
   /* INCLUDE FILE DECLARATIONS */
@@ -713,10 +716,7 @@ compiling sntpc.c...
 ..\..\SNTP\sntpc.c(51): warning:  #177-D: variable "sntp_Retry"  was declared but never referenced
   static U8_T sntp_Retry = 0;
 ..\..\SNTP\sntpc.c: 10 warnings, 0 errors
-compiling diskio.c...
-compiling sgp30.c...
-compiling sgp30_featureset.c...
-compiling sensirion_sw_i2c_implementation.c...
+compiling ff.c...
 compiling bsp_esp8266.c...
 ..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
   #define BAC_MSV 1
@@ -793,32 +793,6 @@ compiling bsp_esp8266.c...
 ..\HARDWARE\ESP8266\bsp_esp8266.c(1368): warning:  #513-D: a value of type "char *" cannot be assigned to an entity of type "uint8_t *"
   			pRecStr = strstr ( strEsp8266_Fram_Record .Data_RX_BUF, "+IPD" );
 ..\HARDWARE\ESP8266\bsp_esp8266.c: 37 warnings, 0 errors
-compiling tstat_wifi.c...
-..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
-  #define BAC_MSV 1
-tstat_wifi.c(832): warning:  #177-D: variable "i"  was declared but never referenced
-    char i;
-tstat_wifi.c(874): warning:  #177-D: variable "EXTI_InitStructure"  was declared but never referenced
-  	EXTI_InitTypeDef EXTI_InitStructure;
-tstat_wifi.c(875): warning:  #177-D: variable "NVIC_InitStructure"  was declared but never referenced
-  	NVIC_InitTypeDef NVIC_InitStructure;
-tstat_wifi.c(1536): warning:  #177-D: variable "temp1"  was declared but never referenced
-  	U32_T temp1;//,temp2;
-tstat_wifi.c(1622): warning:  #167-D: argument of type "void (*)(void)" is incompatible with parameter of type "TaskFunction_t"
-  	sTaskCreate( refresh_Input_Task, "InputTask1", 500, NULL, uxPriority, &xHandler_Input );
-tstat_wifi.c(1623): warning:  #167-D: argument of type "void (*)(void)" is incompatible with parameter of type "TaskFunction_t"
-  	sTaskCreate( refresh_Output_Task, "OutputTask1", 200, NULL, uxPriority, &xHandler_Output );
-tstat_wifi.c(1749): warning:  #177-D: variable "xDelayPeriod"  was declared but never referenced
-  	portTickType xDelayPeriod = ( portTickType ) 1000 / portTICK_RATE_MS;
-tstat_wifi.c(1750): warning:  #177-D: variable "i"  was declared but never referenced
-  	U8_T loop,i;
-tstat_wifi.c(1814): warning:  #177-D: variable "xDelayPeriod"  was declared but never referenced
-  	portTickType xDelayPeriod = ( portTickType ) 1000 / portTICK_RATE_MS;
-tstat_wifi.c(1815): warning:  #177-D: variable "loop"  was declared but never referenced
-  	U8_T loop,i;
-tstat_wifi.c(1997): warning:  #940-D: missing return statement at end of non-void function "Check_sensor_exist" 
-  }
-tstat_wifi.c: 12 warnings, 0 errors
 compiling scd4x_i2c.c...
 ..\HARDWARE\CO2_I2C\scd4x_i2c.c(74): warning:  #223-D: function "sensirion_i2c_read_data_inplace" declared implicitly
       error = sensirion_i2c_read_data_inplace(SCD4X_I2C_ADDRESS, &buffer[0], 6);
@@ -847,7 +821,13 @@ compiling scd4x_i2c.c...
 ..\HARDWARE\CO2_I2C\scd4x_i2c.c(363): warning:  #223-D: function "sensirion_i2c_read_data_inplace" declared implicitly
       error = sensirion_i2c_read_data_inplace(SCD4X_I2C_ADDRESS, &buffer[0], 2);
 ..\HARDWARE\CO2_I2C\scd4x_i2c.c: 13 warnings, 0 errors
-compiling ff.c...
+compiling scd4x_i2c_example_usage.c...
+..\HARDWARE\CO2_I2C\scd4x_i2c_example_usage.c(106): warning:  #223-D: function "delay_ms" declared implicitly
+  			scd4x_stop_periodic_measurement();delay_ms(1000);
+..\HARDWARE\CO2_I2C\scd4x_i2c_example_usage.c(140): warning:  #223-D: function "delay_ms" declared implicitly
+  			delay_ms(100);
+..\HARDWARE\CO2_I2C\scd4x_i2c_example_usage.c: 2 warnings, 0 errors
+compiling sensirion_sw_i2c_implementation.c...
 compiling wifi.c...
 ..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
   #define BAC_MSV 1
@@ -906,31 +886,39 @@ wifi.c(1152): warning:  #188-D: enumerated type mixed with another type
 wifi.c(104): warning:  #177-D: function "ESP8266_GPIO_Config"  was declared but never referenced
   static void ESP8266_GPIO_Config ( void )
 wifi.c: 28 warnings, 0 errors
+compiling tstat_wifi.c...
+..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
+  #define BAC_MSV 1
+tstat_wifi.c(832): warning:  #177-D: variable "i"  was declared but never referenced
+    char i;
+tstat_wifi.c(874): warning:  #177-D: variable "EXTI_InitStructure"  was declared but never referenced
+  	EXTI_InitTypeDef EXTI_InitStructure;
+tstat_wifi.c(875): warning:  #177-D: variable "NVIC_InitStructure"  was declared but never referenced
+  	NVIC_InitTypeDef NVIC_InitStructure;
+tstat_wifi.c(1536): warning:  #177-D: variable "temp1"  was declared but never referenced
+  	U32_T temp1;//,temp2;
+tstat_wifi.c(1622): warning:  #167-D: argument of type "void (*)(void)" is incompatible with parameter of type "TaskFunction_t"
+  	sTaskCreate( refresh_Input_Task, "InputTask1", 500, NULL, uxPriority, &xHandler_Input );
+tstat_wifi.c(1623): warning:  #167-D: argument of type "void (*)(void)" is incompatible with parameter of type "TaskFunction_t"
+  	sTaskCreate( refresh_Output_Task, "OutputTask1", 200, NULL, uxPriority, &xHandler_Output );
+tstat_wifi.c(1749): warning:  #177-D: variable "xDelayPeriod"  was declared but never referenced
+  	portTickType xDelayPeriod = ( portTickType ) 1000 / portTICK_RATE_MS;
+tstat_wifi.c(1750): warning:  #177-D: variable "i"  was declared but never referenced
+  	U8_T loop,i;
+tstat_wifi.c(1814): warning:  #177-D: variable "xDelayPeriod"  was declared but never referenced
+  	portTickType xDelayPeriod = ( portTickType ) 1000 / portTICK_RATE_MS;
+tstat_wifi.c(1815): warning:  #177-D: variable "loop"  was declared but never referenced
+  	U8_T loop,i;
+tstat_wifi.c(1997): warning:  #940-D: missing return statement at end of non-void function "Check_sensor_exist" 
+  }
+tstat_wifi.c: 12 warnings, 0 errors
 compiling sensirion_i2c.c...
-compiling scd4x_i2c_example_usage.c...
-..\HARDWARE\CO2_I2C\scd4x_i2c_example_usage.c(106): warning:  #223-D: function "delay_ms" declared implicitly
-  			scd4x_stop_periodic_measurement();delay_ms(1000);
-..\HARDWARE\CO2_I2C\scd4x_i2c_example_usage.c(140): warning:  #223-D: function "delay_ms" declared implicitly
-  			delay_ms(100);
-..\HARDWARE\CO2_I2C\scd4x_i2c_example_usage.c: 2 warnings, 0 errors
 compiling Menu.c...
 ..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
   #define BAC_MSV 1
 ..\MENU\Menu.c(261): warning:  #167-D: argument of type "signed char *" is incompatible with parameter of type "const char *const"
   	xTaskCreate(MenuTask,   ( signed portCHAR * ) "MenuTask"  , configMINIMAL_STACK_SIZE + 256, NULL, uxPriority, (xTaskHandle *)&Handle_Menu);
 ..\MENU\Menu.c: 2 warnings, 0 errors
-compiling voc.c...
-..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
-  #define BAC_MSV 1
-..\HARDWARE\VOC\voc.c(36): warning:  #550-D: variable "err"  was set but never used
-  		int16_t err;
-..\HARDWARE\VOC\voc.c(38): warning:  #177-D: variable "iaq_baseline"  was declared but never referenced
-  		uint32_t iaq_baseline;
-..\HARDWARE\VOC\voc.c(41): warning:  #177-D: variable "temp1"  was declared but never referenced
-  		uint8 temp1[4];
-..\HARDWARE\VOC\voc.c(103): warning:  #177-D: variable "co2_eq_ppm"  was declared but never referenced
-  	uint16_t tvoc_ppb, co2_eq_ppm;
-..\HARDWARE\VOC\voc.c: 5 warnings, 0 errors
 compiling menuSet.c...
 ..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
   #define BAC_MSV 1
@@ -949,6 +937,18 @@ compiling menuSet.c...
 ..\MENU\menuSet.c(100): warning:  #1079-D: standard requires that parameter "item_to_adjust"  be given a type by a subsequent declaration ("int" assumed)
   void Save_Parmeter(item_to_adjust)
 ..\MENU\menuSet.c: 8 warnings, 0 errors
+compiling voc.c...
+..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
+  #define BAC_MSV 1
+..\HARDWARE\VOC\voc.c(36): warning:  #550-D: variable "err"  was set but never used
+  		int16_t err;
+..\HARDWARE\VOC\voc.c(38): warning:  #177-D: variable "iaq_baseline"  was declared but never referenced
+  		uint32_t iaq_baseline;
+..\HARDWARE\VOC\voc.c(41): warning:  #177-D: variable "temp1"  was declared but never referenced
+  		uint8 temp1[4];
+..\HARDWARE\VOC\voc.c(103): warning:  #177-D: variable "co2_eq_ppm"  was declared but never referenced
+  	uint16_t tvoc_ppb, co2_eq_ppm;
+..\HARDWARE\VOC\voc.c: 5 warnings, 0 errors
 compiling menuIdle.c...
 ..\..\bacnet\bacnet.h(249): warning:  #47-D: incompatible redefinition of macro "BAC_MSV"  (declared at line 97 of "..\..\IO_control\ud_str.h")
   #define BAC_MSV 1
@@ -956,17 +956,17 @@ compiling menuIdle.c...
   						disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
 ..\MENU\menuIdle.c(492): warning:  #167-D: argument of type "char *" is incompatible with parameter of type "unsigned char *"
   						disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-..\MENU\menuIdle.c(571): warning:  #167-D: argument of type "char *" is incompatible with parameter of type "unsigned char *"
+..\MENU\menuIdle.c(577): warning:  #167-D: argument of type "char *" is incompatible with parameter of type "unsigned char *"
   						disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-..\MENU\menuIdle.c(642): warning:  #167-D: argument of type "char *" is incompatible with parameter of type "unsigned char *"
+..\MENU\menuIdle.c(648): warning:  #167-D: argument of type "char *" is incompatible with parameter of type "unsigned char *"
   				disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-..\MENU\menuIdle.c(650): warning:  #167-D: argument of type "char *" is incompatible with parameter of type "unsigned char *"
+..\MENU\menuIdle.c(656): warning:  #167-D: argument of type "char *" is incompatible with parameter of type "unsigned char *"
   				disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-..\MENU\menuIdle.c(658): warning:  #167-D: argument of type "char *" is incompatible with parameter of type "unsigned char *"
+..\MENU\menuIdle.c(664): warning:  #167-D: argument of type "char *" is incompatible with parameter of type "unsigned char *"
   				disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
-..\MENU\menuIdle.c(666): warning:  #167-D: argument of type "char *" is incompatible with parameter of type "unsigned char *"
+..\MENU\menuIdle.c(672): warning:  #167-D: argument of type "char *" is incompatible with parameter of type "unsigned char *"
   				disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR1);//TSTAT8_BACK_COLOR
-..\MENU\menuIdle.c(674): warning:  #167-D: argument of type "char *" is incompatible with parameter of type "unsigned char *"
+..\MENU\menuIdle.c(680): warning:  #167-D: argument of type "char *" is incompatible with parameter of type "unsigned char *"
   				disp_str_16_24(FORM15X30, SCH_XPOS + 20,  IDLE_LINE1_POS, UI_DIS_TOP,SCH_COLOR,TSTAT8_BACK_COLOR);//TSTAT8_BACK_COLOR
 ..\MENU\menuIdle.c(13): warning:  #177-D: variable "display_around_time_ctr"  was declared but never referenced
   static uint8 display_around_time_ctr = NODES_POLL_PERIOD;
@@ -1084,7 +1084,7 @@ compiling modbus.c...
   	Store_Pulse_Counter(1);
 ..\..\common\modbus.c: 29 warnings, 0 errors
 linking...
-Program Size: Code=214556 RO-data=100756 RW-data=2228 ZI-data=499508  
+Program Size: Code=214560 RO-data=100760 RW-data=2228 ZI-data=499508  
 FromELF: creating hex file...
 "..\OBJ\Tstat10_arm_revxx.axf" - 0 Error(s), 461 Warning(s).
 
@@ -1099,7 +1099,7 @@ Package Vendor: Keil
   C:\Users\Dan\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include
 
 <h2>Collection of Component Files used:</h2>
-Build Time Elapsed:  00:00:07
+Build Time Elapsed:  00:00:12
 </pre>
 </body>
 </html>
