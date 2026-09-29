@@ -735,8 +735,13 @@ static S16_T exec_program_code(S16_T current_prg, U8_T *prog_code)
 								nitem = veval_exp(local);
 								if (nitem < 1 || nitem > *(prog+1))
 										{
-										 /* on to the next 0x01, but not out of the row */
-										 while(in_row(prog, 0, 1) && *prog!='\x1') prog++;
+										 /* No jump: carry on after the target list, which is where
+										  * T3000's decompiler and tools/check_programs.py step too.
+										  * Scanning ahead for the next 0x01 stopped on a count or
+										  * address byte of 1, cut a THEN clause short, or ran off
+										  * the end of the program. The selector is still compared
+										  * unscaled, so a whole X never jumps; see the README. */
+										 prog += 2 + 2 * *(prog+1);
 										 break;
 										}
 								if (*prog==GOSUB)   /*gosub*/
@@ -1837,11 +1842,12 @@ S32_T veval_exp(U8_T *local)
 				/* The schedule and the time both come from the program, so keep them
 				 * inside wr_times[]: a day holds 2*MAX_INTERVALS_PER_DAY times, not
 				 * MAX_SCHEDULES_PER_WEEK. The week day is a BACnet date's wday when
-				 * the clock was set over the network, and that can be 255. m <= 0
-				 * refuses Monday as well; see the README's To do. */
+				 * the clock was set over the network, and that can be 255. Day 0 is
+				 * Monday, as in the weekly routines and T3000's schedule editor;
+				 * this used to refuse it, so every Monday read 0. */
 				if(((op2 / 1000) <= 0) || ((op2 / 1000) > MAX_WR) ||
 				((i < 0) || (i >= 2 * MAX_INTERVALS_PER_DAY)) ||
-					(m <= 0) || (m > 6))
+					(m > 6))
 				{
 					push(0);
 					break;
