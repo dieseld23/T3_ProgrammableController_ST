@@ -7,7 +7,7 @@ developed and reviewed on the fork rather than upstream.
 
 ## Status
 
-As of 2026-09-28, `main` carries all of the work below, through PR #21.
+As of 2026-09-29, `main` carries all of the work below, through PR #22.
 
 - **Build:** `Tstat10_wifi`, 0 errors, 461 warnings. `tools/checkmap.py` passes.
 - **Hardware:** `rev68VPF` to `rev68VPF4` run on the unit. `rev68VPF2`,
@@ -17,8 +17,9 @@ As of 2026-09-28, `main` carries all of the work below, through PR #21.
   (power-cut-safe saves), `rev68VPF9` (no `.0` on whole values),
   `rev68VPF10` (two bugs behind compiler warnings), `rev68VPF11` (programs
   kept inside their own memory), `rev68VPF12` (table lookups bounded),
-  `rev68VPF13` (an RH variable in the top area at its real value) and
-  `rev68VPF14` (`COM1` stepped over) are built but **not yet flashed**. The
+  `rev68VPF13` (an RH variable in the top area at its real value),
+  `rev68VPF14` (`COM1` stepped over) and `rev68VPF15` (`ON` steps over its
+  targets, `WR_ON` works on Mondays) are built but **not yet flashed**. The
   targeted checks in [On the bench](#on-the-bench) are still open.
 
 | image | adds | md5 | hardware |
@@ -36,17 +37,18 @@ As of 2026-09-28, `main` carries all of the work below, through PR #21.
 | `rev68VPF11` | the program interpreter confined to each program's own row | `4e372340…` | untested |
 | `rev68VPF12` | a full remote-panel table no longer overruns; `WR_ON`, `WR_OFF`, `STATUS` bounded | `f544edbd…` | untested |
 | `rev68VPF13` | T3-OEM: an RH variable in the top area shows its real value | `ac75aead…` | untested |
-| `rev68VPF14` | `COM1` stepped over and read as 0 in this build | `791cf278…` | untested — **this is `main`** |
+| `rev68VPF14` | `COM1` stepped over and read as 0 in this build | `791cf278…` | untested |
+| `rev68VPF15` | `ON` carries on after its targets when it does not jump; `WR_ON`/`WR_OFF` read Monday | `3103d5f3…` | untested — **this is `main`** |
 
-All fourteen are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF14` carries
+All fifteen are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF15` carries
 everything; `rev68VPF4` is the newest one confirmed on the unit and the fallback.
 The md5s are of a Windows checkout, where `core.autocrlf` gives the hex files CRLF
 line endings. The blobs in git have LF and hash differently. The application is
 linked above the bootloader, so a bad image leaves the device recoverable through
 the bootloader's ISP window at power-on.
 
-The most urgent open item is now that **Control Basic's `ON` never jumps**; see
-[To do](#to-do).
+The one open decision is whether **Control Basic's `ON` should jump for a whole
+selector**, which it never has; see [To do](#to-do).
 
 ## The idle screen
 
@@ -779,7 +781,8 @@ cases are known, and all three are interpreter bugs rather than bad code:
 - `COM1`, which this build does not have (one of Temco's BTU-meter examples).
   Since `rev68VPF14` it is stepped over and reads as 0;
 - a multi-target `ON` on a program's last line, whose fall-through scan used to
-  run into the next program's row and execute it (see [To do](#to-do));
+  run into the next program's row and execute it. Since `rev68VPF15` it steps
+  over its targets instead (see [ON's fall-through](#ons-fall-through));
 - a `RETURN` in a subroutine that used `UNACK`, which leaves a value on the stack
   for `RETURN` to pop in place of the address `GOSUB` pushed.
 
@@ -950,12 +953,32 @@ Three tables were indexed past their ends (`rev68VPF12`):
   set over BACnet takes the date's `wday`, which can be 255 until the RTC is
   read back.
   Each is now held to the table. Out of range, they return 0, as they already
-  did for a schedule of 0.
+  did for a schedule of 0. They also refused week day 0 and returned 0, and day 0
+  is Monday in the weekly routines and in T3000's schedule editor, so every
+  Monday read 0. Since `rev68VPF15` Monday reads its own times.
 - **`STATUS`** (`decode.c`) read `current_online[m / 8]` for any station number
   a program gave it, up to about 4 KB either side of the 32-byte table. It now
   reads it only for stations 0-255; any other number reads as offline.
 
 None of this changes anything for values in range.
+
+### ON's fall-through
+
+`ON X GOTO` and `ON X GOSUB` compare the selector without scaling it, so a whole
+`X` never jumps (see [To do](#to-do)). Until `rev68VPF15` the statement then
+scanned ahead for the next `0x01` byte and carried on there, but that byte is
+often not a line header:
+
+- a one-target `ON` stopped on its own count, which is 1;
+- a target at row offset 256-511 has 1 as its high byte;
+- inside a `THEN` clause the next statement has no header, so it was skipped;
+- after the last line there is none, so the scan ran off the end of the row.
+
+Compiled with T3000, `ON 1 GOTO 100` on a line of its own ended its program's
+scan every 500 ms without an alarm, and an `ON` on the last line raised
+`PRG n error : out of bounds`. An `ON` that does not jump now carries on after
+its target list, which is where T3000's decompiler and `tools/check_programs.py`
+already step. Which targets are taken has not changed.
 
 ## To do
 
@@ -963,21 +986,33 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-27.
 
 ### Code
 
-1. **`ON` never jumps.** `ON X GOTO` and `ON X GOSUB` compare their selector with
-   the number of targets without dividing it by 1000, so any whole `X` is out of
-   range and the statement falls through. The fall-through then scans for the next
-   `0x01` byte. The target count or an offset can be that byte (a one-target `ON`
-   stops on its own count), and after the program's last line there is none, so
-   the scan ran on through the tables behind the code and into the next
-   program's row. It now stops at the end of the row with
-   `PRG n error : out of bounds`, which a program with a multi-target `ON` as its
-   last line will show. Temco's ESP32 port has the same code. T3000 compiles the
-   selector as an ordinary expression (`case ON` in `BacNetProgram_transplant.cpp`
-   writes it through `pcodvar`), so `ON 2 GOTO` evaluates to 2000 and never
-   jumps. None of the 23 real programs in hand uses `ON`. The fix is to divide by
-   1000 and step over the list, but programs whose `ON` lines have never jumped
-   would start jumping, so it wants a decision first.
-2. **Downloaded program bytecode is not checked when it arrives.** The
+1. **`ON` never jumps for a whole selector.** `ON X GOTO` and `ON X GOSUB`
+   compare the selector with the number of targets without dividing it by 1000.
+   T3000 compiles the selector as an ordinary expression (`case ON` in
+   `BacNetProgram_transplant.cpp` writes it through `pcodvar`), so
+   `ON 2 GOTO 10, 20, 30` sees 2000 and never jumps; only 0.001 to 0.003 would.
+   Since `rev68VPF15` an `ON` that does not jump carries on after its targets
+   (see [ON's fall-through](#ons-fall-through)), so nothing else goes wrong.
+   Making it jump is a decision, and wants these:
+   - Round as T3000's manual does, so 2.5 takes the third target, and compare
+     before narrowing to 16 bits, without overflowing on a huge `X`.
+   - T3000 does not check `ON` targets. A line that does not exist compiles as
+     address 0, and uploading an `ON` program to T3000 and sending it back
+     zeroes every target. A jump to 0 lands on the row's length bytes and ends
+     the scan, so a zero target should fall through instead.
+   - A program written around the bug, such as `ON VAR1 / 1000 GOTO …`, would
+     stop jumping.
+   - T3000's program simulator and Temco's ESP32 port keep the unscaled compare.
+
+   None of the 25 real programs in hand uses `ON`.
+2. **A `RETURN` into a `THEN` clause ends the scan.** `then_else` is not saved
+   across a `GOSUB`: the subroutine's first line header clears it, and `RETURN`
+   lands in the middle of the clause, where the statement loop wants a line
+   header and returns -1 (`decode.c:542-549`). So whenever `X` is true,
+   `IF X THEN GOSUB 100 , VAR3 = 1` never sets `VAR3` and nothing after that line
+   runs, without an alarm. An `ON … GOSUB` inside a clause that jumps would do
+   the same.
+3. **Downloaded program bytecode is not checked when it arrives.** The
    interpreter now keeps every program inside its own row (see
    [A program stays in its row](#a-program-stays-in-its-row)), so a malformed
    program no longer damages anything. It raises `PRG n error : out of bounds` on
@@ -997,7 +1032,7 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-27.
    latest packet (`ptransfer.c:2115`, `bac_control.c:812`). Packets further apart
    than that, as on a link where T3000 has to retry, would let a scan see a
    half-written program.
-3. **Remote panels never leave the panel table.** `Check_Remote_Panel_Table` in
+4. **Remote panels never leave the panel table.** `Check_Remote_Panel_Table` in
    `bacnet/private/user_data.c` counts each panel's `time_to_live` down once a
    minute and was meant to drop it below zero. The field is unsigned, so it wraps
    to 255 instead and the check never fires; a panel that goes away keeps its
@@ -1015,30 +1050,30 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-27.
    Meanwhile the table only grows until restart. Since `rev68VPF12` a full table
    (100 devices) takes no new ones; before, the 101st was written past its end
    (see [Table lookups](#table-lookups)).
-4. **Alarms are never forwarded to other panels.** `sendalarm` and its callers in
+5. **Alarms are never forwarded to other panels.** `sendalarm` and its callers in
    `bacnet/private/alarm.c` are commented out. The `where1…where5` destinations
    that `ALARM-AT` sets are stored with each alarm and shown in T3000, but go
    nowhere. Relatedly, `alarm_at_all` is set by `ALARM-AT ALL` and never cleared.
    The reset at the top of the scan is commented out, so it stays set until
    reboot. That is harmless while forwarding is off, and needs deciding before
    forwarding is turned back on.
-5. **`WR_ON` and `WR_OFF` return 0 every Monday.** They turn the RTC's week day
-   (0 = Sunday) into a `wr_times[]` day with `m = week - 1`, as the weekly
-   routines do (`bac_control.c:192`), so Monday is day 0. Their check then
-   refuses `m <= 0` (`decode.c:1833`). Since `rev68VPF12` their indexes are
-   bounded (see [Table lookups](#table-lookups)), but this was left alone:
-   fixing it changes what programs see on Mondays, so it wants a decision.
-6. **The MS/TP private scan waits for an uninitialised count.** `main.c:1816`
+6. **After a restart, `WR_ON` can return an OFF time.** At boot `Check_All_WR`
+   sorts each day's times (`bac_interface.c:787-869`) and moves the ON/OFF flags
+   with them, but `WR_ON` and `WR_OFF` read by position (even slots ON, odd OFF)
+   and ignore the flags. A day with ON at 22:00 and OFF at 06:00 is sorted to
+   06:00 then 22:00, so `WR_ON(s, 1)` returns 06:00. The weekly routine uses the
+   flags and is right.
+7. **The MS/TP private scan waits for an uninitialised count.** `main.c:1816`
    declares `char count;` and waits `while(... && count++ < 20)`, so the wait for
    a remote panel's reply is anywhere from none to 4 s. Initialising it changes
    the scan's timing, so it wants testing on an MS/TP network.
-7. **The `mini_arm` and `CM5_arm` targets have not been built since this work
+8. **The `mini_arm` and `CM5_arm` targets have not been built since this work
    began.** They compile the same `decode.c`, `ptransfer.c`, `alarm.c`,
    `modbus.c` and `main.c`. Nothing here has checked that they still build, or
    that the memory-map and stack reasoning holds for them. Both still link the
    BACnet library from `..\BACLIB`, and CM5's library is missing (see
    [Building](#building)).
-8. **On a Tstat10, UP/DOWN with nothing highlighted toggle the top-area point.**
+9. **On a Tstat10, UP/DOWN with nothing highlighted toggle the top-area point.**
    In `MenuIdle_keycope` a `disp_index` outside 1-3 falls into the branch meant
    for the top area, and `disp_index` is 0 whenever no row is highlighted, which
    is most of the time. So a stray UP or DOWN flips the `control` of whatever
@@ -1059,7 +1094,7 @@ All four images in [Status](#status) were flashed in order and work on the unit
   a stack or heap shortfall would show as a reset loop in the first seconds.
 
 These checks are still open. Every later image carries the same code, so run
-them on `rev68VPF14`, which carries everything:
+them on `rev68VPF15`, which carries everything:
 
 - RS-485 master polling returns sane values on each port in use. This covers the
   UART change.
@@ -1074,8 +1109,8 @@ them on `rev68VPF14`, which carries everything:
 - Step the pages with RIGHT (and back with LEFT on a T3-OEM).
 - Drive VAR25-28 to see the state icons and the humidity readout change.
 
-`rev68VPF5` to `rev68VPF14` have not been flashed. Each carries the ones before
-it, so one flash of `rev68VPF14` covers the checks below. On `rev68VPF6`, the
+`rev68VPF5` to `rev68VPF15` have not been flashed. Each carries the ones before
+it, so one flash of `rev68VPF15` covers the checks below. On `rev68VPF6`, the
 unit beside the top-area value ("°C") should hold steady instead of blinking
 about once a second. On `rev68VPF13`, a VAR with range `RH` shown in the top
 area reads its value, `55` for 55%, where it used to read `6`. On a T3-OEM,
@@ -1113,6 +1148,15 @@ programs do, so there is nothing to see unless one is added. A program that
 uses it should run without `PRG n error : out of bounds`, and whatever it sets
 from `COM1` should read 0. Don't load one of Temco's BTU-meter `.prog` files to
 try it: a `.prog` is a whole panel configuration and replaces the unit's.
+
+`rev68VPF15` changes only programs that use `ON`, `WR-ON` or `WR-OFF`, and none
+of the unit's own programs do. To see it, use a spare program slot:
+
+- `10 ON VAR1 GOTO 30`, `20 VAR2 = 1`, `30 END`, with `VAR1` at 1 and `VAR2` at
+  0. `VAR2` should become 1. On older images the program stopped at line 10.
+- Set schedule 1's Monday ON1 to 08:00 in T3000 and the panel's date to a
+  Monday, then run `10 VAR3 = WR-ON( 1 , 1 )`. `VAR3` should read 28800 (8:00
+  in seconds) where older images read 0, and other days should read as before.
 
 On `rev68VPF9`, a setpoint row shows `72` rather than `72.0`. Writing 0 to
 register 737 brings the `.0` back, and 2 rounds everything to whole numbers; the

@@ -10,16 +10,21 @@ before starting anything.
 
 Update this section at the end of each piece of work.
 
-- As of 2026-09-28, `main` holds everything through PR #21. PRs are merged by Dan.
-- The newest image is `arm/OBJ/Tstat10_arm_rev68VPF14.hex`, and it carries
+- As of 2026-09-29, `main` holds everything through PR #22. PRs are merged by Dan.
+- The newest image is `arm/OBJ/Tstat10_arm_rev68VPF15.hex`, and it carries
   everything. `rev68VPF4` is the newest one confirmed on the unit.
-- `rev68VPF5` to `rev68VPF14` have not been flashed. Their checks are open in the
-  README's *On the bench*, and one flash of `rev68VPF14` covers them all.
-- Waiting on Dan: flashing `rev68VPF14`, and decisions on README To do items 1,
-  2 and 5. `ON` would start jumping in existing programs if fixed. The
-  download-time check could only alarm, not refuse, since nothing marks a
-  download as finished. `WR_ON`/`WR_OFF` would stop returning 0 on Mondays.
-- Everything else open waits on those decisions, or on the `todo:` list.
+- `rev68VPF5` to `rev68VPF15` have not been flashed. Their checks are open in the
+  README's *On the bench*, and one flash of `rev68VPF15` covers them all.
+- Waiting on Dan: flashing `rev68VPF15`. The one open decision is whether `ON`
+  should jump for a whole selector (README To do 1 lists what that needs). On
+  2026-09-29 Dan chose to fix only its fall-through (done in `rev68VPF15`).
+  The download-time check is parked.
+- In progress: the top-area centring `todo:`, which Dan started on 2026-09-29
+  with the Fixed-2 layout (centred as if two digits wide), T3-OEM and °F/°C
+  only. Mockups and measurements were made in a scratch copy of
+  `tools/screenshot.py`.
+- Waiting on test hardware: remote-panel expiry and the MS/TP scan's
+  uninitialised count need an MS/TP network or a second panel.
 - Items Dan flags with `todo:` live in Claude's project memory (`todo-list.md`),
   not in the repo. Don't start one until asked.
 
