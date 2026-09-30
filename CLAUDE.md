@@ -10,7 +10,7 @@ before starting anything.
 
 Update this section at the end of each piece of work.
 
-- As of 2026-09-30, `main` holds everything through PR #23. PRs are merged by Dan.
+- As of 2026-09-30, `main` holds everything through PR #24. PRs are merged by Dan.
 - The newest image is `arm/OBJ/Tstat10_arm_rev68VPF16.hex`, and it carries
   everything. `rev68VPF4` is the newest one confirmed on the unit.
 - `rev68VPF5` to `rev68VPF16` have not been flashed. Their checks are open in the
@@ -57,6 +57,11 @@ Update this section at the end of each piece of work.
 
    FILES are T3000 `.prog` files. Where the real ones are is in project memory
    (`control-basic-corpus.md`).
+
+   Changes to how the top area is drawn (`Top_area_display`,
+   `t3oem_top_degrees`) also get `python tools/erase_check.py`. It is a hand copy
+   of that C, so change it with the C. Rebuild `docs/idle-pages.png` with
+   `python tools/idle_pages.py` if the picture changes.
 5. Commit the build outputs with the source they came from: `arm/OBJ/Tstat10_arm_revxx.*`
    (`.axf`, `.build_log.htm`, `.hex`, `.htm`, `.map`) and `Tstat10_wifi_STM32F103.dep`.
    Don't commit the drift UV4 writes into `Tstat10_wifi.uvprojx`.
