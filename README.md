@@ -290,18 +290,21 @@ The group is laid out as if the number were never narrower than two cells, so
 `5`, `72` and `-5` share one place: the cells start at x=52
 (`TOP_TWO_CELL_XPOS`) and the letter ends at x=186. Crossing 9/10 or 0/-1 then
 changes only the leading cell rather than moving the whole number. A reading
-that needs a third cell, `100` or `-10`, starts at x=30 as it always has, which
-puts the group 26 dots further left.
+that needs a third cell, `100` or `-10`, is drawn where it always has been: the
+cells start at x=30, 22 dots further left, and the letter ends at x=212.
 
 `t3oem_top_degrees()` draws the cells, the degree ring and the letter, then
 blanks whatever of the top area the group does not cover: from x=30 to the page
 marks, the height of a digit cell. So a group that has moved leaves nothing
 behind. None of those blanks covers ink just drawn, and every glyph cell
 repaints its own background, so nothing flickers the way the whole-band wipe
-did before `rev68VPF6`. `screenshot.py` does not model erasing, so this was
-checked separately, by replaying the firmware's draw-and-blank sequence on one
-canvas through 22 readings and unit changes. No stale dot is left, and leaving
-out any one of the seven blanks does leave one.
+did before `rev68VPF6`. `screenshot.py` does not model erasing, so
+`tools/erase_check.py` checks it separately, by replaying the firmware's
+draw-and-blank sequence on one canvas through 22 readings and unit changes. No
+stale dot is left. Leaving out any one of six of the seven blanks does leave
+one. The seventh, right of the cells and above the unit (y=5 to 9), only ever
+repaints background, since nothing drawn in the top area inks that high; it is
+there so that the group owns the whole area.
 
 The sign was taken before rounding, so -0.3 showed as `-0`; a T3-OEM now shows
 `0`. Other units (RH, ppm, Pa and the rest) keep the fixed cells, and a Tstat10
@@ -391,6 +394,7 @@ root and need Python 3 with Pillow.
 | `recolour_icons.py` | Recomposites the legacy RGB565 icon bitmaps for a new screen background. |
 | `screenshot.py` | Renders the idle screen to a PNG from the real arrays, as a T3-OEM draws it (`--tstat10` for a Tstat10). |
 | `idle_pages.py` | Rebuilds `docs/idle-pages.png`, the three pages at the top of this README. |
+| `erase_check.py` | Replays the top area's draw-and-blank sequence and fails on a stale dot. |
 | `checkmap.py` | Fails a link that puts data where the stack lives. Run before flashing. |
 | `check_programs.py` | Walks compiled Control Basic programs the way `decode.c` does and checks every offset they carry. |
 | `decode_harness/run.py` | Runs real and damaged programs through `decode.c` before and after a change, on the PC, and compares. |
@@ -403,6 +407,7 @@ python tools/icongen.py --write
 python tools/recolour_icons.py --bg "#0D1520" --write
 python tools/screenshot.py out.png --labels "SETPOINT,ROOM TMP,MODE" --values "72,71,HEAT" --icons "fan_auto,mode_heat,wall_up"
 python tools/idle_pages.py
+python tools/erase_check.py
 python tools/check_programs.py "Database/temp/271203.prog"
 python tools/decode_harness/run.py --base main "Database/temp/271203.prog" ...
 ```
@@ -437,7 +442,9 @@ ramps against it, so changing the background means re-running it.
 
 `screenshot.py` models the drawing, not the erasing. It will not catch a clear
 rectangle left at the wrong size or position, so any change to the cell geometry
-has to update every `disp_null_icon()` that wipes it by hand.
+has to update every `disp_null_icon()` that wipes it by hand. `erase_check.py`
+covers the top area's erasing, but it is a hand copy of that part of the C, so
+it has to change with it.
 
 What it does model, it has to model exactly, because it is the only check this
 work has. It carries mirrors of `format_value()`, `justify_value()` and the
@@ -1199,11 +1206,13 @@ in the top area and set it from T3000:
 - At 72, 5 and -5 the number and its °F should sit centred on the screen, all
   three in the same place. Going from 9 to 10, or from 0 to -1, should change
   only the first character.
-- At 100 and at -10 the group should start 26 dots further left, where the
-  number has always started. Going back to 72 should leave no stray dots of the
-  ring or the letter behind.
+- At 100 and at -10 the number should start about half a digit further left,
+  where it has always started, and the °F end about half a digit further right.
+  Going back to 72 should leave no stray dots of the ring or the letter behind.
 - At -0.3 it should show 0, not -0.
 - Change the range to °C and back: nothing of the other letter should be left.
+- Point the top area at a VAR with range `RH` or `ppm`, then at a digital point,
+  and back again. Nothing should be left behind either way.
 
 On `rev68VPF9`, a setpoint row shows `72` rather than `72.0`. Writing 0 to
 register 737 brings the `.0` back, and 2 rounds everything to whole numbers; the
