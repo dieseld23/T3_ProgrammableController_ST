@@ -90,7 +90,7 @@
  * group, laid out as if the number were never narrower than two cells.  A one
  * or two cell reading (5, 72, -5) starts at TOP_TWO_CELL_XPOS, so crossing 9/10
  * or 0/-1 moves nothing but the leading cell; a three cell one (100, -10)
- * starts at FIRST_CH_POS as it always has, 26 dots further left.  The group is
+ * starts at FIRST_CH_POS as it always has, 22 dots further left.  The group is
  * the digit cells, one dot, the degree ring and the letter cell, and it owns
  * the top area from TOP_AREA_XPOS up to the page marks, down the height of a
  * digit cell: whatever of that the group does not cover is blanked. */
