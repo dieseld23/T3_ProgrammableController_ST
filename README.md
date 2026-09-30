@@ -7,7 +7,7 @@ developed and reviewed on the fork rather than upstream.
 
 ## Status
 
-As of 2026-09-30, `main` carries all of the work below, through PR #23.
+As of 2026-09-30, `main` carries all of the work below, through PR #24.
 
 - **Build:** `Tstat10_wifi`, 0 errors, 461 warnings. `tools/checkmap.py` passes.
 - **Hardware:** `rev68VPF` to `rev68VPF4` run on the unit. `rev68VPF2`,
@@ -366,8 +366,10 @@ one hue, so it lands on a ramp entry by construction instead of on whatever a
 median cut happened to pick.
 
 Which state each icon shows comes from a VAR, so a Control Basic program or T3000
-drives them with no protocol change. These sit just past the paged rows, so a
-page can never reach them. A digital VAR contributes its control bit, an
+drives them with no protocol change. These sit just past the eight pages of
+three rows, VAR1 to VAR24, so a page can never reach them. The numbers are
+T3000's, counted from 1, so VAR25 is `vars[24]` (`ICON3_FAN_VAR`) and the corner
+humidity's VAR28 is `vars[27]`. A digital VAR contributes its control bit, an
 analogue one the whole part of its value, and anything out of range reads as
 state 0 — an unconfigured panel shows fan off, idle, walls down.
 
@@ -419,7 +421,7 @@ uses to build `decode.c` as 32-bit x86 against stand-in headers in
 `tools/decode_harness/inc`. What they found is in
 [A program stays in its row](#a-program-stays-in-its-row).
 
-Three things about these are worth knowing before changing them.
+A few things about these are worth knowing before changing them.
 
 `fontgen.py` proves its bit packing by re-encoding the arrays **as they were
 committed at 1 bit per pixel** and comparing byte for byte, before it generates
@@ -519,18 +521,19 @@ Notes on the toolchain:
   change that moves memory or stack shows up in the diff. Rebuild and commit them
   together with any source change.
 
-  The hex covers `0x08008000`-`0x08054bdb`, with the entry point at `0x08008131`.
+  For `rev68VPF16` the hex covers `0x08008000`-`0x080553f3`, with the entry point
+  at `0x08008131`.
   That is the application only. The bootloader lives below `0x08008000`, is not
   in this repository and is not touched by flashing this file, so a bad
   application still leaves the device recoverable through the ISP window. Images
   meant for a device are also copied to `Tstat10_arm_rev68VPF*.hex`; see
   [Status](#status).
 
-Current state of the `Tstat10_wifi` target: **0 errors, 461 warnings**.
+The `Tstat10_wifi` target as built for `rev68VPF16`: **0 errors, 461 warnings**.
 
 | Region | Used | Of | Free |
 | --- | --- | --- | --- |
-| `ER_IROM1` flash | `0x4cfa0` (315,296) | `0x60000` | ~76 KB |
+| `ER_IROM1` flash | `0x4d108` (315,656) | `0x60000` | ~76 KB |
 | `RW_RAM1` external SRAM | `0x763f8` (484,344) | `0x80000` | ~39 KB (92.4% full) |
 | `RW_IRAM1` internal SRAM | `0x43f0` (17,392) | `0xe000` | ~39 KB |
 
@@ -696,7 +699,7 @@ straddles the reset returns the tail of one frame spliced onto the head of the
 next. `volatile` does nothing about interleaving.
 
 Neither does `taskENTER_CRITICAL`. USART1, USART2 and USART3 are all installed at
-**NVIC pre-emption priority 0** (`usart.c:129`, `223`, `321`), while
+**NVIC pre-emption priority 0** (`usart.c:129`, `321` and `223`), while
 `configMAX_SYSCALL_INTERRUPT_PRIORITY` is 191. A critical section only raises
 `BASEPRI` to that threshold, which leaves a priority 0 handler free to run
 straight through it. Anything that must be atomic against a receive ISR has to
@@ -1024,7 +1027,7 @@ already step. Which targets are taken has not changed.
 
 ## To do
 
-Ordered by risk to a unit in the field. Checked against `main` on 2026-09-27.
+Ordered by risk to a unit in the field. Checked against `main` on 2026-09-30.
 
 ### Code
 
@@ -1292,7 +1295,7 @@ through T3000's pages once:
   400-byte packets but counts them as `length / 401 + 1`
   (`BacnetProgramEdit.cpp:716`), so a program of 801, 1201-1202 or 1601-1603
   bytes loses its last 1-3 bytes, and the unit keeps whatever the row held
-  there before. None of the 23 real programs in hand is one of those lengths.
+  there before. None of the 25 real programs in hand is one of those lengths.
 
 ## Options considered
 
