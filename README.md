@@ -7,7 +7,7 @@ developed and reviewed on the fork rather than upstream.
 
 ## Status
 
-As of 2026-09-29, `main` carries all of the work below, through PR #22.
+As of 2026-09-30, `main` carries all of the work below, through PR #23.
 
 - **Build:** `Tstat10_wifi`, 0 errors, 461 warnings. `tools/checkmap.py` passes.
 - **Hardware:** `rev68VPF` to `rev68VPF4` run on the unit. `rev68VPF2`,
@@ -18,9 +18,10 @@ As of 2026-09-29, `main` carries all of the work below, through PR #22.
   `rev68VPF10` (two bugs behind compiler warnings), `rev68VPF11` (programs
   kept inside their own memory), `rev68VPF12` (table lookups bounded),
   `rev68VPF13` (an RH variable in the top area at its real value),
-  `rev68VPF14` (`COM1` stepped over) and `rev68VPF15` (`ON` steps over its
-  targets, `WR_ON` works on Mondays) are built but **not yet flashed**. The
-  targeted checks in [On the bench](#on-the-bench) are still open.
+  `rev68VPF14` (`COM1` stepped over), `rev68VPF15` (`ON` steps over its
+  targets, `WR_ON` works on Mondays) and `rev68VPF16` (the top temperature
+  centred with its unit) are built but **not yet flashed**. The targeted
+  checks in [On the bench](#on-the-bench) are still open.
 
 | image | adds | md5 | hardware |
 | --- | --- | --- | --- |
@@ -38,9 +39,10 @@ As of 2026-09-29, `main` carries all of the work below, through PR #22.
 | `rev68VPF12` | a full remote-panel table no longer overruns; `WR_ON`, `WR_OFF`, `STATUS` bounded | `f544edbd…` | untested |
 | `rev68VPF13` | T3-OEM: an RH variable in the top area shows its real value | `ac75aead…` | untested |
 | `rev68VPF14` | `COM1` stepped over and read as 0 in this build | `791cf278…` | untested |
-| `rev68VPF15` | `ON` carries on after its targets when it does not jump; `WR_ON`/`WR_OFF` read Monday | `3103d5f3…` | untested — **this is `main`** |
+| `rev68VPF15` | `ON` carries on after its targets when it does not jump; `WR_ON`/`WR_OFF` read Monday | `3103d5f3…` | untested |
+| `rev68VPF16` | T3-OEM: the top temperature centred with its unit | `fde5dc7a…` | untested — **this is `main`** |
 
-All fifteen are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF15` carries
+All sixteen are in `arm/OBJ/` as `Tstat10_arm_rev68VPF*.hex`. `rev68VPF16` carries
 everything; `rev68VPF4` is the newest one confirmed on the unit and the fallback.
 The md5s are of a Windows checkout, where `core.autocrlf` gives the hex files CRLF
 line endings. The blobs in git have LF and hash differently. The application is
@@ -55,7 +57,7 @@ selector**, which it never has; see [To do](#to-do).
 ![Three pages of the idle screen](docs/idle-pages.png)
 
 Rendered by `tools/screenshot.py` from the firmware's own font tables, icon
-arrays and colour constants — not a mockup.
+arrays and colour constants — not a mockup. `tools/idle_pages.py` rebuilds it.
 
 Every image from `rev68VPF` on boots on hardware and draws the screen. That
 confirms the firmware runs and renders. It does not confirm the layout matches
@@ -179,7 +181,9 @@ still read `SET`, `ROO`, `MOD`, just in the narrower face.
 The displayed temperatures are only ever whole numbers, so the big top number
 drops the decimal point: it rounds the tenths the sensor path carries, clamps to
 three digits and right aligns with leading blanks. `THIRD_CH_POS` moved back to
-`SECOND_CH_POS + 48` now that nothing sits between the digits.
+`SECOND_CH_POS + 48` now that nothing sits between the digits. On a T3-OEM a
+temperature is now centred with its unit instead (see
+[The top temperature centred with its unit](#the-top-temperature-centred-with-its-unit)).
 
 Relative humidity takes the same path in tenths. An input with range `RH`
 passed it that way, but a VAR passed whole percent (`value / 1000`), so it was
@@ -246,10 +250,10 @@ before shifting.
 
 ### The corner strip
 
-The big number moved left to x=30, which centres a two digit reading on the
-screen and opens a 30 dot strip down the left edge. The strip carries the wifi
-bars, the RS485 arrows under them, and a humidity readout under those, labelled
-`RH` with the value and its percent sign together on one line.
+The big number moved left to x=30, which opens a 30 dot strip down the left
+edge. The strip carries the wifi bars, the RS485 arrows under them, and a
+humidity readout under those, labelled `RH` with the value and its percent sign
+together on one line.
 
 Three characters do not fit across 30 dots in the 12 dot face: the third cell
 would start at x=36 and the first digit cell repaints from x=30 on every refresh,
@@ -274,6 +278,38 @@ exists to draw. And the ink is centred inside the columns that are kept, 1 to
 two only agree when `w - ink_w` is even, and at 10 dots it hung half a column off
 each end. That change is a no-op for the four older tables, which was checked by
 regenerating them against the committed arrays.
+
+### The top temperature centred with its unit
+
+On a T3-OEM a temperature in °C or °F is centred on the screen together with its
+unit, as one group (`rev68VPF16`). Before, the number was right aligned in three
+fixed cells with the unit at a fixed x, so a one or two digit reading sat well
+right of centre.
+
+The group is laid out as if the number were never narrower than two cells, so
+`5`, `72` and `-5` share one place: the cells start at x=52
+(`TOP_TWO_CELL_XPOS`) and the letter ends at x=186. Crossing 9/10 or 0/-1 then
+changes only the leading cell rather than moving the whole number. A reading
+that needs a third cell, `100` or `-10`, is drawn where it always has been: the
+cells start at x=30, 22 dots further left, and the letter ends at x=212.
+
+`t3oem_top_degrees()` draws the cells, the degree ring and the letter, then
+blanks whatever of the top area the group does not cover: from x=30 to the page
+marks, the height of a digit cell. So a group that has moved leaves nothing
+behind. None of those blanks covers ink just drawn, and every glyph cell
+repaints its own background, so nothing flickers the way the whole-band wipe
+did before `rev68VPF6`. `screenshot.py` does not model erasing, so
+`tools/erase_check.py` checks it separately, by replaying the firmware's
+draw-and-blank sequence on one canvas through 22 readings and unit changes. No
+stale dot is left. Leaving out any one of six of the seven blanks does leave
+one. The seventh, right of the cells and above the unit (y=5 to 9), only ever
+repaints background, since nothing drawn in the top area inks that high; it is
+there so that the group owns the whole area.
+
+The sign was taken before rounding, so -0.3 showed as `-0`; a T3-OEM now shows
+`0`. Other units (RH, ppm, Pa and the rest) keep the fixed cells, and a Tstat10
+keeps them for everything. `tools/screenshot.py` draws the centred group, and
+`--tstat10` draws the old screen.
 
 ### Three things the layout work uncovered
 
@@ -356,7 +392,9 @@ root and need Python 3 with Pillow.
 | `fontgen.py` | Regenerates the five bitmap font tables from a TrueType face. |
 | `icongen.py` | Generates the ten state icons and their palettes. |
 | `recolour_icons.py` | Recomposites the legacy RGB565 icon bitmaps for a new screen background. |
-| `screenshot.py` | Renders the idle screen to a PNG from the real arrays. |
+| `screenshot.py` | Renders the idle screen to a PNG from the real arrays, as a T3-OEM draws it (`--tstat10` for a Tstat10). |
+| `idle_pages.py` | Rebuilds `docs/idle-pages.png`, the three pages at the top of this README. |
+| `erase_check.py` | Replays the top area's draw-and-blank sequence and fails on a stale dot. |
 | `checkmap.py` | Fails a link that puts data where the stack lives. Run before flashing. |
 | `check_programs.py` | Walks compiled Control Basic programs the way `decode.c` does and checks every offset they carry. |
 | `decode_harness/run.py` | Runs real and damaged programs through `decode.c` before and after a change, on the PC, and compares. |
@@ -368,6 +406,8 @@ python tools/icongen.py --sheet icons.png     # draw every state, change nothing
 python tools/icongen.py --write
 python tools/recolour_icons.py --bg "#0D1520" --write
 python tools/screenshot.py out.png --labels "SETPOINT,ROOM TMP,MODE" --values "72,71,HEAT" --icons "fan_auto,mode_heat,wall_up"
+python tools/idle_pages.py
+python tools/erase_check.py
 python tools/check_programs.py "Database/temp/271203.prog"
 python tools/decode_harness/run.py --base main "Database/temp/271203.prog" ...
 ```
@@ -402,7 +442,9 @@ ramps against it, so changing the background means re-running it.
 
 `screenshot.py` models the drawing, not the erasing. It will not catch a clear
 rectangle left at the wrong size or position, so any change to the cell geometry
-has to update every `disp_null_icon()` that wipes it by hand.
+has to update every `disp_null_icon()` that wipes it by hand. `erase_check.py`
+covers the top area's erasing, but it is a hand copy of that part of the C, so
+it has to change with it.
 
 What it does model, it has to model exactly, because it is the only check this
 work has. It carries mirrors of `format_value()`, `justify_value()` and the
@@ -1094,7 +1136,7 @@ All four images in [Status](#status) were flashed in order and work on the unit
   a stack or heap shortfall would show as a reset loop in the first seconds.
 
 These checks are still open. Every later image carries the same code, so run
-them on `rev68VPF15`, which carries everything:
+them on `rev68VPF16`, which carries everything:
 
 - RS-485 master polling returns sane values on each port in use. This covers the
   UART change.
@@ -1109,8 +1151,8 @@ them on `rev68VPF15`, which carries everything:
 - Step the pages with RIGHT (and back with LEFT on a T3-OEM).
 - Drive VAR25-28 to see the state icons and the humidity readout change.
 
-`rev68VPF5` to `rev68VPF15` have not been flashed. Each carries the ones before
-it, so one flash of `rev68VPF15` covers the checks below. On `rev68VPF6`, the
+`rev68VPF5` to `rev68VPF16` have not been flashed. Each carries the ones before
+it, so one flash of `rev68VPF16` covers the checks below. On `rev68VPF6`, the
 unit beside the top-area value ("°C") should hold steady instead of blinking
 about once a second. On `rev68VPF13`, a VAR with range `RH` shown in the top
 area reads its value, `55` for 55%, where it used to read `6`. On a T3-OEM,
@@ -1157,6 +1199,20 @@ of the unit's own programs do. To see it, use a spare program slot:
 - Set schedule 1's Monday ON1 to 08:00 in T3000 and the panel's date to a
   Monday, then run `10 VAR3 = WR-ON( 1 , 1 )`. `VAR3` should read 28800 (8:00
   in seconds) where older images read 0, and other days should read as before.
+
+`rev68VPF16` moves the top temperature on a T3-OEM. Show a VAR with range °F
+in the top area and set it from T3000:
+
+- At 72, 5 and -5 the number and its °F should sit centred on the screen, all
+  three in the same place. Going from 9 to 10, or from 0 to -1, should change
+  only the first character.
+- At 100 and at -10 the number should start about half a digit further left,
+  where it has always started, and the °F end about half a digit further right.
+  Going back to 72 should leave no stray dots of the ring or the letter behind.
+- At -0.3 it should show 0, not -0.
+- Change the range to °C and back: nothing of the other letter should be left.
+- Point the top area at a VAR with range `RH` or `ppm`, then at a digital point,
+  and back again. Nothing should be left behind either way.
 
 On `rev68VPF9`, a setpoint row shows `72` rather than `72.0`. Writing 0 to
 register 737 brings the `.0` back, and 2 rounds everything to whole numbers; the

@@ -10,6 +10,11 @@ change a colour constant or regenerate a font and the picture follows.
 
 It is a drawing check, not an emulator -- it does not run the menu task, so the
 row contents are given on the command line.
+
+It draws what a T3-OEM draws: a temperature centred with its unit, and value
+boxes that drop a whole value's ".0" (register 737, --decimals). --tstat10
+draws a Tstat10 instead, which keeps the fixed number cells and every decimal
+that fits.
 """
 import argparse
 
@@ -47,21 +52,33 @@ def blend565(bg, fg, level, top):
             | (bb + (fb - bb) * level // top))
 
 
-def format_value(v, chars):
+def drop_zero_fraction(out):
+    """Mirror of drop_zero_fraction(): "72.0" -> "72", "21.5" unchanged, and the
+    "-0" that -0.04 leaves behind -> "0"."""
+    if '.' not in out:
+        return out
+    whole, frac = out.split('.', 1)
+    if frac.strip('0'):
+        return out
+    return '0' if whole == '-0' else whole
+
+
+def format_value(v, chars, decimals='trim'):
     """Mirror of format_value() in ER-TFT024-3_4-Wire_SPI.c: pick the decimal
     places from what fits in `chars` cells, then measure, because rounding can
-    carry into a new digit."""
+    carry into a new digit. `decimals` is value_decimals_mode(): 'fit' on a
+    Tstat10, and on a T3-OEM register 737's setting, 'trim' by default."""
     v = min(9999.0, max(-999.0, float(v)))
     room = chars - (1 if v < 0 else 0)
     whole, digits = int(abs(v)), 1
     while whole >= 10:
         whole //= 10
         digits += 1
-    places = min(2, room - digits - 1)
+    places = min(2, 0 if decimals == 'whole' else room - digits - 1)
     while places > 0:
         out = '%.*f' % (places, v)
         if len(out) <= chars:
-            return out
+            return drop_zero_fraction(out) if decimals == 'trim' else out
         places -= 1
     return '%d' % int(v - 0.5 if v < 0 else v + 0.5)
 
@@ -234,7 +251,8 @@ class Screen:
                            k['SCH_COLOR'] if i == current else k['PAGE_MARK_DIM_COLOR'])
 
 
-def render(s, labels, values, top, unit, page, pages, clock, selected, icons, rh=None):
+def render(s, labels, values, top, unit, page, pages, clock, selected, icons, rh=None,
+           t3oem=True, decimals='trim'):
     k = s.k
     BG, CH, SCHC = k['TSTAT8_BACK_COLOR'], k['TSTAT8_CH_COLOR'], k['SCH_COLOR']
     M2, HL = k['TSTAT8_MENU_COLOR2'], k['TSTAT8_BACK_COLOR1']
@@ -250,7 +268,9 @@ def render(s, labels, values, top, unit, page, pages, clock, selected, icons, rh
     # whole degrees, at most three digits, right aligned, with the sign riding
     # in the cell left of the first digit rather than in a column of its own
     n = round_tenths(top) if unit in ('C', 'F', 'RH') else int(top)
-    neg = n < 0
+    # the firmware takes the sign before rounding, so a Tstat10 shows -0.3 as
+    # "-0"; a T3-OEM drops the sign of a reading that rounds to 0
+    neg = top < 0 and (n != 0 or not t3oem)
     n = min(99 if neg else 999, abs(n))
     cells = [' ', ' ', chr(0x30 + n % 10)]
     if n >= 10:
@@ -259,20 +279,34 @@ def render(s, labels, values, top, unit, page, pages, clock, selected, icons, rh
         cells[0] = chr(0x30 + n // 100)
     if neg:
         cells[1 if n < 10 else 0] = '-'
-    for col, xk in enumerate(('FIRST_CH_POS', 'SECOND_CH_POS', 'THIRD_CH_POS')):
-        s.ch(0, k[xk], k['THERM_METER_POS'], cells[col], CH, BG)
-    # the unit band, wiped then drawn: one character hangs off UNIT_POS with the
-    # degree ring beside it where a temperature scale wants one, two characters
-    # start at UNIT2_POS where the digits end. Both ink on the digits' cap line.
-    s.null_icon(k['UNIT_BAND_XDOTS'], k['UNIT_BAND_YDOTS'],
-                k['UNIT_BAND_XPOS'], k['UNIT_BAND_YPOS'], BG)
-    text, ring = UNITS[unit]
-    if ring:
-        s.icon(14, 14, 'degree_o', k['UNIT_POS'] - 14, k['UNIT_YPOS'])
-    if len(text) == 2:
-        s.text(1, k['UNIT2_POS'], k['UNIT_TEXT_YPOS'], text, CH, BG)
-    elif text:
-        s.text(1, k['UNIT_POS'], k['UNIT_TEXT_YPOS'], text, CH, BG)
+    if t3oem and unit in ('C', 'F'):
+        # t3oem_top_degrees(): on a T3-OEM a temperature and its unit are centred
+        # as one group, laid out as if the number were at least two cells wide
+        first = 1 if cells[0] == ' ' else 0
+        x0 = k['TOP_TWO_CELL_XPOS'] if first else k['FIRST_CH_POS']
+        for col in range(first, 3):
+            s.ch(0, x0 + (col - first) * k['CHLIB_XDOTS'], k['THERM_METER_POS'], cells[col], CH, BG)
+        rx = x0 + (3 - first) * k['CHLIB_XDOTS'] + 1
+        ring = k['DEGREE_RING_XDOTS']
+        s.icon(ring, ring, 'degree_o', rx, k['UNIT_YPOS'])
+        s.text(1, rx + ring, k['UNIT_TEXT_YPOS'], unit, CH, BG)
+    else:
+        # fixed cells, as a Tstat10 draws everything and a T3-OEM every other unit
+        for col, xk in enumerate(('FIRST_CH_POS', 'SECOND_CH_POS', 'THIRD_CH_POS')):
+            s.ch(0, k[xk], k['THERM_METER_POS'], cells[col], CH, BG)
+        # the unit band, wiped then drawn: one character hangs off UNIT_POS with
+        # the degree ring beside it where a temperature scale wants one, two
+        # characters start at UNIT2_POS where the digits end. Both ink on the
+        # digits' cap line.
+        s.null_icon(k['UNIT_BAND_XDOTS'], k['UNIT_BAND_YDOTS'],
+                    k['UNIT_BAND_XPOS'], k['UNIT_BAND_YPOS'], BG)
+        text, ring = UNITS[unit]
+        if ring:
+            s.icon(14, 14, 'degree_o', k['UNIT_POS'] - 14, k['UNIT_YPOS'])
+        if len(text) == 2:
+            s.text(1, k['UNIT2_POS'], k['UNIT_TEXT_YPOS'], text, CH, BG)
+        elif text:
+            s.text(1, k['UNIT_POS'], k['UNIT_TEXT_YPOS'], text, CH, BG)
 
     rows = (k['SETPOINT_POS'], k['FAN_MODE_POS'], k['SYS_MODE_POS'])
     for y in rows:
@@ -287,7 +321,7 @@ def render(s, labels, values, top, unit, page, pages, clock, selected, icons, rh
         # display_screen_value_var() does it
         raw = values[i]
         try:
-            shown = format_value(float(raw), v)
+            shown = format_value(float(raw), v, decimals)
         except ValueError:
             shown = raw
         s.text(1, k['VALUE_XPOS'], y + k['VALUE_YOFF'], justify_value(shown, v), SCHC, M2)
@@ -331,11 +365,16 @@ def main():
                     help='one state per cell: fan, mode, sidewalls')
     ap.add_argument('--rh', type=int, default=64, help='corner humidity, page 1 only')
     ap.add_argument('--scale', type=int, default=2)
+    ap.add_argument('--tstat10', action='store_true',
+                    help="draw a Tstat10: fixed number cells, and as many decimals as fit")
+    ap.add_argument('--decimals', default='trim', choices=('fit', 'trim', 'whole'),
+                    help="a T3-OEM's register 737: fit 0, trim 1 (the default), whole 2")
     args = ap.parse_args()
 
     im = render(Screen(), args.labels.split(','), args.values.split(','), args.top,
                 args.unit, args.page, args.pages, args.clock, args.selected,
-                args.icons.split(','), args.rh)
+                args.icons.split(','), args.rh, t3oem=not args.tstat10,
+                decimals='fit' if args.tstat10 else args.decimals)
     if args.scale > 1:
         im = im.resize((W * args.scale, H * args.scale), Image.NEAREST)
     im.save(args.out)
