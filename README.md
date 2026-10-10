@@ -7,7 +7,7 @@ developed and reviewed on the fork rather than upstream.
 
 ## Status
 
-As of 2026-09-30, `main` carries all of the work below, through PR #24.
+As of 2026-10-09, `main` carries all of the work below, through PR #25.
 
 - **Build:** `Tstat10_wifi`, 0 errors, 461 warnings. `tools/checkmap.py` passes.
 - **Hardware:** `rev68VPF` to `rev68VPF4` run on the unit. `rev68VPF2`,
@@ -49,8 +49,14 @@ line endings. The blobs in git have LF and hash differently. The application is
 linked above the bootloader, so a bad image leaves the device recoverable through
 the bootloader's ISP window at power-on.
 
-The one open decision is whether **Control Basic's `ON` should jump for a whole
-selector**, which it never has; see [To do](#to-do).
+Every one of these images carries the same version number: `SW_REV` in
+`common/product.h` is 6808, unchanged from Temco's drop, and T3000 lists it as
+68.8. Neither the unit nor T3000 can say which image is running, so the md5 of
+the file that was flashed is the only record.
+
+Two decisions are open: whether **Control Basic's `ON` should jump for a whole
+selector**, which it never has, and **how an image should say which one it
+is**; see [To do](#to-do).
 
 ## The idle screen
 
@@ -77,6 +83,12 @@ There are three Keil targets under `arm/USER/`:
 | `Tstat10_wifi.uvprojx` | `ARM_TSTAT_WIFI` — the thermostat with the LCD |
 | `mini_arm.uvprojx` | `ARM_MINI` |
 | `CM5_arm.uvprojx` | `ARM_CM5` |
+
+None of the projects selects its own target. `ARM_MINI`, `ARM_CM5` and
+`ARM_TSTAT_WIFI` are set at the top of `common/product.h`, one of them to 1, and
+all three projects build whichever that is. Temco's tree has `ARM_MINI` there.
+This one has `ARM_TSTAT_WIFI`, so the header has to be changed by hand before
+either of the others is built.
 
 All display work so far is confined to the `Tstat10_wifi` build: `arm/MENU/*` and
 `arm/HARDWARE/LCD/ER-TFT024-3_4-Wire_SPI.c` are only compiled there. The panel is
@@ -159,7 +171,7 @@ They also stopped being one bit per pixel. A glyph now stores a coverage level
 per pixel and the renderer turns it into a colour through a palette interpolated
 between `dcolor` and `bgcolor`, built once per character, so a pixel costs a
 table lookup rather than a blend. The big top number carries 4 bits per pixel
-because it is the text the eye goes to and it is only twelve glyphs; the three
+because it is the text the eye goes to and it is only twelve glyphs; the four
 smaller tables carry 2, where nearly all of the benefit is. Going from 1 bit to 2
 removes the staircase; 2 to 4 only refines an edge that already reads as smooth.
 
@@ -393,7 +405,7 @@ root and need Python 3 with Pillow.
 | `lcddata.py` | Shared reader for the arrays and `#define`s. Not run directly. |
 | `fontgen.py` | Regenerates the five bitmap font tables from a TrueType face. |
 | `icongen.py` | Generates the ten state icons and their palettes. |
-| `recolour_icons.py` | Recomposites the legacy RGB565 icon bitmaps for a new screen background. |
+| `recolour_icons.py` | Recomposited the literal RGB565 icon bitmaps when the screen background changed. Leaves them all alone as it stands; see below. |
 | `screenshot.py` | Renders the idle screen to a PNG from the real arrays, as a T3-OEM draws it (`--tstat10` for a Tstat10). |
 | `idle_pages.py` | Rebuilds `docs/idle-pages.png`, the three pages at the top of this README. |
 | `erase_check.py` | Replays the top area's draw-and-blank sequence and fails on a stale dot. |
@@ -406,7 +418,7 @@ python tools/fontgen.py                       # report the fit, change nothing
 python tools/fontgen.py --write               # replace the arrays
 python tools/icongen.py --sheet icons.png     # draw every state, change nothing
 python tools/icongen.py --write
-python tools/recolour_icons.py --bg "#0D1520" --write
+python tools/recolour_icons.py                # report what would change; nothing, as it stands
 python tools/screenshot.py out.png --labels "SETPOINT,ROOM TMP,MODE" --values "72,71,HEAT" --icons "fan_auto,mode_heat,wall_up"
 python tools/idle_pages.py
 python tools/erase_check.py
@@ -418,8 +430,10 @@ python tools/decode_harness/run.py --base main "Database/temp/271203.prog" ...
 (`.prog`), which hold a panel's compiled programs; T3000 keeps one per device in
 its `Database/temp` folder. `run.py` needs Visual Studio's C compiler, which it
 uses to build `decode.c` as 32-bit x86 against stand-in headers in
-`tools/decode_harness/inc`. What they found is in
-[A program stays in its row](#a-program-stays-in-its-row).
+`tools/decode_harness/inc`. It compares what `exec_program` returns along with
+everything else, and before PR #8 (`be39dfd`) that function returned nothing, so
+against a base older than that it reports most programs as different. What they
+found is in [A program stays in its row](#a-program-stays-in-its-row).
 
 A few things about these are worth knowing before changing them.
 
@@ -438,9 +452,16 @@ anything it cannot resolve. This matters because the four corner pieces used by
 `draw_tangle()` mix hex literals with colour names — a hex-only parser silently
 returns 58 of `leftup`'s 64 pixels and corrupts the frame corners.
 
-`recolour_icons.py` only applies to the literal RGB565 icons. The state icons
-need no recolouring: `icongen.py` reads `TSTAT8_BACK_COLOR` and rebuilds the
-ramps against it, so changing the background means re-running it.
+`recolour_icons.py` only applies to the literal RGB565 icons. Thirteen are left:
+the degree ring, the four frame corners, the TX/RX pair and the six Wi-Fi icons.
+It finds an icon's background by looking for one of the colours in its
+`OLD_BACKGROUNDS`, and today's `TSTAT8_BACK_COLOR` (`0x0083`) is not one of them,
+so as it stands it leaves all thirteen alone whatever `--bg` it is given. Its
+default `--bg`, `#0D1520`, is this fork's background from before the darkening,
+not the screen's. Add the current background to `OLD_BACKGROUNDS` before using it
+for another change. The state icons need no recolouring: `icongen.py` reads
+`TSTAT8_BACK_COLOR` and rebuilds the ramps against it, so changing the background
+means re-running it.
 
 `screenshot.py` models the drawing, not the erasing. It will not catch a clear
 rectangle left at the wrong size or position, so any change to the cell geometry
@@ -453,11 +474,14 @@ work has. It carries mirrors of `format_value()`, `justify_value()` and the
 tenths rounding rather than Python equivalents of them: `str.rjust()` is not
 `justify_value()`, because it keeps the trailing spaces a memcpy'd literal like
 `"ON  "` carries, and `round()` is not `(value + 5) / 10`, because it rounds half
-to even and disagrees on every `.5`. `--unit` takes the firmware's own branch
-names so that `RH` draws `%R` rather than `RH`, and `--values` sends anything
-numeric through `format_value` instead of accepting a pre-formatted string. A
-short icon array and a page count over `PAGE_MARK_MAX` are errors rather than
-silently clipped, since both corrupt the panel write on hardware.
+to even and disagrees on every `.5`. `format_value` rounds its argument to a
+32-bit float before formatting it, because the firmware's value is a `float`:
+-9.85 is then just past the tie and draws as `-9.9`, where Python's own float
+gives `-9.8`. `--unit` takes the firmware's own branch names so that `RH` draws
+`%R` rather than `RH`, and `--values` sends anything numeric through
+`format_value` instead of accepting a pre-formatted string. A short icon array
+and a page count over `PAGE_MARK_MAX` are errors rather than silently clipped,
+since both corrupt the panel write on hardware.
 
 ## Building
 
@@ -485,7 +509,7 @@ Notes on the toolchain:
 - The scatter file is **generated** from the target dialog, not hand written, so
   the memory map is edited through the `OCR_RVCT` entries in the project rather
   than in `arm/OBJ/Tstat10_arm_revxx.sct`. The `<ScatterFile>` entry naming
-  `..\OBJ	est.sct` is a stale leftover; no such file exists and nothing reads it.
+  `..\OBJ\test.sct` is a stale leftover; no such file exists and nothing reads it.
 - **The stack is invisible to the linker, and the memory map has to work around
   it.** `arm/CORE/startup_stm32f10x_hd.s` builds with `DATA_IN_ExtSRAM EQU 1`
   and writes an absolute stack pointer rather than using the one the linker
@@ -630,11 +654,11 @@ does not fit shows up as a reset loop on the first power-up rather than later.
 | `main_dealwithData` | 8,192 | 4,160 | 2.0× |
 | `WIFI_task` | 8,192 | 4,344 | 1.9× |
 | `Master_Node_task` | 8,192 | 4,312 | 1.9× |
-| `Bacnet_Control` | 8,192 | 3,104 + 208 per nested index, 4,768 at the cap | 1.7× at the cap |
+| `Bacnet_Control` | 8,192 | 3,096 + 208 per nested index, 4,760 at the cap | 1.7× at the cap |
 | `ScanTask` | 8,192 | 476 | 17× |
 | `Monitor_Task_task` | 4,000 | 388 | 10× |
 | `refresh_Input_Task` | 2,000 | 312 | 6.4× |
-| `MenuTask` | 1,536 | 144 | 11× |
+| `MenuTask` | 1,536 | 368, through its handler table (Keil alone reports 144) | 4.2× |
 | `Common_task` | 1,024 | 136 | 7.5× |
 | `refresh_Output_Task` | 800 | 80 | 10× |
 | idle | 512 | 88 | 5.8× |
@@ -642,9 +666,14 @@ does not fit shows up as a reset loop on the first power-up rather than later.
 
 Depths are the `[Stack]Max Depth` figures from Keil's call graph
 (`arm/OBJ/Tstat10_arm_revxx.htm`), which cannot see through function pointers
-or recursion, so they are floors. Each interrupt taken while a task runs also
+or recursion, so they are floors. `MenuTask` is the one row that follows a
+pointer by hand, because every screen handler it runs is called through
+`StateArray`: its figure is its own 8 bytes plus the deepest handler,
+`MenuIdle_display` at 360. A key handler that changes screen calls the new
+screen's init through a second pointer, and the deepest of those chains is 336.
+Each interrupt taken while a task runs also
 pushes 32 bytes onto that task's stack. Find the tasks from the callers of
-`xTaskGenericCreate` in the same file rather than by grepping the source: an
+`xTaskCreate` in the same file rather than by grepping the source: an
 earlier count from the source missed five of them, and one of the five,
 `main_dealwithData`, had 4,096 bytes for a 4,160-byte chain. It now has 2048
 words.
@@ -750,7 +779,7 @@ Nothing limited how deep that goes. T3000's compiler accepts any depth, and
 row has room for well over a hundred levels.
 
 Each level costs 208 bytes of the `Bacnet_Control` task's 8 KB stack, which
-already runs 3,104 deep without any, so somewhere past 25 levels it overflows.
+already runs 3,096 deep without any, so it overflows at 25 levels.
 With the overflow hook that means a reset, the program runs again once the
 board is back, and after five such resets `bac_control.c` switches every program
 off — a unit that has quietly stopped running its programs.
@@ -831,23 +860,33 @@ cases are known, and all three are interpreter bugs rather than bad code:
 - a `RETURN` in a subroutine that used `UNACK`, which leaves a value on the stack
   for `RETURN` to pop in place of the address `GOSUB` pushed.
 
-Each now stops the scan with the alarm where it used to run on outside the row.
+When this change went in, each stopped the scan with the alarm where it used to
+run on outside the row. The first two have since been changed to step over
+instead, as noted above.
 Everything else the compiled programs point at is inside them, and they run as
-before. That was checked two ways, with the tools in [Tools](#tools), on 29
-compiled programs: the three on the bench unit, the rest Temco's examples.
+before. That was checked two ways, with the tools in [Tools](#tools), on the 25
+compiled programs in hand: the three on the bench unit, the rest Temco's
+examples.
 
 - `check_programs.py` walks each program as the interpreter does and checks every
   offset against the section it belongs to, which is stricter than the row. All
   pass except two that use `COM1`, which this build does not have. Both pass
   since `rev68VPF14`.
 - `decode_harness/run.py` builds `decode.c` from before and after this change for
-  the PC and runs both on the 29, then on 4,350 damaged copies. 28 of the 29
+  the PC and runs both on the 25, then on 3,750 damaged copies. 24 of the 25
   behave identically. The odd one is a BTU-meter program whose `COM1` sends the
   old interpreter 257 bytes back, into the previous program's row, where it ran
   what it found as statements; the new one abandons the scan. On the damaged
-  copies the old interpreter wrote outside its row 333 times and the new one
+  copies the old interpreter wrote outside its row 316 times and the new one
   never. Every difference between the two is a scan where the old one left its
   row or the new one abandoned it.
+
+  Those figures are for this change alone: `run.py --base fd25150^`, run from a
+  checkout of `fd25150`. From today's `main` the same base shows more, because
+  `COM1` and `ON` are now stepped over: the other `COM1` program differs too, and
+  so do 44 damaged copies where neither version left its row. Those changes are
+  intended, but `run.py` cannot tell that from an accident, so it lists them as
+  unexplained and exits 1.
 
 ### Private transfer bounds
 
@@ -902,12 +941,13 @@ Two more out-of-bounds writes turned up on the same paths:
 
 ### Saves that survive a power cut
 
-The point tables were already saved through a shadow page. `flash_replace_page`
-writes the new page to a spare page first, then a commit record naming its
-destination, and only then erases and rewrites the live page. If power is cut
-after the record is written, `flash_finish_pending_commit` finishes the save from
-the shadow copy at the next boot. Program code and four settings pages bypassed
-it, and were erased and rewritten in place with interrupts off:
+The point tables were already saved through a shadow page.
+`flash_replace_page_locked` writes the new page to a spare page first, then a
+commit record naming its destination, and only then erases and rewrites the
+live page. If power is cut after the record is written,
+`flash_finish_pending_commit` finishes the save from the shadow copy at the next
+boot. Program code and four settings pages bypassed it, and were erased and
+rewritten in place with interrupts off:
 
 - `Flash_Store_Code` erased and rewrote all 16 program pages on every save,
   whichever program had changed. That kept interrupts off for up to about a
@@ -1027,7 +1067,7 @@ already step. Which targets are taken has not changed.
 
 ## To do
 
-Ordered by risk to a unit in the field. Checked against `main` on 2026-09-30.
+Ordered by risk to a unit in the field. Checked against `main` on 2026-10-09.
 
 ### Code
 
@@ -1074,7 +1114,7 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-30.
    check could raise an alarm but not refuse. What keeps the scan off a
    half-written row is a timer: each packet sets `count_wring_code = 5`, and the
    500 ms control loop skips the scan until that runs out, about 2.5 s after the
-   latest packet (`ptransfer.c:2115`, `bac_control.c:812`). Packets further apart
+   latest packet (`ptransfer.c:2116`, `bac_control.c:812`). Packets further apart
    than that, as on a link where T3000 has to retry, would let a scan see a
    half-written program.
 4. **Remote panels never leave the panel table.** `Check_Remote_Panel_Table` in
@@ -1117,7 +1157,8 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-30.
    `modbus.c` and `main.c`. Nothing here has checked that they still build, or
    that the memory-map and stack reasoning holds for them. Both still link the
    BACnet library from `..\BACLIB`, and CM5's library is missing (see
-   [Building](#building)).
+   [Building](#building)). Building either also means changing the product
+   switch in `common/product.h` by hand (see [Scope](#scope)).
 9. **On a Tstat10, UP/DOWN with nothing highlighted toggle the top-area point.**
    In `MenuIdle_keycope` a `disp_index` outside 1-3 falls into the branch meant
    for the top area, and `disp_index` is 0 whenever no row is highlighted, which
@@ -1128,6 +1169,56 @@ Ordered by risk to a unit in the field. Checked against `main` on 2026-09-30.
    scheme gives UP/DOWN no such path (see
    [Keys on a T3-OEM](#keys-on-a-t3-oem)). On a Tstat10 the fix is to require
    `disp_index == 4 && flag_digital_top_area` before touching the point.
+10. **Three forwarding functions trust a length from the prebuilt library.**
+    `Transfer_Mstp_To_Bip_pdu`, `Handler_Complex_Ack` and
+    `Transfer_Bip_To_Mstp_pdu` in `bacnet/private/ptransfer.c` pass BACnet
+    messages between BACnet/IP and MS/TP. They are Temco's, unchanged here, and
+    are reached through `npdu_handler` and `apdu_handler` in the BACnet library,
+    which has no source in this repository. None bounds its copy by the size
+    of the buffer it writes to:
+    - `Transfer_Mstp_To_Bip_pdu` copies `pdu_len - 12` bytes. Under 12 that is
+      negative, and `memcpy` takes it as about 4 GB.
+    - `Handler_Complex_Ack` copies `apdu_len` bytes to offset 6 of the 600-byte
+      `MSTP_Send_buffer`, then `apdu_len + 6` into a 600-byte queue entry, so
+      from 595 it runs past both. The MS/TP receive buffer is 600 bytes
+      (`common/main.c:1882`), which would keep that to 6 bytes.
+    - `Transfer_Bip_To_Mstp_pdu` copies `pdu_len - 7` bytes to offset 11 of the
+      626-byte `TransmitPacket`, which it would overrun from 623. The two calls
+      into the library that are in source pass at most 600 and 511
+      (`common/main.c:1886`, `arm/USER/wifi.c:802`).
+
+    Whether the library can hand over such a length cannot be read from source,
+    and none of this has been seen to happen. A guard at the top of each
+    function would settle it. That is a firmware change and a new image.
+11. **The top area keeps a digital point's label after its setting stops being
+    valid.** `load_top_area_point` in `arm/MENU/menuIdle.c` turns an unusable
+    type or number into no point at all, and `MenuIdle_display` then runs none
+    of its three drawing branches. Those branches are also what clear
+    `flag_digital_top_area`, so if the area was showing a digital point it goes
+    on redrawing that point's label. Going into the menu and back clears it,
+    because `MenuIdle_init` resets the flag, and so does a restart. It is
+    cosmetic, and on both boards. On a T3-OEM the stale area can still be
+    highlighted and edited: no point changes, and the save it schedules finds
+    its page unchanged and writes nothing. Before this work the same setting
+    read past the end of the point table. The fix is to clear the flag when no
+    branch runs, which changes what a Tstat10 draws too.
+12. **Every image carries the same version number.** `SW_REV` in
+    `common/product.h` is still Temco's 6808, so the unit and T3000 show one
+    version, 68.8 in T3000's device list, for all sixteen images and for
+    Temco's own build. Changing it is a decision:
+    - Both ends assume a low part under 10. The unit's scan reply sends
+      `SW_REV / 10 + SW_REV % 10` (`arm/USER/wifi.c:285`), and T3000 tests the
+      two version bytes as high × 10 + low (`BacnetView.cpp:7725` and its
+      settings gates). So 6809 reads as 68.9 in both, while 6810 reads as
+      68.1 in the device list and as 69.0 in the gates. That leaves 6809 as the
+      only step up. It can be used once, and a Temco 68.09 could not be told
+      from it.
+    - T3000's feature gates on the version are ordering tests (`>=`, `>`, `<`,
+      `<=`). None of the thresholds found for this product lies between 676
+      and 698 on that high × 10 + low scale, so 6809 takes the same branch as
+      6808 in each.
+    - The alternative is to report the image number somewhere T3000 does not
+      interpret, such as a spare register or the unit's own screen.
 
 ### On the bench
 
@@ -1311,7 +1402,7 @@ clock rather than by the core.
 
 Flash is not the binding constraint. The scatter file claims `0x60000` at
 `0x08008000`, while the device holds `0x80000` from `0x08000000`. So on top of the
-~78 KB free inside the region, there is another 96 KB that is not allocated at
+~76 KB free inside the region, there is another 96 KB that is not allocated at
 all, out of the 480 KB the bootloader leaves.
 
 RAM is a different story, and it is the real argument for a bigger part. The
