@@ -8,7 +8,7 @@ A glyph is stored row major, packed across row boundaries, least significant
 bit first.  Each pixel is a coverage level of `bpp` bits, so 1 bpp is the
 original ink/no-ink bitmap and anything above that is antialiased: the renderer
 turns the level into a colour through a palette interpolated between dcolor and
-bgcolor.  Four tables:
+bgcolor.  Five tables:
 
     chlibsmall   24x36, 2 bpp, ASCII 32..126        the three value rows
     chlib        48x96, 4 bpp, '0'..'9','-',' '     the big top number
