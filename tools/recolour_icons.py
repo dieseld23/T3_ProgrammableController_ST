@@ -1,7 +1,11 @@
 """Recolour the LCD icon bitmaps for a new screen background.
 
     python tools/recolour_icons.py                 report what would change
-    python tools/recolour_icons.py --bg #0D1520 --write
+    python tools/recolour_icons.py --bg #rrggbb --write
+
+As it stands this changes nothing. The icons left in the source sit on 0x0083,
+today's TSTAT8_BACK_COLOR, which is not in OLD_BACKGROUNDS below; add it there
+before recolouring for another background.
 
 disp_icon() ignores its dcolor/bgcolor arguments and blits the array straight
 out, so every icon carries literal RGB565 pixels -- including whatever screen

@@ -17,6 +17,7 @@ draws a Tstat10 instead, which keeps the fixed number cells and every decimal
 that fits.
 """
 import argparse
+import struct
 
 from PIL import Image
 
@@ -63,12 +64,23 @@ def drop_zero_fraction(out):
     return '0' if whole == '-0' else whole
 
 
+def f32(x):
+    """x as a C float holds it. The firmware formats floats and a Python float is
+    a double, so without this an exact tie can fall the other way."""
+    return struct.unpack('f', struct.pack('f', x))[0]
+
+
 def format_value(v, chars, decimals='trim'):
     """Mirror of format_value() in ER-TFT024-3_4-Wire_SPI.c: pick the decimal
     places from what fits in `chars` cells, then measure, because rounding can
     carry into a new digit. `decimals` is value_decimals_mode(): 'fit' on a
-    Tstat10, and on a T3-OEM register 737's setting, 'trim' by default."""
-    v = min(9999.0, max(-999.0, float(v)))
+    Tstat10, and on a T3-OEM register 737's setting, 'trim' by default.
+
+    The firmware's value is a float, so v is rounded to 32 bits before anything
+    is formatted, and so is the half added for a whole number. Left as a Python
+    float an exact tie goes the other way: -9.85 is "-9.9" on the unit and would
+    be "-9.8" here."""
+    v = f32(min(9999.0, max(-999.0, float(v))))
     room = chars - (1 if v < 0 else 0)
     whole, digits = int(abs(v)), 1
     while whole >= 10:
@@ -80,7 +92,7 @@ def format_value(v, chars, decimals='trim'):
         if len(out) <= chars:
             return drop_zero_fraction(out) if decimals == 'trim' else out
         places -= 1
-    return '%d' % int(v - 0.5 if v < 0 else v + 0.5)
+    return '%d' % int(f32(v - 0.5) if v < 0 else f32(v + 0.5))
 
 
 def justify_value(text, chars):

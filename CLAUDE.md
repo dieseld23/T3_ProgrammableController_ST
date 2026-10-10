@@ -10,18 +10,22 @@ before starting anything.
 
 Update this section at the end of each piece of work.
 
-- As of 2026-09-30, `main` holds everything through PR #24. PRs are merged by Dan.
+- As of 2026-10-09, `main` holds everything through PR #25. PRs are merged by Dan.
 - The newest image is `arm/OBJ/Tstat10_arm_rev68VPF16.hex`, and it carries
   everything. `rev68VPF4` is the newest one confirmed on the unit.
 - `rev68VPF5` to `rev68VPF16` have not been flashed. Their checks are open in the
   README's *On the bench*, and one flash of `rev68VPF16` covers them all.
-- Waiting on Dan: flashing `rev68VPF16`. The one open decision is whether `ON`
+- Waiting on Dan: flashing `rev68VPF16`, and two decisions. One is whether `ON`
   should jump for a whole selector (README To do 1 lists what that needs). On
   2026-09-29 Dan chose to fix only its fall-through (done in `rev68VPF15`).
-  The download-time check is parked.
-- Done in PR #23 (`rev68VPF16`): the top-area centring `todo:`, with the
-  Fixed-2 layout (centred as if two digits wide), T3-OEM and °F/°C only.
-  Nothing else is in progress.
+  The other is how an image should say which one it is, since all sixteen carry
+  `SW_REV` 6808 (README To do 12). The download-time check is parked.
+- The fork was audited end to end (PRs #1 to #24, finished 2026-10-06) and no
+  bug it introduced was found. What was found is in the README: unchecked
+  lengths in three of Temco's forwarding functions (To do 10), a stale top-area
+  label (To do 11), the version number (To do 12), and doc and tool mismatches
+  that PR #25 fixed with no firmware change and no new image. Nothing else is
+  in progress.
 - Waiting on test hardware: remote-panel expiry and the MS/TP scan's
   uninitialised count need an MS/TP network or a second panel.
 - Items Dan flags with `todo:` live in Claude's project memory (`todo-list.md`),
